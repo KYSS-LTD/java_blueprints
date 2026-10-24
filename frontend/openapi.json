@@ -2480,6 +2480,59 @@
         }
       }
     },
+    "/api/projects/{project_id}/decompose/rescore": {
+      "post": {
+        "tags": [
+          "transform"
+        ],
+        "summary": "Пересчитать план декомпозиции после правок",
+        "description": "Состав классов и имена берутся из запроса; пересчитываются строки классов, связи между ними, предупреждения и метрики «после». Код не генерируется и не компилируется, поэтому вызов быстрый и подходит для перетаскивания методов между классами.",
+        "operationId": "rescore_decompose",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecomposeEdit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecomposePlan"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Ошибка в едином формате",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/projects/{project_id}/decompose/preview": {
       "post": {
         "tags": [
@@ -4411,6 +4464,13 @@
           },
           "metrics": {
             "$ref": "#/components/schemas/DecomposeMetrics"
+          },
+          "pinned": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Pinned"
           }
         },
         "type": "object",
@@ -4418,7 +4478,8 @@
           "classes",
           "edges",
           "warnings",
-          "metrics"
+          "metrics",
+          "pinned"
         ],
         "title": "DecomposePlan"
       },

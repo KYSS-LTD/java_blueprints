@@ -196,6 +196,25 @@ describe("AnalysisPanel на моках", () => {
     expect(within(row).queryByTestId("fix-preview")).not.toBeInTheDocument();
   });
 
+  it("длинный метод предлагает выделить фрагмент, а монолит — декомпозицию", async () => {
+    const user = userEvent.setup();
+    const { workspace } = await renderPanel();
+    const byRule = (rule: string) =>
+      screen.getAllByTestId("finding-card").find((c) => c.getAttribute("data-rule") === rule) as HTMLElement;
+
+    await user.click(within(byRule("MAINT-01")).getByTestId("refactor-extract"));
+    // метод открыт во вкладке: оттуда выбираются блоки для выделения
+    expect(workspace.getState().tabs.map((t) => t.kind)).toEqual(["method"]);
+    expect(workspace.getState().extractTarget).toBeNull(); // фрагмент выбирает пользователь
+
+    await user.click(within(byRule("MAINT-05")).getByTestId("refactor-decompose"));
+    expect(workspace.getState().activeTabId).toBe("decompose");
+    expect(workspace.getState().tabs.map((t) => t.kind)).toEqual(["method", "decompose"]);
+
+    // у находок без такого рефакторинга кнопок нет
+    expect(within(byRule("PERF-01")).queryByTestId("refactor-row")).not.toBeInTheDocument();
+  });
+
   it("вкладка «Рекомендации» показывает только исправимые находки с предусловиями", async () => {
     const user = userEvent.setup();
     const { workspace } = await renderPanel();

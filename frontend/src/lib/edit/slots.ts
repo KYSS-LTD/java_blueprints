@@ -175,6 +175,23 @@ export function clickPoint(model: FlowModel, selectedId: string | null): InsertP
   return methodBodyEnd(model);
 }
 
+/**
+ * Подряд идущие операторы одного слота от `fromId` до `toId` включительно (в порядке кода);
+ * `null`, если блоки лежат в разных слотах или один из них не оператор тела.
+ */
+export function siblingRange(model: FlowModel, fromId: string, toId: string): string[] | null {
+  const from = model.blocks.get(fromId);
+  const to = model.blocks.get(toId);
+  const first = from ? slotOfStatement(model, from) : null;
+  const second = to ? slotOfStatement(model, to) : null;
+  if (!first || !second || first.prefix !== second.prefix) return null;
+  const siblings = siblingsOf(model, first);
+  const a = siblings.indexOf(fromId);
+  const b = siblings.indexOf(toId);
+  if (a === -1 || b === -1) return null;
+  return siblings.slice(Math.min(a, b), Math.max(a, b) + 1);
+}
+
 /** Оператор можно переместить, дублировать и удалить как строку тела. */
 export function isMovable(model: FlowModel, blockId: string): boolean {
   const block = model.blocks.get(blockId);

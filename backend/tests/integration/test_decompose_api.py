@@ -157,6 +157,60 @@ def test_plan_can_be_edited_before_applying(client):
     ), again.text
 
 
+def test_rescore_recounts_a_plan_after_a_method_moves(client):
+    project = make(client, "demo-orders")
+    plan = plan_of(client, project)
+    base = project["head_version_id"]
+    rescore = lambda p: client.post(  # noqa: E731
+        url(project, "/decompose/rescore"), json={"base_version_id": base, "plan": p}
+    )
+
+    untouched = rescore(plan)
+    assert untouched.status_code == 200, untouched.text
+    assert untouched.json() == plan  # план из `plan` уже пересчитан: правок нет, ответ тот же
+
+    edited = copy.deepcopy(plan)
+    first, second = [c for c in edited["classes"] if c["role"] not in {"core", "model"}][:2]
+    method = first["members"].pop(0)
+    second["members"].append(method)
+    body = rescore(edited).json()
+    lines = {c["name"]: c["lines"] for c in body["classes"]}
+    before = {c["name"]: c["lines"] for c in plan["classes"]}
+    assert lines[first["name"]] < before[first["name"]]
+    assert lines[second["name"]] > before[second["name"]]
+    assert body["edges"] != plan["edges"]
+
+    stale = copy.deepcopy(edited)
+    stale["warnings"] = ["устаревшее"]
+    assert "устаревшее" not in rescore(stale).json()["warnings"]
+
+    # предпросмотр возвращает тот же пересчитанный план
+    preview = client.post(
+        url(project, "/decompose/preview"), json={"base_version_id": base, "plan": edited}
+    )
+    assert preview.status_code == 200, preview.text
+    assert preview.json()["plan"] == body
+
+    taken = copy.deepcopy(edited)
+    taken["classes"][1]["name"] = "Order"  # имя существующего типа
+    assert "занято" in rescore(taken).json()["error"]["message"]
+    stolen = copy.deepcopy(plan)
+    entry = next(m for m in plan["pinned"] if m.endswith(".main(String[])"))
+    stolen["classes"][0]["members"].remove(entry)
+    stolen["classes"][1]["members"].append(entry)
+    assert rescore(stolen).status_code == 422
+
+    no_core = copy.deepcopy(plan)
+    no_core["classes"] = [c for c in no_core["classes"] if c["role"] != "core"]
+    assert rescore(no_core).status_code == 400
+    assert (
+        client.post(
+            url(project, "/decompose/rescore"), json={"base_version_id": 999, "plan": plan}
+        ).status_code
+        == 409
+    )
+
+
 def test_invalid_plans_are_refused_with_a_reason(client):
     project = make(client, "demo-orders")
     plan = plan_of(client, project)

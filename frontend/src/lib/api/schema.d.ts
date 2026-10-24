@@ -696,6 +696,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/decompose/rescore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Пересчитать план декомпозиции после правок
+         * @description Состав классов и имена берутся из запроса; пересчитываются строки классов, связи между ними, предупреждения и метрики «после». Код не генерируется и не компилируется, поэтому вызов быстрый и подходит для перетаскивания методов между классами.
+         */
+        post: operations["rescore_decompose"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/decompose/preview": {
         parameters: {
             query?: never;
@@ -1306,6 +1326,10 @@ export interface components {
             /** Warnings */
             warnings: string[];
             metrics: components["schemas"]["DecomposeMetrics"];
+            /** Pinned */
+            pinned: {
+                [key: string]: string;
+            };
         };
         /** DecomposePlanRequest */
         DecomposePlanRequest: {
@@ -4599,6 +4623,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["DecomposePlanRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecomposePlan"];
+                };
+            };
+            /** @description Ошибка в едином формате */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    rescore_decompose: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecomposeEdit"];
             };
         };
         responses: {

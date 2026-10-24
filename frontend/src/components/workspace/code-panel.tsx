@@ -137,6 +137,8 @@ export function CodePanel({ projectId, versionId }: Props) {
   const onSave = useCallback(() => {
     void flushDrafts(queryClient, projectId).catch(() => undefined);
   }, [queryClient, projectId]);
+  const openExtract = useWorkspaceStore((s) => s.openExtract);
+  const onExtract = useCallback((range: SourceRange) => openExtract({ range }), [openExtract]);
 
   // Рабочая область закрывается: набранное, но не сохранённое уходит на сервер.
   useEffect(
@@ -179,6 +181,7 @@ export function CodePanel({ projectId, versionId }: Props) {
             onCursor={onCursor}
             onChange={onChange}
             onSave={onSave}
+            onExtract={onExtract}
           />
         )}
       </div>

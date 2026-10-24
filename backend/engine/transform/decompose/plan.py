@@ -121,6 +121,8 @@ class Plan:
     warnings: list[str] = field(default_factory=list)
     before: Stat = field(default_factory=lambda: Stat(0, 0.0))
     after: Stat = field(default_factory=lambda: Stat(0, 0.0))
+    # члены, которые остаются в ядре, и причина (поля, конструкторы, ``main`` и закреплённые методы)
+    pinned: dict[str, str] = field(default_factory=dict)
 
     def core(self) -> PlanClass:
         return next(c for c in self.classes if c.role == "core")
@@ -429,7 +431,7 @@ def build_plan(
     movable = [m for m in decl.members if m.kind == "method" and m.id not in stay]
     file = decl.id.split("#", 1)[0]
     plan_classes: list[PlanClass] = []
-    plan = Plan(decl.id, plan_classes)
+    plan = Plan(decl.id, plan_classes, pinned=dict(stay))
     members_by_id = {m.id: m for m in decl.members}
     fields = {m.id for m in decl.members if m.kind == "field"}
     file_text = project.files[file]
@@ -492,26 +494,7 @@ def build_plan(
             )
         )
 
-    owner = {m_id: c.name for c in plan_classes for m_id in c.members}
-    for source in plan_classes:
-        calls: Counter[str] = Counter()
-        used_fields: dict[str, set[str]] = defaultdict(set)
-        for member_id in source.members:
-            member = members_by_id[member_id]
-            if member.kind not in FLOWABLE:
-                continue
-            for callee, count in project.call_counts(member).items():
-                target = owner.get(callee)
-                if target and target != source.name:
-                    calls[target] += count
-            for field_id in project.use_counts(member)[0]:
-                target = owner.get(field_id)
-                if target and target != source.name:
-                    used_fields[target].add(field_id)
-        for target in sorted(set(calls) | set(used_fields)):
-            plan.edges.append(
-                PlanEdge(source.name, target, calls[target], len(used_fields[target]))
-            )
+    plan.edges = _edges_of(project, plan_classes, members_by_id)
     _warn(plan)
     after = [lcom4_of(project, [members_by_id[i] for i in c.members], fields) for c in plan_classes]
     shown = [v for v in after if v > 0]
@@ -547,6 +530,72 @@ def build_plan(
     return plan
 
 
+def _edges_of(
+    project: JavaProject, classes: list[PlanClass], members_by_id: dict[str, Member]
+) -> list[PlanEdge]:
+    """Связи между классами плана: вызовы и общие поля (id типов, вынесенных в свои файлы, не участвуют)."""
+    owner = {m_id: c.name for c in classes for m_id in c.members if m_id in members_by_id}
+    edges: list[PlanEdge] = []
+    for source in classes:
+        calls: Counter[str] = Counter()
+        used_fields: dict[str, set[str]] = defaultdict(set)
+        for member_id in source.members:
+            member = members_by_id.get(member_id)
+            if member is None or member.kind not in FLOWABLE:
+                continue
+            for callee, count in project.call_counts(member).items():
+                target = owner.get(callee)
+                if target and target != source.name:
+                    calls[target] += count
+            for field_id in project.use_counts(member)[0]:
+                target = owner.get(field_id)
+                if target and target != source.name:
+                    used_fields[target].add(field_id)
+        for target in sorted(set(calls) | set(used_fields)):
+            edges.append(PlanEdge(source.name, target, calls[target], len(used_fields[target])))
+    return edges
+
+
+def rescore(project: JavaProject, plan: Plan) -> Plan:
+    """Пересчитывает производное в плане, правленном вручную: строки, связи, предупреждения и метрики «после».
+
+    Состав классов, имена и роли остаются как есть; проверка допустимости переносов — дело ``generate``.
+    """
+    decl = next((t for t in project.types() if t.id == plan.type_id), None)
+    if decl is None:
+        raise LookupError("класс для декомпозиции не найден")
+    members_by_id = {m.id: m for m in decl.members}
+    fields = {m.id for m in decl.members if m.kind == "field"}
+
+    classes: list[PlanClass] = []
+    inner: list[tuple[PlanClass, list[Member]]] = []  # классы с методами монолита
+    detached = 0  # строки типов, вынесенных в свои файлы целиком
+    for c in plan.classes:
+        known = [members_by_id[i] for i in c.members if i in members_by_id]
+        if not known:
+            classes.append(PlanClass(c.name, c.role, c.file, list(c.members), c.lines, c.reason))
+            detached += max(c.lines - 2, 0)
+            continue
+        extra = 4 if c.role == "core" else 8
+        scored = PlanClass(
+            c.name, c.role, c.file, list(c.members), lines_of(project, known) + extra, c.reason
+        )
+        classes.append(scored)
+        inner.append((scored, known))
+
+    result = Plan(plan.type_id, classes, before=plan.before, pinned=pinned(project, decl))
+    result.edges = _edges_of(project, classes, members_by_id)
+    _warn(result)
+    moved = [(c, known) for c, known in inner if c.role != "core"]
+    moved_lines = sum(lines_of(project, known) for _, known in moved)
+    shown = [v for v in (lcom4_of(project, known, fields) for _, known in inner) if v > 0]
+    result.after = Stat(
+        max(plan.before.lines - moved_lines - detached + len(moved) + 1, 0),
+        round(sum(shown) / len(shown), 2) if shown else 0.0,
+    )
+    return result
+
+
 def _warn(plan: Plan) -> None:
     core = plan.core().name
     pairs = {(e.from_, e.to) for e in plan.edges if core not in (e.from_, e.to)}
@@ -560,4 +609,13 @@ def _warn(plan: Plan) -> None:
             plan.warnings.append(f"{edge.from_} использует {edge.fields} полей класса {edge.to}")
 
 
-__all__ = ["Plan", "PlanClass", "PlanEdge", "Stat", "base_name", "build_plan", "monolith"]
+__all__ = [
+    "Plan",
+    "PlanClass",
+    "PlanEdge",
+    "Stat",
+    "base_name",
+    "build_plan",
+    "monolith",
+    "rescore",
+]

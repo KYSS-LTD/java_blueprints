@@ -175,8 +175,9 @@ REST + SSE. Префикс `/api`. Формат — JSON (UTF-8). Схемы —
 | `POST` | `/api/projects/{id}/extract-method/preview` | `{node_ids[] \| range, name?}` → код и diff |
 | `POST` | `/api/projects/{id}/extract-method/apply` | → кандидат + gate (как у `fixes/apply`) |
 | `POST` | `/api/projects/{id}/decompose/plan` | `{options?}` → `DecomposePlan` |
-| `POST` | `/api/projects/{id}/decompose/preview` | Принимает отредактированный план → diff по файлам |
-| `POST` | `/api/projects/{id}/decompose/apply` | → кандидат + gate |
+| `POST` | `/api/projects/{id}/decompose/rescore` | `{base_version_id, plan}` → `DecomposePlan`: после ручной правки пересчитывает строки классов, связи, предупреждения и метрики «после». Состав и имена берутся из запроса, код не генерируется и не компилируется (быстрый вызов для перетаскивания методов). Недопустимый план (занятое имя, перенос закреплённого члена, класс без методов) — `422` с причиной, как при предпросмотре |
+| `POST` | `/api/projects/{id}/decompose/preview` | `{base_version_id, plan}` → пересчитанный `plan`, diff по файлам (новые — `added`) и предупреждения, в том числе «результат не компилируется» |
+| `POST` | `/api/projects/{id}/decompose/apply` | `{base_version_id, plan}` → кандидат + gate |
 | `POST` | `/api/projects/{id}/versions/{vid}/accept` | Подтвердить кандидата после красного gate (для `behavior_preserving = false`): обновляет эталоны затронутых сценариев |
 | `POST` | `/api/projects/{id}/versions/{vid}/reject` | Отклонить кандидата |
 
@@ -191,9 +192,12 @@ REST + SSE. Префикс `/api`. Формат — JSON (UTF-8). Схемы —
   ],
   "edges": [{"from": "Main", "to": "Parser", "calls": 4, "fields": 0}],
   "warnings": ["Метод summarize использует 5 полей другого класса"],
-  "metrics": {"before": {"lines": 1012, "lcom4": 5}, "after": {"lines": 640, "lcom4": 1.6}}
+  "metrics": {"before": {"lines": 1012, "lcom4": 5}, "after": {"lines": 640, "lcom4": 1.6}},
+  "pinned": {"Main.java#Main.main(String[])": "точка входа", "Main.java#Main.lines": "состояние остаётся в ядре"}
 }
 ```
+
+`pinned` — члены, которые остаются в ядре, и причина (поля, конструкторы, `main`, методы с внутренними классами, `this` в анонимных классах, унаследованными членами, ссылками `Тип::метод`). Их нельзя переносить: интерфейс запирает такие члены, а `rescore`, `preview` и `apply` отвечают `422`. Классы с `role=model` — типы, вынесенные в свои файлы целиком (в `members` их id): методы в них не переносятся.
 
 ## 8. Сценарии, запуски, проверка
 

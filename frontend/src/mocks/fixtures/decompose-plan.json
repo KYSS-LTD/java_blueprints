@@ -1,0 +1,261 @@
+{
+  "classes": [
+    {
+      "name": "Main",
+      "role": "core",
+      "file": "Main.java",
+      "members": [
+        "Main.java#Main.MAX_QUANTITY",
+        "Main.java#Main.MAX_PRICE",
+        "Main.java#Main.MAX_NAME_LENGTH",
+        "Main.java#Main.VIP_CUSTOMER",
+        "Main.java#Main.CANCELLED_LABEL",
+        "Main.java#Main.orders",
+        "Main.java#Main.history",
+        "Main.java#Main.commandCount",
+        "Main.java#Main.errorCount",
+        "Main.java#Main.discountPercent",
+        "Main.java#Main.main(String[])",
+        "Main.java#Main.run(Scanner)",
+        "Main.java#Main.processCommand(String, Scanner)",
+        "Main.java#Main.tokenize(String)",
+        "Main.java#Main.requireArg(String[], int, String)",
+        "Main.java#Main.parseInt(String, String)",
+        "Main.java#Main.parseMoney(String, String)",
+        "Main.java#Main.parseOrder(String[], int)",
+        "Main.java#Main.normalizeName(String)",
+        "Main.java#Main.readBatch(Scanner, int)",
+        "Main.java#Main.processOrders(List<Order>)",
+        "Main.java#Main.changeStatus(int, OrderStatus)",
+        "Main.java#Main.showOrder(int)",
+        "Main.java#Main.printHeader()",
+        "Main.java#Main.printFooter()",
+        "Main.java#Main.repeat(char, int)",
+        "Main.java#Main.padRight(String, int)",
+        "Main.java#Main.printOrders(List<Order>)",
+        "Main.java#Main.printStatusBars()",
+        "Main.java#Main.bar(int, int)",
+        "Main.java#Main.printTopCustomers(int)",
+        "Main.java#Main.printCustomers()",
+        "Main.java#Main.printCsvSummary()",
+        "Main.java#Main.printHistory()"
+      ],
+      "lines": 313,
+      "reason": "поля, конструкторы, точка входа и оркестрация"
+    },
+    {
+      "name": "Analyzer",
+      "role": "analyzer",
+      "file": "Analyzer.java",
+      "members": [
+        "Main.java#Main.findOrderById(int)",
+        "Main.java#Main.addOrder(Order)",
+        "Main.java#Main.removeOrder(int)",
+        "Main.java#Main.findByCustomer(String)",
+        "Main.java#Main.maxOrder()",
+        "Main.java#Main.minOrder()",
+        "Main.java#Main.statusHistogram()",
+        "Main.java#Main.distinctCustomers()",
+        "Main.java#Main.findAnomalies()",
+        "Main.java#Main.countByStatusLabel()",
+        "Main.java#Main.expensiveProducts(double)",
+        "Main.java#Main.countLargeOrders(int)",
+        "Main.java#Main.mergeDuplicates()",
+        "Main.java#Main.buildCsv()",
+        "Main.java#Main.formatAmount(double)",
+        "Main.java#Main.printStats()",
+        "Main.java#Main.printByCustomer(String)",
+        "Main.java#Main.printByProduct(String)",
+        "Main.java#Main.printReport()"
+      ],
+      "lines": 235,
+      "reason": "19 методов (addOrder, buildCsv, countByStatusLabel, countLargeOrders…); роль по глаголам: analyzer"
+    },
+    {
+      "name": "AmountAnalyzer",
+      "role": "analyzer",
+      "file": "AmountAnalyzer.java",
+      "members": [
+        "Main.java#Main.purgeCancelled()",
+        "Main.java#Main.totalAmount()",
+        "Main.java#Main.averageAmount()",
+        "Main.java#Main.medianAmount()",
+        "Main.java#Main.percentile(double)",
+        "Main.java#Main.totalForCustomer(String)",
+        "Main.java#Main.totalForProduct(String)",
+        "Main.java#Main.topCustomers(int)",
+        "Main.java#Main.topN(List<T>, Comparator<? super T>, int)",
+        "Main.java#Main.streamTotalForCustomer(String)"
+      ],
+      "lines": 116,
+      "reason": "10 методов (averageAmount, medianAmount, percentile, purgeCancelled…); роль по глаголам: analyzer"
+    },
+    {
+      "name": "CustomerAnalyzer",
+      "role": "analyzer",
+      "file": "CustomerAnalyzer.java",
+      "members": [
+        "Main.java#Main.validate(Order)",
+        "Main.java#Main.checkId(Order)",
+        "Main.java#Main.checkCustomer(Order)",
+        "Main.java#Main.checkProduct(Order)",
+        "Main.java#Main.checkQuantity(Order)",
+        "Main.java#Main.checkPrice(Order)"
+      ],
+      "lines": 60,
+      "reason": "6 методов (checkCustomer, checkId, checkPrice, checkProduct…); роль по глаголам: analyzer"
+    },
+    {
+      "name": "DiscountUtils",
+      "role": "util",
+      "file": "DiscountUtils.java",
+      "members": [
+        "Main.java#Main.applyDiscount(double)",
+        "Main.java#Main.discountFor(Order)",
+        "Main.java#Main.roundMoney(double)"
+      ],
+      "lines": 40,
+      "reason": "3 методов (applyDiscount, discountFor, roundMoney…)"
+    },
+    {
+      "name": "Describable",
+      "role": "model",
+      "file": "Describable.java",
+      "members": [
+        "Main.java#Describable"
+      ],
+      "lines": 9,
+      "reason": "тип вынесен в отдельный файл"
+    },
+    {
+      "name": "OrderStatus",
+      "role": "model",
+      "file": "OrderStatus.java",
+      "members": [
+        "Main.java#OrderStatus"
+      ],
+      "lines": 26,
+      "reason": "тип вынесен в отдельный файл"
+    },
+    {
+      "name": "Order",
+      "role": "model",
+      "file": "Order.java",
+      "members": [
+        "Main.java#Order"
+      ],
+      "lines": 97,
+      "reason": "тип вынесен в отдельный файл"
+    },
+    {
+      "name": "CustomerTotal",
+      "role": "model",
+      "file": "CustomerTotal.java",
+      "members": [
+        "Main.java#CustomerTotal"
+      ],
+      "lines": 13,
+      "reason": "тип вынесен в отдельный файл"
+    },
+    {
+      "name": "OrderParseException",
+      "role": "model",
+      "file": "OrderParseException.java",
+      "members": [
+        "Main.java#OrderParseException"
+      ],
+      "lines": 9,
+      "reason": "тип вынесен в отдельный файл"
+    },
+    {
+      "name": "OrderValidationException",
+      "role": "model",
+      "file": "OrderValidationException.java",
+      "members": [
+        "Main.java#OrderValidationException"
+      ],
+      "lines": 9,
+      "reason": "тип вынесен в отдельный файл"
+    }
+  ],
+  "edges": [
+    {
+      "from": "Main",
+      "to": "AmountAnalyzer",
+      "calls": 2,
+      "fields": 0
+    },
+    {
+      "from": "Main",
+      "to": "Analyzer",
+      "calls": 12,
+      "fields": 0
+    },
+    {
+      "from": "Main",
+      "to": "DiscountUtils",
+      "calls": 1,
+      "fields": 0
+    },
+    {
+      "from": "Analyzer",
+      "to": "AmountAnalyzer",
+      "calls": 8,
+      "fields": 0
+    },
+    {
+      "from": "Analyzer",
+      "to": "CustomerAnalyzer",
+      "calls": 1,
+      "fields": 0
+    },
+    {
+      "from": "Analyzer",
+      "to": "Main",
+      "calls": 2,
+      "fields": 1
+    },
+    {
+      "from": "AmountAnalyzer",
+      "to": "Main",
+      "calls": 0,
+      "fields": 1
+    },
+    {
+      "from": "CustomerAnalyzer",
+      "to": "Main",
+      "calls": 0,
+      "fields": 3
+    },
+    {
+      "from": "DiscountUtils",
+      "to": "Main",
+      "calls": 0,
+      "fields": 3
+    }
+  ],
+  "warnings": [],
+  "metrics": {
+    "before": {
+      "lines": 995,
+      "lcom4": 1.0
+    },
+    "after": {
+      "lines": 430,
+      "lcom4": 1.2
+    }
+  },
+  "pinned": {
+    "Main.java#Main.MAX_QUANTITY": "состояние остаётся в ядре",
+    "Main.java#Main.MAX_PRICE": "состояние остаётся в ядре",
+    "Main.java#Main.MAX_NAME_LENGTH": "состояние остаётся в ядре",
+    "Main.java#Main.VIP_CUSTOMER": "состояние остаётся в ядре",
+    "Main.java#Main.CANCELLED_LABEL": "состояние остаётся в ядре",
+    "Main.java#Main.orders": "состояние остаётся в ядре",
+    "Main.java#Main.history": "состояние остаётся в ядре",
+    "Main.java#Main.commandCount": "состояние остаётся в ядре",
+    "Main.java#Main.errorCount": "состояние остаётся в ядре",
+    "Main.java#Main.discountPercent": "состояние остаётся в ядре",
+    "Main.java#Main.main(String[])": "точка входа"
+  }
+}

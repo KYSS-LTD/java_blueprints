@@ -10,6 +10,7 @@ import { useInsertBlock } from "@/lib/edit/use-insert";
 import type { Block, FlowModel, NodeKind } from "@/lib/graph/flow-model";
 import { ru } from "@/lib/i18n/ru";
 import { useEditorStore } from "@/stores/editor-store";
+import { useWorkspaceStore } from "@/stores/workspace-store";
 
 export type Wrapper = "if" | "try" | "for" | "while" | "block";
 export type Branch = "else" | "else_if" | "catch" | "finally" | "case" | "default";
@@ -30,6 +31,8 @@ export type BlockCapabilities = {
   remove: boolean;
   wrap: boolean;
   unwrap: boolean;
+  /** Оператор тела можно выделить в метод (вместе с остальными выбранными). */
+  extract: boolean;
   branches: Branch[];
 };
 
@@ -43,6 +46,7 @@ export function capabilitiesOf(model: FlowModel, block: Block): BlockCapabilitie
     remove: (statement || clause) && block.kind !== "method",
     wrap: statement,
     unwrap: statement && UNWRAPPABLE.has(block.kind),
+    extract: statement,
     branches: BRANCHES[block.kind] ?? [],
   };
 }
@@ -160,6 +164,17 @@ export function useCanvasEditing(projectId: number, model: FlowModel) {
     [model, methodId, openInspector, run, describe],
   );
 
+  /** Выбранные блоки (а если блок не входит в выбор — он один) уходят в диалог «Выделить в метод». */
+  const extract = useCallback(
+    (nodeId: string) => {
+      const picked = new Set(useWorkspaceStore.getState().selectedIds);
+      const nodeIds =
+        picked.size > 1 && picked.has(nodeId) ? model.order.filter((id) => picked.has(id)) : [nodeId];
+      useWorkspaceStore.getState().openExtract({ nodeIds });
+    },
+    [model],
+  );
+
   /** Блок схемы брошен на новое место. */
   const move = useCallback(
     (nodeId: string, point: InsertPoint) => {
@@ -187,11 +202,12 @@ export function useCanvasEditing(projectId: number, model: FlowModel) {
       unwrap,
       wrap,
       addBranch,
+      extract,
       move,
       insert,
       pendingDelete,
       cancelDelete: () => setPendingDelete(null),
     }),
-    [edit, remove, requestDelete, duplicate, unwrap, wrap, addBranch, move, insert, pendingDelete],
+    [edit, remove, requestDelete, duplicate, unwrap, wrap, addBranch, extract, move, insert, pendingDelete],
   );
 }

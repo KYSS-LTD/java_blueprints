@@ -219,6 +219,23 @@ def plan_decompose(
 
 
 @router.post(
+    "/projects/{project_id}/decompose/rescore",
+    summary="Пересчитать план декомпозиции после правок",
+    description=(
+        "Состав классов и имена берутся из запроса; пересчитываются строки классов, связи между ними, "
+        "предупреждения и метрики «после». Код не генерируется и не компилируется, поэтому вызов быстрый "
+        "и подходит для перетаскивания методов между классами."
+    ),
+)
+def rescore_decompose(
+    project: ProjectDep, session: SessionDep, payload: DecomposeEdit
+) -> DecomposePlan:
+    versions_service.require_head(project, payload.base_version_id)
+    head = versions_service.head_version(session, project)
+    return decompose_service.rescore(graphs.java_project(session, head), payload.plan)
+
+
+@router.post(
     "/projects/{project_id}/decompose/preview",
     summary="Предпросмотр декомпозиции по отредактированному плану",
     description=(

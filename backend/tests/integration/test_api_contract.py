@@ -59,6 +59,7 @@ EXPECTED_ENDPOINTS = {
     ("POST", "/api/projects/{}/extract-method/preview"),
     ("POST", "/api/projects/{}/extract-method/apply"),
     ("POST", "/api/projects/{}/decompose/plan"),
+    ("POST", "/api/projects/{}/decompose/rescore"),
     ("POST", "/api/projects/{}/decompose/preview"),
     ("POST", "/api/projects/{}/decompose/apply"),
     ("POST", "/api/projects/{}/versions/{}/accept"),

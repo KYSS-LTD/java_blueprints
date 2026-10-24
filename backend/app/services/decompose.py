@@ -13,8 +13,17 @@ from app.services import fixes as fixes_service
 from app.services import versions as versions_service
 from engine.java.project import JavaProject, content_hash_of
 from engine.transform.base import FixProposal
-from engine.transform.decompose.generate import DecomposeError, Generated, generate
-from engine.transform.decompose.plan import Plan, PlanClass, PlanEdge, Stat, build_plan
+from engine.transform.decompose.generate import DecomposeError, Generated, generate, validate
+from engine.transform.decompose.plan import (
+    Plan,
+    PlanClass,
+    PlanEdge,
+    Stat,
+    build_plan,
+)
+from engine.transform.decompose.plan import (
+    rescore as rescore_plan,
+)
 
 SUMMARY = (
     "Методы кластеров переносятся в новые классы, состояние остаётся в ядре, вызовы переписываются."
@@ -39,6 +48,7 @@ def to_schema(plan: Plan) -> schemas.DecomposePlan:
             for e in plan.edges
         ],
         warnings=plan.warnings,
+        pinned=plan.pinned,
         metrics=schemas.DecomposeMetrics(
             before=schemas.DecomposeStat(lines=plan.before.lines, lcom4=plan.before.lcom4),
             after=schemas.DecomposeStat(lines=plan.after.lines, lcom4=plan.after.lcom4),
@@ -59,6 +69,7 @@ def from_schema(plan: schemas.DecomposePlan) -> Plan:
         ],
         edges=[PlanEdge(e.from_, e.to, e.calls, e.fields) for e in plan.edges],
         warnings=list(plan.warnings),
+        pinned=dict(plan.pinned),
         before=Stat(plan.metrics.before.lines, plan.metrics.before.lcom4),
         after=Stat(plan.metrics.after.lines, plan.metrics.after.lcom4),
     )
@@ -77,6 +88,22 @@ def make_plan(java: JavaProject, options: schemas.DecomposeOptions | None) -> sc
     return to_schema(plan)
 
 
+def rescore(java: JavaProject, plan: schemas.DecomposePlan) -> schemas.DecomposePlan:
+    """Строки, связи, предупреждения и метрики «после» для плана, правленного пользователем.
+
+    Недопустимый план (занятое имя, перенос закреплённого члена, пустой класс) отклоняется с причиной —
+    так же, как при предпросмотре.
+    """
+    parsed = from_schema(plan)
+    try:
+        validate(java, parsed)
+        return to_schema(rescore_plan(java, parsed))
+    except DecomposeError as error:
+        raise ApiError(422, "PRECONDITION_FAILED", error.message) from error
+    except LookupError as error:
+        raise ApiError(422, "PRECONDITION_FAILED", str(error)) from error
+
+
 def build_files(java: JavaProject, plan: schemas.DecomposePlan) -> Generated:
     try:
         return generate(java, from_schema(plan))
@@ -93,6 +120,7 @@ def preview(
         {p: java.files[p] for p in changed if p in java.files},
         {p: generated.files[p] for p in changed},
     )
+    plan = rescore(java, plan)
     warnings = list(plan.warnings) + generated.warnings
     try:  # компиляция результата: ошибку видно до применения
         content_hash = content_hash_of(generated.files)

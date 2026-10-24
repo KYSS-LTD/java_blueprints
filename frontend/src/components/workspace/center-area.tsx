@@ -1,9 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { CircleAlert, Network, SquareFunction, X } from "lucide-react";
+import { Boxes, CircleAlert, Network, SquareFunction, X } from "lucide-react";
 import { useCallback } from "react";
 
+import { DecomposeView } from "@/components/decompose/decompose-view";
 import { FlowCanvas } from "@/components/graph/flow-canvas";
 import { StructureCanvas } from "@/components/graph/structure-canvas";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -27,7 +28,9 @@ function TabBar() {
   const setActiveTab = useWorkspaceStore((s) => s.setActiveTab);
   const closeTab = useWorkspaceStore((s) => s.closeTab);
   const openStructure = useWorkspaceStore((s) => s.openStructure);
+  const openDecompose = useWorkspaceStore((s) => s.openDecompose);
   const hasStructure = tabs.some((tab) => tab.kind === "structure");
+  const hasDecompose = tabs.some((tab) => tab.kind === "decompose");
 
   return (
     <div className="flex h-9 shrink-0 items-end gap-0.5 overflow-x-auto border-b bg-card/60 px-2" role="tablist">
@@ -51,6 +54,18 @@ function TabBar() {
           <Network /> {ru.tabs.structure}
         </Button>
       )}
+      {!hasDecompose && (
+        <Button
+          variant="ghost"
+          size="xs"
+          className="mb-1 text-muted-foreground"
+          onClick={openDecompose}
+          aria-label={ru.tabs.decompose}
+          data-testid="open-decompose"
+        >
+          <Boxes /> {ru.tabs.decompose}
+        </Button>
+      )}
     </div>
   );
 }
@@ -66,7 +81,7 @@ function TabButton({
   onSelect: () => void;
   onClose: () => void;
 }) {
-  const Icon = tab.kind === "structure" ? Network : SquareFunction;
+  const Icon = tab.kind === "structure" ? Network : tab.kind === "decompose" ? Boxes : SquareFunction;
   return (
     <div
       role="tab"
@@ -202,6 +217,7 @@ export function CenterArea({ projectId, versionId }: Props) {
           <MethodView projectId={projectId} versionId={versionId} methodId={active.methodId} />
         )}
         {active?.kind === "structure" && <StructureView projectId={projectId} versionId={versionId} />}
+        {active?.kind === "decompose" && <DecomposeView projectId={projectId} />}
       </div>
     </section>
   );

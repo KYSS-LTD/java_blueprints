@@ -9,7 +9,7 @@ import pytest
 
 from engine.java.project import JavaProject
 from engine.transform.decompose.generate import DecomposeError, generate, validate
-from engine.transform.decompose.plan import Plan, build_plan, monolith, pinned
+from engine.transform.decompose.plan import Plan, build_plan, monolith, pinned, rescore
 
 SAMPLES = Path(__file__).resolve().parents[3] / "samples"
 
@@ -304,3 +304,85 @@ def test_methods_using_inherited_members_stay_in_the_core():
     pins = pinned(project, monolith(project))
     reasons = " ".join(pins.values())
     assert "унаследованный метод hello()" in reasons or "унаследованное поле baseValue" in reasons
+
+
+# --- пересчёт плана после правок (S9.9) ---------------------------------------------------------------------------
+
+
+def edge_pairs(plan: Plan) -> set[tuple[str, str, int, int]]:
+    return {(e.from_, e.to, e.calls, e.fields) for e in plan.edges}
+
+
+def test_rescoring_an_untouched_plan_changes_nothing():
+    plan = plan_for()
+    again = rescore(project(), plan)
+    assert snapshot(again) == snapshot(plan)
+    assert edge_pairs(again) == edge_pairs(plan)
+    assert [c.lines for c in again.classes] == [c.lines for c in plan.classes]
+    assert again.warnings == plan.warnings
+    assert (again.before, again.after) == (plan.before, plan.after)
+
+
+def test_moving_a_method_recounts_lines_and_edges():
+    plan = plan_for()
+    first, second = moved(plan)[0], moved(plan)[1]
+    method = first.members[0]
+    edited = copy.deepcopy(plan)
+    source = next(c for c in edited.classes if c.name == first.name)
+    target = next(c for c in edited.classes if c.name == second.name)
+    source.members.remove(method)
+    target.members.append(method)
+
+    scored = rescore(project(), edited)
+    by_name = {c.name: c for c in scored.classes}
+    assert by_name[first.name].lines < first.lines
+    assert by_name[second.name].lines > second.lines
+    assert method in by_name[second.name].members
+    assert edge_pairs(scored) != edge_pairs(plan)  # у метода были свои связи с остальными классами
+    assert {e.from_ for e in scored.edges} <= {c.name for c in scored.classes}
+
+
+def test_rescoring_keeps_names_and_roles_and_follows_a_rename():
+    plan = plan_for()
+    edited = copy.deepcopy(plan)
+    renamed = moved(edited)[0]
+    old = renamed.name
+    renamed.name = "OrderRules"
+    scored = rescore(project(), edited)
+    assert "OrderRules" in {c.name for c in scored.classes} and old not in {
+        c.name for c in scored.classes
+    }
+    assert all(e.from_ != old and e.to != old for e in scored.edges)
+    assert [c.role for c in scored.classes] == [c.role for c in plan.classes]
+
+
+def test_rescoring_drops_stale_warnings_and_links_the_halves_of_a_split_cluster():
+    plan = plan_for()
+    edited = copy.deepcopy(plan)
+    edited.warnings = ["устаревшее предупреждение"]
+    assert "устаревшее предупреждение" not in rescore(project(), edited).warnings
+
+    # методы одного кластера делятся между двумя классами: связи идут в обе стороны
+    cluster = max(moved(edited), key=lambda c: len(c.members))
+    twin = next(c for c in moved(edited) if c is not cluster)
+    twin.members.extend(cluster.members[: len(cluster.members) // 2])
+    del cluster.members[: len(cluster.members) // 2]
+    scored = rescore(project(), edited)
+    assert any(e.from_ == cluster.name and e.to == twin.name for e in scored.edges) or any(
+        e.from_ == twin.name and e.to == cluster.name for e in scored.edges
+    )
+
+
+def test_rescoring_an_unknown_type_is_a_lookup_error():
+    plan = plan_for()
+    plan.type_id = "Main.java#Nope"
+    with pytest.raises(LookupError):
+        rescore(project(), plan)
+
+
+def test_the_plan_names_pinned_members_with_a_reason():
+    plan = plan_for()
+    assert plan.pinned[f"{CORE}.main(String[])"] == "точка входа"
+    assert all(m in plan.core().members for m in plan.pinned)
+    assert any(reason.startswith("состояние") for reason in plan.pinned.values())
+    assert rescore(project(), plan).pinned == plan.pinned

@@ -2,6 +2,8 @@
 // из ./fixtures (их генерирует scripts/gen_mock_fixtures.py по схемам контракта).
 // Подключается динамическим импортом из lib/api/client.ts, поэтому в обычную сборку не попадает.
 import buildJson from "./fixtures/build.json";
+import decomposePlan from "./fixtures/decompose-plan.json";
+import extractPreview from "./fixtures/extract-preview.json";
 import fileMain from "./fixtures/file-main.json";
 import files from "./fixtures/files.json";
 import findings from "./fixtures/findings.json";
@@ -26,7 +28,7 @@ export const MOCK_FLOWS: Record<string, unknown> = flows;
 
 type Params = Record<string, string>;
 type Reply = { status?: number; body: unknown };
-type Handler = (params: Params, url: URL) => Reply | unknown;
+type Handler = (params: Params, url: URL, body: unknown) => Reply | unknown;
 
 function error(status: number, code: string, message: string): Reply {
   return { status, body: { error: { code, message } } };
@@ -107,6 +109,23 @@ function optimizePlan() {
   };
 }
 
+type PlanBody = { plan?: typeof decomposePlan };
+
+// Предпросмотр декомпозиции на моках: новые файлы плана, как их показал бы backend.
+function decomposePreview(body: unknown) {
+  const plan = (body as PlanBody | undefined)?.plan ?? decomposePlan;
+  const diff = plan.classes
+    .filter((cls) => cls.role !== "core" && cls.role !== "model")
+    .map((cls) => {
+      const after = `public class ${cls.name} {
+    // ${cls.members.length} методов
+}
+`;
+      return { path: cls.file, status: "added" as const, unified: `+${after}`, before: null, after };
+    });
+  return { plan, diff, warnings: plan.warnings };
+}
+
 const routes: Array<[method: string, pattern: string, handler: Handler]> = [
   ["GET", "/api/health", () => health],
   ["GET", "/api/samples", () => samples],
@@ -176,6 +195,24 @@ const routes: Array<[method: string, pattern: string, handler: Handler]> = [
   ["POST", "/api/projects/:id/optimize/apply", () => ({ status: 202, body: { run_id: 8 } })],
   ["POST", "/api/projects/:id/versions/:vid/accept", (p) => decisionOf(Number(p.vid), "active")],
   ["POST", "/api/projects/:id/versions/:vid/reject", (p) => decisionOf(Number(p.vid), "rejected")],
+  ["POST", "/api/projects/:id/extract-method/preview", () => extractPreview],
+  [
+    "POST",
+    "/api/projects/:id/extract-method/apply",
+    () => ({ status: 202, body: { candidate_version_id: 9, run_id: 8 } }),
+  ],
+  ["POST", "/api/projects/:id/decompose/plan", () => decomposePlan],
+  [
+    "POST",
+    "/api/projects/:id/decompose/rescore",
+    (_, __, body) => (body as PlanBody | undefined)?.plan ?? decomposePlan,
+  ],
+  ["POST", "/api/projects/:id/decompose/preview", (_, __, body) => decomposePreview(body)],
+  [
+    "POST",
+    "/api/projects/:id/decompose/apply",
+    () => ({ status: 202, body: { candidate_version_id: 9, run_id: 8 } }),
+  ],
   ["POST", "/api/projects/:id/build", () => buildJson],
   ["POST", "/api/projects/:id/runs", () => ({ status: 202, body: { run_id: 8, status: "queued" } })],
 ];
@@ -197,7 +234,11 @@ function isReply(value: unknown): value is Reply {
   return typeof value === "object" && value !== null && "body" in value && "status" in value;
 }
 
-export function resolveMock(method: string, url: URL): { status: number; body: unknown } {
+export function resolveMock(
+  method: string,
+  url: URL,
+  requestBody?: unknown,
+): { status: number; body: unknown } {
   for (const route of compiled) {
     if (route.method !== method) continue;
     const match = route.regex.exec(url.pathname);
@@ -206,7 +247,7 @@ export function resolveMock(method: string, url: URL): { status: number; body: u
     for (const [key, value] of Object.entries(match.groups ?? {})) {
       params[key] = decodeURIComponent(value);
     }
-    const result = route.handler(params, url);
+    const result = route.handler(params, url, requestBody);
     if (isReply(result)) {
       return { status: result.status ?? 200, body: result.body };
     }
@@ -221,6 +262,8 @@ export async function mockFetch(request: Request): Promise<Response> {
   const url = new URL(request.url, "http://localhost");
   const delay = process.env.NODE_ENV === "test" ? 0 : 120;
   if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
-  const { status, body } = resolveMock(request.method.toUpperCase(), url);
+  const method = request.method.toUpperCase();
+  const sent = method === "GET" ? undefined : await request.clone().json().catch(() => undefined);
+  const { status, body } = resolveMock(method, url, sent);
   return Response.json(body, { status });
 }

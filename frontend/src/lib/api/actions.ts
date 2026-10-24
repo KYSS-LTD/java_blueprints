@@ -17,6 +17,7 @@ export type ExtractMethodPreview = Schemas["ExtractMethodPreview"];
 export type ExtractMethodRequest = Schemas["ExtractMethodRequest"];
 export type DecomposePlan = Schemas["DecomposePlan"];
 export type DecomposeClass = Schemas["DecomposeClass"];
+export type DecomposeEdge = Schemas["DecomposeEdge"];
 export type DecomposePreview = Schemas["DecomposePreview"];
 export type DecomposeOptions = Schemas["DecomposeOptions"];
 export type FileDiff = Schemas["FileDiff"];
@@ -170,6 +171,20 @@ export async function planDecompose(
     await api.POST("/api/projects/{project_id}/decompose/plan", {
       params: { path: { project_id: projectId } },
       body: { options: options ?? null },
+    }),
+  );
+}
+
+/** Пересчёт строк, связей и предупреждений плана после правки; недопустимый план — ошибка `422` с причиной. */
+export async function rescoreDecompose(
+  projectId: number,
+  baseVersionId: number,
+  plan: DecomposePlan,
+): Promise<DecomposePlan> {
+  return unwrap(
+    await api.POST("/api/projects/{project_id}/decompose/rescore", {
+      params: { path: { project_id: projectId } },
+      body: { base_version_id: baseVersionId, plan },
     }),
   );
 }

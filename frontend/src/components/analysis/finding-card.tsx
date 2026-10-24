@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowRight, TriangleAlert, Wrench } from "lucide-react";
+import { ArrowRight, Boxes, Scissors, TriangleAlert, Wrench } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { PreconditionList } from "@/components/analysis/precondition-list";
 import { VerifyBlock } from "@/components/analysis/verify-block";
@@ -57,6 +58,44 @@ function ComplexityChange({ finding }: { finding: Finding }) {
         {finding.complexity.after}
       </code>
     </p>
+  );
+}
+
+/** Рефакторинги без автоисправления: фрагмент или план выбирает пользователь (docs/06 § 5–6). */
+const REFACTORINGS: Record<string, "extract" | "decompose"> = {
+  "MAINT-01": "extract",
+  "MAINT-08": "extract",
+  "MAINT-05": "decompose",
+};
+
+function RefactorRow({ finding }: { finding: Finding }) {
+  const kind = REFACTORINGS[finding.rule_id];
+  const openFinding = useOpenFinding();
+  const openDecompose = useWorkspaceStore((s) => s.openDecompose);
+  if (!kind) return null;
+  return (
+    <div className="mt-2 flex items-center justify-between gap-2 border-t pt-2" data-testid="refactor-row">
+      <span className="min-w-0 text-xs text-muted-foreground">
+        <code>{kind === "extract" ? "REF-01" : "REF-04"}</code>
+      </span>
+      {kind === "extract" ? (
+        <Button
+          size="xs"
+          variant="secondary"
+          data-testid="refactor-extract"
+          onClick={() => {
+            openFinding(finding);
+            toast(t.refactor.extractHint);
+          }}
+        >
+          <Scissors /> {t.refactor.extract}
+        </Button>
+      ) : (
+        <Button size="xs" variant="secondary" data-testid="refactor-decompose" onClick={openDecompose}>
+          <Boxes /> {t.refactor.decompose}
+        </Button>
+      )}
+    </div>
   );
 }
 
@@ -187,6 +226,7 @@ export function FindingCard({
       )}
 
       <FixRow finding={finding} detailed={withFix === true} onFix={onFix} />
+      <RefactorRow finding={finding} />
     </li>
   );
 }

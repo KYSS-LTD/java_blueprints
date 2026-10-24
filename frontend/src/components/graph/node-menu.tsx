@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, GitBranchPlus, PackageOpen, Pencil, Trash2, WrapText } from "lucide-react";
+import { Copy, GitBranchPlus, PackageOpen, Pencil, Scissors, Trash2, WrapText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,7 @@ export type MenuActions = {
   unwrap: (id: string) => void;
   wrap: (id: string, wrapper: Wrapper) => void;
   addBranch: (id: string, branch: Branch) => void;
+  extract: (id: string) => void;
 };
 
 type MenuProps = {
@@ -90,6 +91,11 @@ export function NodeMenu({ model, state, actions, onClose }: MenuProps) {
                 ))}
               </DropdownMenuSubContent>
             </DropdownMenuSub>
+          )}
+          {caps.extract && (
+            <DropdownMenuItem onSelect={() => actions.extract(block.id)} data-testid="menu-extract">
+              <Scissors /> {t.menu.extract}
+            </DropdownMenuItem>
           )}
           {caps.unwrap && (
             <DropdownMenuItem onSelect={() => actions.unwrap(block.id)}>

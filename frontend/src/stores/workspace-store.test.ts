@@ -75,3 +75,74 @@ describe("URL рабочей области", () => {
     expect(fileOfMethod(total)).toBe("Main.java");
   });
 });
+
+describe("выбор нескольких блоков", () => {
+  it("обычный выбор — один блок; selectMany задаёт набор и основной блок", () => {
+    const store = useWorkspaceStore.getState();
+    store.selectNode("a", "graph");
+    expect(useWorkspaceStore.getState().selectedIds).toEqual(["a"]);
+
+    store.selectMany(["a", "b", "c"], "c");
+    const state = useWorkspaceStore.getState();
+    expect(state.selectedIds).toEqual(["a", "b", "c"]);
+    expect(state.selection).toMatchObject({ nodeId: "c", source: "graph" });
+
+    store.selectNode(null, "graph");
+    expect(useWorkspaceStore.getState().selectedIds).toEqual([]);
+  });
+
+  it("toggleSelected добавляет блок к выбору и убирает; выбор из кода входит в набор", () => {
+    const store = useWorkspaceStore.getState();
+    store.selectNode("a", "code"); // выбор пришёл не с холста
+    store.toggleSelected("b");
+    expect(useWorkspaceStore.getState().selectedIds).toEqual(["a", "b"]);
+    expect(useWorkspaceStore.getState().selection?.nodeId).toBe("b");
+
+    store.toggleSelected("b");
+    expect(useWorkspaceStore.getState().selectedIds).toEqual(["a"]);
+    expect(useWorkspaceStore.getState().selection?.nodeId).toBe("a"); // основной выбор перешёл на оставшийся
+
+    store.toggleSelected("a");
+    expect(useWorkspaceStore.getState().selectedIds).toEqual([]);
+    expect(useWorkspaceStore.getState().selection).toBeNull();
+  });
+
+  it("снятие не основного блока не трогает основной выбор", () => {
+    const store = useWorkspaceStore.getState();
+    store.selectMany(["a", "b", "c"], "c");
+    const before = useWorkspaceStore.getState().selection;
+    store.toggleSelected("a");
+    expect(useWorkspaceStore.getState().selectedIds).toEqual(["b", "c"]);
+    expect(useWorkspaceStore.getState().selection).toBe(before);
+  });
+
+  it("reset снимает выбор и закрывает диалог выделения метода", () => {
+    const store = useWorkspaceStore.getState();
+    store.selectMany(["a", "b"], "b");
+    store.openExtract({ nodeIds: ["a", "b"] });
+    expect(useWorkspaceStore.getState().extractTarget).toEqual({ nodeIds: ["a", "b"] });
+    store.closeExtract();
+    expect(useWorkspaceStore.getState().extractTarget).toBeNull();
+    store.openExtract({ nodeIds: ["a"] });
+    store.reset();
+    expect(useWorkspaceStore.getState().selectedIds).toEqual([]);
+    expect(useWorkspaceStore.getState().extractTarget).toBeNull();
+  });
+});
+
+describe("вкладка «Декомпозиция»", () => {
+  it("открывается один раз, становится активной и закрывается как остальные", () => {
+    const store = useWorkspaceStore.getState();
+    store.openMethod(run);
+    store.openDecompose();
+    store.openDecompose();
+    let state = useWorkspaceStore.getState();
+    expect(state.tabs.map((t) => t.id)).toEqual([run, "decompose"]);
+    expect(state.activeTabId).toBe("decompose");
+    expect(state.activeFile).toBe("Main.java"); // файл кода остаётся от метода
+
+    store.closeTab("decompose");
+    state = useWorkspaceStore.getState();
+    expect(state.activeTabId).toBe(run);
+  });
+});

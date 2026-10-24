@@ -7,7 +7,11 @@ export type SelectionSource = "graph" | "code" | "tree" | "findings" | "url" | "
 
 export type CenterTab =
   | { id: string; kind: "method"; methodId: string; title: string }
-  | { id: "structure"; kind: "structure"; title: string };
+  | { id: "structure"; kind: "structure"; title: string }
+  | { id: "decompose"; kind: "decompose"; title: string };
+
+/** Что выделяется в новый метод: подряд идущие блоки схемы либо диапазон в коде. */
+export type ExtractTarget = { nodeIds: string[] } | { range: SourceRange };
 
 export type Selection = {
   nodeId: string;
@@ -29,6 +33,7 @@ export type RightTab = "problems" | "recommendations" | "metrics";
 export type StructureMode = "types" | "methods";
 
 export const STRUCTURE_TAB: CenterTab = { id: "structure", kind: "structure", title: "Структура" };
+export const DECOMPOSE_TAB: CenterTab = { id: "decompose", kind: "decompose", title: "Декомпозиция" };
 
 type WorkspaceState = {
   tabs: CenterTab[];
@@ -36,6 +41,10 @@ type WorkspaceState = {
   /** Файл, который показывает панель «Код Java». */
   activeFile: string | null;
   selection: Selection | null;
+  /** Блоки, выбранные вместе (Shift/Ctrl+клик); последний из них — `selection`. Пусто, если ничего не выбрано. */
+  selectedIds: string[];
+  /** Фрагмент, для которого открыт диалог «Выделить в метод»; `null` — диалог закрыт. */
+  extractTarget: ExtractTarget | null;
   /** Ручные изменения свёрнутости контейнеров по методам: true — свёрнут, false — развёрнут. */
   collapsedOverrides: Record<string, Record<string, boolean>>;
   overlays: Overlays;
@@ -45,10 +54,17 @@ type WorkspaceState = {
   reset: () => void;
   openMethod: (methodId: string, title?: string) => void;
   openStructure: () => void;
+  openDecompose: () => void;
   closeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
   setActiveFile: (file: string | null) => void;
   selectNode: (nodeId: string | null, source: SelectionSource, range?: SourceRange | null) => void;
+  /** Выбор нескольких блоков схемы; `primary` — тот, на котором остаётся основной выбор. */
+  selectMany: (ids: string[], primary: string, range?: SourceRange | null) => void;
+  /** Ctrl+клик: блок входит в выбор или выходит из него. */
+  toggleSelected: (nodeId: string, range?: SourceRange | null) => void;
+  openExtract: (target: ExtractTarget) => void;
+  closeExtract: () => void;
   setCollapsed: (methodId: string, blockId: string, collapsed: boolean) => void;
   setOverlay: (name: keyof Overlays, value: boolean) => void;
   setBottomTab: (tab: BottomTab) => void;
@@ -61,6 +77,8 @@ const initial = {
   activeTabId: null as string | null,
   activeFile: null as string | null,
   selection: null as Selection | null,
+  selectedIds: [] as string[],
+  extractTarget: null as ExtractTarget | null,
   collapsedOverrides: {} as Record<string, Record<string, boolean>>,
   overlays: { findings: true, complexity: true, coverage: false, calls: true } as Overlays,
   bottomTab: "code" as BottomTab,
@@ -101,6 +119,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
       activeTabId: STRUCTURE_TAB.id,
     })),
 
+  openDecompose: () =>
+    set((state) => ({
+      tabs: state.tabs.some((tab) => tab.id === DECOMPOSE_TAB.id) ? state.tabs : [...state.tabs, DECOMPOSE_TAB],
+      activeTabId: DECOMPOSE_TAB.id,
+    })),
+
   closeTab: (id) =>
     set((state) => {
       const index = state.tabs.findIndex((tab) => tab.id === id);
@@ -128,7 +152,42 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   setActiveFile: (file) => set({ activeFile: file }),
 
   selectNode: (nodeId, source, range = null) =>
-    set({ selection: nodeId === null ? null : { nodeId, range, source, seq: ++selectionSeq } }),
+    set({
+      selection: nodeId === null ? null : { nodeId, range, source, seq: ++selectionSeq },
+      selectedIds: nodeId === null ? [] : [nodeId],
+    }),
+
+  selectMany: (ids, primary, range = null) =>
+    set({
+      selection: { nodeId: primary, range, source: "graph", seq: ++selectionSeq },
+      selectedIds: ids,
+    }),
+
+  toggleSelected: (nodeId, range = null) =>
+    set((state) => {
+      // выбор мог остаться от кода или дерева: он тоже входит в набор
+      const current = state.selectedIds.length > 0 ? state.selectedIds : state.selection ? [state.selection.nodeId] : [];
+      if (!current.includes(nodeId)) {
+        return {
+          selection: { nodeId, range, source: "graph", seq: ++selectionSeq },
+          selectedIds: [...current, nodeId],
+        };
+      }
+      const rest = current.filter((id) => id !== nodeId);
+      const last = rest[rest.length - 1];
+      return {
+        selectedIds: rest,
+        selection:
+          last === undefined
+            ? null
+            : state.selection?.nodeId === nodeId
+              ? { nodeId: last, range: null, source: "graph", seq: ++selectionSeq }
+              : state.selection,
+      };
+    }),
+
+  openExtract: (extractTarget) => set({ extractTarget }),
+  closeExtract: () => set({ extractTarget: null }),
 
   setCollapsed: (methodId, blockId, collapsed) =>
     set((state) => ({

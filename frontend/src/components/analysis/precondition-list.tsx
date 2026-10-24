@@ -19,7 +19,9 @@ export function PreconditionList({ preconditions }: { preconditions: Preconditio
           )}
           <span className={cn(!p.passed && "text-severity-high")}>
             {p.name}
-            {p.reason && <span className="text-muted-foreground"> — {p.reason}</span>}
+            {p.reason && p.reason !== p.name && (
+              <span className="text-muted-foreground"> — {p.reason}</span>
+            )}
           </span>
         </li>
       ))}

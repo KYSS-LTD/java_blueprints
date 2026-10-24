@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 
 import { minimalChange } from "@/lib/edit/text-edit";
 import type { SourceRange } from "@/lib/graph/flow-model";
+import { ru } from "@/lib/i18n/ru";
 
 import { defineEditorTheme, EDITOR_THEME } from "./monaco-setup";
 
@@ -31,6 +32,8 @@ export type CodeEditorProps = {
   onChange?: (text: string) => void;
   /** Ctrl+S. */
   onSave?: () => void;
+  /** «Выделить в метод» из контекстного меню или Ctrl+Alt+M: передаётся выделенный диапазон. */
+  onExtract?: (range: SourceRange) => void;
 };
 
 /** Сколько подсвечивается строка, изменённая снаружи (операцией над графом, отменой): docs/09 § 3.3. */
@@ -58,6 +61,7 @@ export default function CodeEditor({
   onCursor,
   onChange,
   onSave,
+  onExtract,
 }: CodeEditorProps) {
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
@@ -67,6 +71,8 @@ export default function CodeEditor({
   const cursorHandler = useRef(onCursor);
   const changeHandler = useRef(onChange);
   const saveHandler = useRef(onSave);
+  const extractHandler = useRef(onExtract);
+  const pathRef = useRef(path);
   const revealed = useRef(-1);
   // Правка, внесённая из `value`, не должна вернуться наверх как ввод пользователя.
   const applying = useRef(false);
@@ -77,7 +83,9 @@ export default function CodeEditor({
     cursorHandler.current = onCursor;
     changeHandler.current = onChange;
     saveHandler.current = onSave;
-  }, [onCursor, onChange, onSave]);
+    extractHandler.current = onExtract;
+    pathRef.current = path;
+  }, [onCursor, onChange, onSave, onExtract, path]);
   useEffect(() => () => clearTimeout(flashTimer.current), []);
 
   const applyHighlight = () => {
@@ -181,6 +189,25 @@ export default function CodeEditor({
       }
     });
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => saveHandler.current?.());
+    editor.addAction({
+      id: "jb.extract-method",
+      label: ru.code.extract,
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt | monaco.KeyCode.KeyM],
+      precondition: "editorHasSelection && !editorReadonly",
+      contextMenuGroupId: "1_modification",
+      contextMenuOrder: 1.5,
+      run: (instance) => {
+        const selected = instance.getSelection();
+        if (!selected || selected.isEmpty()) return;
+        extractHandler.current?.({
+          file: pathRef.current,
+          start_line: selected.startLineNumber,
+          start_col: selected.startColumn,
+          end_line: selected.endLineNumber,
+          end_col: selected.endColumn,
+        });
+      },
+    });
     syncValue();
     applyHighlight();
     applyMarkers();

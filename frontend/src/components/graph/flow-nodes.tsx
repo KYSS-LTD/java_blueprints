@@ -45,7 +45,7 @@ export const CanvasContext = createContext<CanvasContextValue>({
 });
 
 function useIsSelected(id: string): boolean {
-  return useWorkspaceStore((state) => state.selection?.nodeId === id);
+  return useWorkspaceStore((state) => state.selection?.nodeId === id || state.selectedIds.includes(id));
 }
 
 const NO_HEAT: BlockHeat = { state: "none" };

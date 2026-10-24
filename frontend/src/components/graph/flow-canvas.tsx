@@ -15,7 +15,7 @@ import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { currentDrag, endDrag } from "@/lib/edit/drag";
-import { dropPoint, isInside, isMovable, isSamePlace, methodBodyEnd } from "@/lib/edit/slots";
+import { dropPoint, isInside, isMovable, isSamePlace, methodBodyEnd, siblingRange } from "@/lib/edit/slots";
 import { layoutWithElk } from "@/lib/graph/elk-client";
 import {
   buildElkGraph,
@@ -37,6 +37,7 @@ import { CanvasToolbar } from "./canvas-toolbar";
 import { toRfEdge } from "./flow-edges";
 import { CanvasContext, type CanvasActions, type DropHint, flowNodeTypes, type FlowRfNode } from "./flow-nodes";
 import { DeleteBlockDialog, type MenuState, NodeMenu } from "./node-menu";
+import { SelectionBar } from "./selection-bar";
 import { capabilitiesOf, useCanvasEditing } from "./use-canvas-editing";
 
 type Layout = { vis: VisibleFlow; placements: Map<string, Placement> };
@@ -92,10 +93,16 @@ function FlowCanvasInner({ projectId, flow, editable = false, onOpenMethod }: Pr
   const selection = useWorkspaceStore((s) => s.selection);
   const setCollapsed = useWorkspaceStore((s) => s.setCollapsed);
   const selectNode = useWorkspaceStore((s) => s.selectNode);
+  const selectMany = useWorkspaceStore((s) => s.selectMany);
+  const toggleSelected = useWorkspaceStore((s) => s.toggleSelected);
+  const selectedIds = useWorkspaceStore((s) => s.selectedIds);
+  const openExtract = useWorkspaceStore((s) => s.openExtract);
   const viewportKey = `${projectId}:${flow.method_id}`;
   const wrapper = useRef<HTMLDivElement>(null);
   const editing = useCanvasEditing(projectId, model);
   const [menu, setMenu] = useState<MenuState | null>(null);
+  // от этого блока Shift+клик тянет диапазон
+  const anchor = useRef<string | null>(null);
   const [dropHint, setDropHint] = useState<DropHint | null>(null);
 
   const collapsed = useMemo(() => {
@@ -204,15 +211,27 @@ function FlowCanvasInner({ projectId, flow, editable = false, onOpenMethod }: Pr
     else editing.move(payload.nodeId, point);
   };
 
+  // Блоки, выбранные вместе, в порядке кода (после правки некоторых уже может не быть).
+  const picked = useMemo(() => {
+    const ids = new Set(selectedIds);
+    return model.order.filter((id) => ids.has(id) && model.blocks.get(id)?.kind !== "external");
+  }, [model, selectedIds]);
+  const several = picked.length > 1;
+
   // Клавиши холста: Delete, Ctrl+D, Enter (docs/09 § 3.3). Поля ввода и редактор кода забирают клавиши себе.
   const onKeyDown = (event: React.KeyboardEvent) => {
     // Меню и диалоги рисуются порталом, но события React всплывают через него: чужие клавиши не наши
     if (!editable || isEditableTarget(event.target) || !event.currentTarget.contains(event.target as Node)) return;
     if (event.key === "Escape") {
       useEditorStore.getState().openInspector(null);
+      if (several && selection) {
+        anchor.current = selection.nodeId;
+        selectNode(selection.nodeId, "graph", selection.range);
+      }
       return;
     }
-    const block = selection ? model.blocks.get(selection.nodeId) : undefined;
+    // Delete, Ctrl+D и Enter относятся к одному блоку: при выборе нескольких они не срабатывают
+    const block = selection && !several ? model.blocks.get(selection.nodeId) : undefined;
     if (!block) return;
     const caps = capabilitiesOf(model, block);
     if ((event.key === "Delete" || event.key === "Backspace") && caps.remove) {
@@ -338,9 +357,24 @@ function FlowCanvasInner({ projectId, flow, editable = false, onOpenMethod }: Pr
           elementsSelectable
           onlyRenderVisibleElements={nodes.length > 120}
           proOptions={{ hideAttribution: true }}
-          onNodeClick={(_, node) => {
+          onNodeClick={(event, node) => {
             const block = node.data.block;
             if (block.kind === "external") return;
+            // Shift+клик — подряд идущие блоки от опорного; Ctrl/Cmd+клик — добавить блок или убрать
+            const from = anchor.current ?? selection?.nodeId;
+            if (event.shiftKey && from && from !== block.id) {
+              const range = siblingRange(model, from, block.id);
+              if (range) {
+                selectMany(range, block.id, block.range);
+                return;
+              }
+            }
+            if (event.ctrlKey || event.metaKey) {
+              anchor.current = block.id;
+              toggleSelected(block.id, block.range);
+              return;
+            }
+            anchor.current = block.id;
             selectNode(block.id, "graph", block.range);
           }}
           onNodeDoubleClick={(_, node) => {
@@ -378,6 +412,13 @@ function FlowCanvasInner({ projectId, flow, editable = false, onOpenMethod }: Pr
           onToggleMiniMap={() => setShowMiniMap((value) => !value)}
           onFit={fitAll}
         />
+        {editable && several && (
+          <SelectionBar
+            count={picked.length}
+            onExtract={() => openExtract({ nodeIds: picked })}
+            onClear={() => selection && selectNode(selection.nodeId, "graph", selection.range)}
+          />
+        )}
         <NodeMenu model={model} state={menu} actions={editing} onClose={() => setMenu(null)} />
         <DeleteBlockDialog
           model={model}

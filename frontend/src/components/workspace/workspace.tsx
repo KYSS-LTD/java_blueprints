@@ -16,6 +16,7 @@ import { BlockPalette } from "@/components/workspace/block-palette";
 import { CenterArea } from "@/components/workspace/center-area";
 import { CodePanel } from "@/components/workspace/code-panel";
 import { ConsolePanel } from "@/components/workspace/console-panel";
+import { ExtractDialog } from "@/components/workspace/extract-dialog";
 import { ProjectTree } from "@/components/workspace/project-tree";
 import { TestsPanel } from "@/components/workspace/tests-panel";
 import { WorkspaceHeader } from "@/components/workspace/workspace-header";
@@ -222,6 +223,7 @@ export function Workspace({ projectId }: { projectId: number }) {
   return (
     <div className="flex h-screen min-h-0 flex-col" data-testid="workspace">
       {ready && <HistoryHotkeys projectId={projectId} />}
+      {ready && <ExtractDialog projectId={projectId} />}
       <WorkspaceHeader projectId={projectId} />
       {ready ? (
         <Layout projectId={projectId} versionId={project.data?.head_version_id} />

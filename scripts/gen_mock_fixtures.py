@@ -36,7 +36,15 @@ from app.schemas.project import (  # noqa: E402
     SampleList,
     VersionList,
 )
-from app.schemas.transform import FixList  # noqa: E402
+from app.schemas.transform import (  # noqa: E402
+    DecomposePlan,
+    ExtractMethodPreview,
+    ExtractMethodTarget,
+    FixList,
+)
+from app.services import decompose as decompose_service  # noqa: E402
+from app.services import extract as extract_service  # noqa: E402
+from engine.transform.decompose.plan import build_plan  # noqa: E402
 from app.schemas.verify import BuildResult, RunEvent, RunInfo, RunList, ScenarioList  # noqa: E402
 from engine.graph.model import ApiRange  # noqa: E402
 from engine.java.project import JavaProject  # noqa: E402
@@ -605,6 +613,8 @@ VALIDATORS: dict[str, Any] = {
     "versions": VersionList,
     "files": FileList,
     "fixes": FixList,
+    "decompose-plan": DecomposePlan,
+    "extract-preview": ExtractMethodPreview,
     "build": BuildResult,
     "palette": Palette,
     "tree": ProjectTree,
@@ -696,6 +706,15 @@ def main() -> int:
         },
     )
     write("metrics", build_metrics(src, members))
+    # выделение метода: два подряд идущих оператора тела цикла `run`; декомпозиция — план настоящего движка
+    target = ExtractMethodTarget(
+        node_ids=[f"{FILE}#Main.run(Scanner)/while[0]/assign[0]", f"{FILE}#Main.run(Scanner)/while[0]/op[0]"]
+    )
+    write("extract-preview", extract_service.preview(src.project, target).model_dump(mode="json", by_alias=True))
+    write(
+        "decompose-plan",
+        decompose_service.to_schema(build_plan(src.project)).model_dump(mode="json", by_alias=True),
+    )
     scenarios = build_scenarios()
     write("scenarios", scenarios)
     run7, run8, runs, events = build_runs(scenarios)

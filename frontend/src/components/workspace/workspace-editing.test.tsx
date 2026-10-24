@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -130,6 +130,72 @@ describe("правка в рабочей области (моки + подмен
       { op: "delete_node", node_id: `${METHOD}/foreach[0]/assign[0]`, mode: "with_body" },
     ]);
   }, 20_000);
+
+  it("Shift+клик выбирает подряд идущие блоки, панель открывает диалог «Выделить в метод»", async () => {
+    const user = userEvent.setup();
+    const { workspace } = await renderWorkspace();
+    await waitFor(() => expect(screen.getAllByTestId(/^block-/).length).toBeGreaterThan(3), { timeout: 8000 });
+    await waitFor(() => expect(screen.getByTestId("flow-canvas")).toHaveAttribute("data-editable", "true"));
+    expect(screen.queryByTestId("selection-bar")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("block-var_decl"));
+    expect(screen.queryByTestId("selection-bar")).not.toBeInTheDocument(); // один блок — не набор
+    await user.keyboard("{Shift>}");
+    await user.click(screen.getByTestId("container-loop_foreach"));
+    await user.keyboard("{/Shift}");
+
+    expect(workspace.getState().selectedIds).toEqual([`${METHOD}/var[0]`, `${METHOD}/foreach[0]`]);
+    expect(screen.getByTestId("selection-count")).toHaveTextContent("2");
+
+    // Delete относится к одному блоку: при наборе блоков он ничего не удаляет
+    fireEvent.keyDown(screen.getByTestId("block-var_decl"), { key: "Delete" });
+    expect(api.postOps).not.toHaveBeenCalled();
+
+    // Escape сводит набор к последнему выбранному блоку, от которого Shift+клик тянет новый диапазон
+    fireEvent.keyDown(screen.getByTestId("block-var_decl"), { key: "Escape" });
+    expect(workspace.getState().selectedIds).toEqual([`${METHOD}/foreach[0]`]);
+    expect(screen.queryByTestId("selection-bar")).not.toBeInTheDocument();
+    await user.keyboard("{Shift>}");
+    await user.click(screen.getByTestId("block-var_decl"));
+    await user.keyboard("{/Shift}");
+    expect(workspace.getState().selectedIds).toEqual([`${METHOD}/var[0]`, `${METHOD}/foreach[0]`]);
+
+    await user.click(screen.getByTestId("selection-extract"));
+    expect(workspace.getState().extractTarget).toEqual({ nodeIds: [`${METHOD}/var[0]`, `${METHOD}/foreach[0]`] });
+    const dialog = await screen.findByTestId("extract-dialog");
+    expect(await within(dialog).findByTestId("extract-signature")).toHaveTextContent("addLine");
+  }, 30_000);
+
+  it("Shift+клик по блоку из другого слота набор не расширяет; Ctrl+клик добавляет и убирает блок", async () => {
+    const user = userEvent.setup();
+    const { workspace } = await renderWorkspace();
+    await waitFor(() => expect(screen.getAllByTestId(/^block-/).length).toBeGreaterThan(3), { timeout: 8000 });
+
+    await user.click(screen.getByTestId("block-var_decl"));
+    await user.keyboard("{Shift>}");
+    await user.click(screen.getByTestId("block-assign")); // лежит внутри цикла, а не в теле метода
+    await user.keyboard("{/Shift}");
+    expect(workspace.getState().selectedIds).toEqual([`${METHOD}/foreach[0]/assign[0]`]);
+
+    await user.keyboard("{Control>}");
+    await user.click(screen.getByTestId("block-return"));
+    expect(workspace.getState().selectedIds).toEqual([`${METHOD}/foreach[0]/assign[0]`, `${METHOD}/return[0]`]);
+    await user.click(screen.getByTestId("block-return"));
+    await user.keyboard("{/Control}");
+    expect(workspace.getState().selectedIds).toEqual([`${METHOD}/foreach[0]/assign[0]`]);
+  }, 30_000);
+
+  it("контекстное меню блока предлагает «Выделить в метод» для этого блока", async () => {
+    const user = userEvent.setup();
+    const { workspace } = await renderWorkspace();
+    await waitFor(() => expect(screen.getAllByTestId(/^block-/).length).toBeGreaterThan(3), { timeout: 8000 });
+    await waitFor(() => expect(screen.getByTestId("flow-canvas")).toHaveAttribute("data-editable", "true"));
+
+    await user.pointer({ keys: "[MouseRight]", target: screen.getByTestId("block-return") });
+    await user.click(await screen.findByTestId("menu-extract"));
+    expect(workspace.getState().extractTarget).toEqual({ nodeIds: [`${METHOD}/return[0]`] });
+    expect(await screen.findByTestId("extract-dialog")).toBeInTheDocument();
+  }, 30_000);
 
   it("удаление контейнера спрашивает, что делать с телом", async () => {
     const user = userEvent.setup();

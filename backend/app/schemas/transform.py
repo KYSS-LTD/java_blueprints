@@ -152,6 +152,8 @@ class DecomposePlan(ApiModel):
     edges: list[DecomposeEdge]
     warnings: list[str]
     metrics: DecomposeMetrics
+    # члены, которые остаются в ядре, и причина: их нельзя переносить между классами
+    pinned: dict[str, str]
 
 
 class DecomposeOptions(BaseModel):

@@ -14,6 +14,7 @@ import {
   isMovable,
   isSamePlace,
   methodBodyEnd,
+  siblingRange,
 } from "./slots";
 
 type FlowGraph = components["schemas"]["FlowGraph"];
@@ -130,5 +131,33 @@ describe("перемещение", () => {
     expect(isSamePlace(model, loop, { parentId: ORDERS, slot: "body", index: 2 })).toBe(true); // сразу после себя
     expect(isSamePlace(model, loop, { parentId: ORDERS, slot: "body", index: 0 })).toBe(false);
     expect(isSamePlace(model, loop, { parentId: id("foreach[0]/if[0]"), slot: "else", index: 0 })).toBe(false);
+  });
+});
+
+describe("подряд идущие операторы одного слота", () => {
+  it("диапазон между двумя блоками тела метода — в порядке кода, в любую сторону", () => {
+    expect(siblingRange(model, id("var[0]"), id("foreach[0]"))).toEqual([id("var[0]"), id("foreach[0]")]);
+    expect(siblingRange(model, id("return[0]"), id("var[0]"))).toEqual([
+      id("var[0]"),
+      id("foreach[0]"),
+      id("return[0]"),
+    ]);
+    expect(siblingRange(model, id("var[0]"), id("var[0]"))).toEqual([id("var[0]")]);
+  });
+
+  it("блоки из разных слотов (тело метода и тело цикла, then и else) диапазона не дают", () => {
+    expect(siblingRange(model, id("var[0]"), id("foreach[0]/if[0]"))).toBeNull();
+    expect(siblingRange(model, id("foreach[0]/if[0]/else/assign[0]"), id("foreach[0]/if[0]/else/op[0]"))).toEqual([
+      id("foreach[0]/if[0]/else/assign[0]"),
+      id("foreach[0]/if[0]/else/op[0]"),
+    ]);
+    expect(
+      siblingRange(model, id("foreach[0]/if[0]/else/assign[0]"), id("foreach[0]/if[0]/then/try[0]")),
+    ).toBeNull();
+  });
+
+  it("метод, ветки catch и неизвестные блоки не входят в диапазон", () => {
+    expect(siblingRange(model, ORDERS, id("var[0]"))).toBeNull();
+    expect(siblingRange(model, id("var[0]"), id("нет такого"))).toBeNull();
   });
 });
