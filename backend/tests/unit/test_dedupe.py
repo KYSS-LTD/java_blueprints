@@ -291,6 +291,41 @@ def test_variables_and_differing_literals_become_parameters():
     assert '        System.out.println("count=" + data.length);' in text
 
 
+VARARGS = """public class A {
+    int countShort(String... names) {
+        int total = 0;
+        for (String s : names) {
+            if (s.length() > 3) {
+                total += s.length();
+            }
+        }
+        System.out.println("short=" + total);
+        System.out.println("n=" + names.length);
+        return total;
+    }
+
+    int countLong(String... items) {
+        int total = 0;
+        for (String s : items) {
+            if (s.length() > 3) {
+                total += s.length();
+            }
+        }
+        System.out.println("long=" + total);
+        System.out.println("n=" + items.length);
+        return total;
+    }
+}
+"""
+
+
+def test_a_varargs_parameter_keeps_its_element_type():
+    project, plan = clone_plan(VARARGS, name="countAll")
+    assert [(p.type_text, p.name) for p in plan.params][0] == ("String...", "names")
+    text = applied(project, plan)
+    assert "countAll(String... names" in text
+
+
 def test_the_same_literal_stays_in_the_body_and_the_name_is_unique():
     project, plan = clone_plan(LITERALS)
     assert plan.name not in {"reportMin", "reportMax"}

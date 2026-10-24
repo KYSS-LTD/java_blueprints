@@ -115,7 +115,14 @@ def declarations(source: bytes, method: Node) -> list[Declaration]:
                 )
                 if name_node is not None and name_node.type == "variable_declarator":
                     name_node = name_node.child_by_field_name("name")
-                type_node = item.child_by_field_name("type")
+                type_node = item.child_by_field_name("type") or next(
+                    (  # у ``T... имя`` тип не помечен полем
+                        ch
+                        for ch in item.named_children
+                        if ch.type not in {"modifiers", "variable_declarator"}
+                    ),
+                    None,
+                )
                 found.append(
                     Declaration(
                         _text(source, name_node),
