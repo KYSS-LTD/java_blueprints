@@ -19,6 +19,9 @@ from engine.java import cst
 from engine.transform.base import Check, Refusal, ensure_imports, refuse
 
 if TYPE_CHECKING:
+    from engine.java.project import JavaProject
+    from engine.java.semantic import Context
+    from engine.java.symbols import Member
     from engine.transform.fixes import Ctx
 
 _LOOPS = ("for_statement", "enhanced_for_statement", "while_statement", "do_statement")
@@ -835,8 +838,10 @@ def _key_chain(text: str, variable: str) -> list[tuple[str, bool]] | None:
     ]
 
 
-def _chain_type(c: Ctx, type_name: str, chain: list[tuple[str, bool]]) -> str | None:
+def _chain_members(c: Ctx, type_name: str, chain: list[tuple[str, bool]]) -> list[Member] | None:
+    """Поля и геттеры цепочки ключа по порядку; ``None`` — какое-то звено не найдено."""
     current = type_name.split("<")[0].strip()
+    found: list[Member] = []
     for name, is_call in chain:
         decl = c.project.table.type_named(current)
         if decl is None:
@@ -856,8 +861,17 @@ def _chain_type(c: Ctx, type_name: str, chain: list[tuple[str, bool]]) -> str | 
                 break
         if member is None or not member.type_text:
             return None
+        found.append(member)
         current = member.type_text.split("<")[0].strip()
-    return current
+    return found
+
+
+def _chain_type(c: Ctx, type_name: str, chain: list[tuple[str, bool]]) -> str | None:
+    members = _chain_members(c, type_name, chain)
+    if members is None:
+        return None
+    last = members[-1].type_text if members else type_name
+    return (last or "").split("<")[0].strip()
 
 
 def opt_01(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
@@ -984,6 +998,381 @@ def opt_01(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
     ]
 
 
+# --- OPT-09: «найти или добавить» по ключу → Map ------------------------------------------------------------------
+
+_COMMENTS = ("line_comment", "block_comment")
+_PRIMITIVE_KEYS = frozenset({"int", "long", "short", "byte", "char", "boolean"})
+
+
+def _unwrap(node: Node) -> Node:
+    while node.type == "parenthesized_expression" and cst.named_children(node):
+        node = cst.named_children(node)[0]
+    return node
+
+
+def _arguments(node: Node) -> list[Node]:
+    holder = node.child_by_field_name("arguments")
+    return cst.named_children(holder) if holder is not None else []
+
+
+def _conjuncts(c: Ctx, node: Node) -> list[Node]:
+    node = _unwrap(node)
+    if node.type == "binary_expression" and c.text(node.child_by_field_name("operator")) == "&&":
+        left, right = node.child_by_field_name("left"), node.child_by_field_name("right")
+        if left is not None and right is not None:
+            return [*_conjuncts(c, left), *_conjuncts(c, right)]
+    return [node]
+
+
+def _mentions(c: Ctx, node: Node, name: str) -> bool:
+    return any(n.type == "identifier" and c.text(n) == name for n in cst.walk(node))
+
+
+def _getter_reads(c: Ctx, members: list[Member]) -> set[str] | None:
+    """Имена, от которых зависит значение ключа; ``None`` — геттер сложнее чтения полей."""
+    reads: set[str] = set()
+    for member in members:
+        if member.kind == "field":
+            reads.add(member.name)
+            continue
+        context, declaration = c.project.context(member)
+        body = declaration.child_by_field_name("body") if declaration is not None else None
+        if body is None or any(n.type == "method_invocation" for n in cst.walk(body)):
+            return None
+        reads.update(context.parsed.text(n) for n in cst.walk(body) if n.type == "identifier")
+    return reads
+
+
+def _external_call(project: JavaProject, context: Context, call: Node) -> bool:
+    """Вызов, не разрешённый в проекте, — вызов JDK (а не метода проекта, тип которого не определился)."""
+    parsed = context.parsed
+    receiver = call.child_by_field_name("object")
+    if receiver is None:
+        return False
+    text = parsed.text(receiver)
+    if text in {"System.out", "System.err"}:
+        return True
+    kind = context.expr_type(receiver)
+    if kind is None:
+        return (
+            receiver.type == "identifier"
+            and text[:1].isupper()
+            and project.table.type_named(text) is None
+        )
+    return project.table.type_named(kind.split("<")[0].strip()) is None
+
+
+def _written_names(
+    project: JavaProject, context: Context, scope: Node, seen: set[str], depth: int = 0
+) -> set[str] | None:
+    """Имена полей и переменных, которым присваивается значение в ``scope`` и в вызываемых из него методах проекта."""
+    parsed = context.parsed
+    written: set[str] = set()
+    for node in cst.walk(scope):
+        if node.type == "assignment_expression":
+            left = node.child_by_field_name("left")
+            if left is not None and left.type == "field_access":
+                written.add(cst.text_of(parsed, left.child_by_field_name("field")))
+            elif left is not None and left.type == "identifier":
+                written.add(parsed.text(left))
+            else:
+                return None  # элемент массива и т. п.: что именно меняется, неизвестно
+        elif node.type == "update_expression":
+            target = next(
+                (n for n in node.children if n.type in {"identifier", "field_access"}), None
+            )
+            if target is None:
+                return None
+            written.add(
+                cst.text_of(parsed, target.child_by_field_name("field"))
+                if target.type == "field_access"
+                else parsed.text(target)
+            )
+        elif node.type == "method_invocation":
+            callees = context.resolve_call(node)
+            if not callees:
+                if not _external_call(project, context, node):
+                    return None
+                continue
+            for callee in callees:
+                if callee.id in seen:
+                    continue
+                seen.add(callee.id)
+                callee_context, declaration = project.context(callee)
+                body = declaration.child_by_field_name("body") if declaration is not None else None
+                if body is None or depth >= 4:
+                    return None
+                inner = _written_names(project, callee_context, body, seen, depth + 1)
+                if inner is None:
+                    return None
+                written |= inner
+    return written
+
+
+def opt_09(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
+    outer = statement_of(c)
+    if outer.type != "enhanced_for_statement" or c.member is None:
+        raise refuse("Внешний цикл for each", "внешний цикл — не for each")
+    body = outer.child_by_field_name("body")
+    steps = cst.named_children(body) if body is not None and body.type == "block" else []
+    if (
+        len(steps) != 3
+        or steps[0].type != "local_variable_declaration"
+        or steps[2].type != "if_statement"
+    ):
+        raise refuse(
+            "Тело — «найти или добавить»", "в теле цикла не три оператора: флаг, поиск, добавление"
+        )
+    declarators = cst.children_of_type(steps[0], "variable_declarator")
+    initial = declarators[0].child_by_field_name("value") if len(declarators) == 1 else None
+    flag = c.text(declarators[0].child_by_field_name("name")) if initial is not None else ""
+    if not flag or c.text(initial) != "false":
+        raise refuse("Флаг найденного элемента", "первый оператор — не `boolean флаг = false;`")
+    inner = steps[1]
+    if inner.type != "enhanced_for_statement":
+        raise refuse("Поиск — цикл for each", "второй оператор — не for each")
+    store_node, source_node = inner.child_by_field_name("value"), outer.child_by_field_name("value")
+    if store_node is None or store_node.type != "identifier" or source_node is None:
+        raise refuse("Поиск идёт по переменной", "внутренний цикл идёт не по переменной")
+    store = c.text(store_node)
+    if store == c.text(source_node):
+        raise refuse(
+            "Накопитель — отдельная коллекция", "цикл идёт по той же коллекции, в которую добавляет"
+        )
+    store_type = c.resolver().scope.get(store, "").split("<")[0].strip()
+    if store_type not in {"List", "ArrayList", "LinkedList"}:
+        raise refuse(
+            "Накопитель — локальный список",
+            f"«{store}» не локальная переменная-список: другой код мог бы менять её во время цикла",
+        )
+    var_c, var_e = (
+        c.text(outer.child_by_field_name("name")),
+        c.text(inner.child_by_field_name("name")),
+    )
+    type_c, type_e = (
+        c.text(outer.child_by_field_name("type")),
+        c.text(inner.child_by_field_name("type")),
+    )
+    if "var" in {type_c, type_e}:
+        raise refuse("Типы элементов заданы явно", "тип элемента не указан (`var`)")
+
+    # внутри поиска: if (условие) { тело; флаг = true; break; }
+    only = _only_statement(inner.child_by_field_name("body"))
+    if (
+        only is None
+        or only.type != "if_statement"
+        or only.child_by_field_name("alternative") is not None
+    ):
+        raise refuse("В поиске одно if", "внутри поиска не одно if без else")
+    then = only.child_by_field_name("consequence")
+    inside = cst.named_children(then) if then is not None and then.type == "block" else []
+    if (
+        len(inside) < 2
+        or inside[-1].type != "break_statement"
+        or c.text(inside[-2]).replace(" ", "") != f"{flag}=true;"
+    ):
+        raise refuse("Поиск завершается `флаг = true; break;`", "ветка находки заканчивается иначе")
+    work = inside[:-2]
+    if not work:
+        raise refuse("В найденном элементе что-то обновляется", "ветка находки ничего не обновляет")
+    # хвост: if (!флаг) { накопитель.add(выражение); }
+    tail = steps[2]
+    tail_condition, tail_then = (
+        tail.child_by_field_name("condition"),
+        tail.child_by_field_name("consequence"),
+    )
+    adds = (
+        cst.named_children(tail_then) if tail_then is not None and tail_then.type == "block" else []
+    )
+    if (
+        tail.child_by_field_name("alternative") is not None
+        or tail_condition is None
+        or c.text(_unwrap(tail_condition)).replace(" ", "") != f"!{flag}"
+        or len(adds) != 1
+        or adds[0].type != "expression_statement"
+    ):
+        raise refuse(
+            "Добавление при ненайденном", "хвост цикла — не `if (!флаг) { накопитель.add(…); }`"
+        )
+    call = cst.first_child_of_type(adds[0], "method_invocation")
+    call_args = _arguments(call) if call is not None else []
+    if (
+        call is None
+        or c.text(call.child_by_field_name("object")) != store
+        or c.text(call.child_by_field_name("name")) != "add"
+        or len(call_args) != 1
+    ):
+        raise refuse("Добавляется один элемент", f"в хвосте не `{store}.add(…)`")
+    new_element = c.text(call_args[0])
+
+    # условие: конъюнкция равенств одного и того же ключа у найденного элемента и у текущего
+    condition = only.child_by_field_name("condition")
+    assert condition is not None
+    parts: list[tuple[str, str]] = []  # (ключ найденного, ключ текущего)
+    key_types: list[str] = []
+    reads: set[str] = set()
+    for term in _conjuncts(c, condition):
+        if (
+            term.type == "method_invocation"
+            and c.text(term.child_by_field_name("name")) == "equals"
+        ):
+            args = _arguments(term)
+            left = term.child_by_field_name("object")
+            if left is None or len(args) != 1:
+                raise refuse("Условие — равенство ключей", "equals без одного аргумента")
+            sides, operator = (left, args[0]), "equals"
+        elif (
+            term.type == "binary_expression"
+            and c.text(term.child_by_field_name("operator")) == "=="
+        ):
+            left, right = term.child_by_field_name("left"), term.child_by_field_name("right")
+            if left is None or right is None:
+                raise refuse("Условие — равенство ключей", "== без операндов")
+            sides, operator = (left, right), "=="
+        else:
+            raise refuse(
+                "Условие — конъюнкция равенств", f"терм «{c.text(term)[:40]}» — не равенство ключей"
+            )
+        e_side = next(
+            (s for s in sides if _mentions(c, s, var_e) and not _mentions(c, s, var_c)), None
+        )
+        c_side = next(
+            (s for s in sides if _mentions(c, s, var_c) and not _mentions(c, s, var_e)), None
+        )
+        if e_side is None or c_side is None:
+            raise refuse(
+                "Условие — равенство ключей", "в терме не по одному элементу с каждой стороны"
+            )
+        e_text, c_text = c.text(e_side), c.text(c_side)
+        chain = [] if e_text == var_e else _key_chain(e_text, var_e)
+        other = [] if c_text == var_c else _key_chain(c_text, var_c)
+        if chain is None or other is None:
+            raise refuse(
+                "Ключ — геттер элемента", f"«{e_text}» или «{c_text}» — не цепочка геттеров"
+            )
+        members = _chain_members(c, type_e, chain)
+        kind = _chain_type(c, type_e, chain)
+        if chain != other and (operator != "equals" or _chain_type(c, type_c, other) != kind):
+            raise refuse("Ключи одного типа", f"«{e_text}» и «{c_text}» берут разные по типу ключи")
+        declaration = c.project.table.type_named(kind or "")
+        is_enum = declaration is not None and declaration.kind == "enum"
+        comparable = kind in _HASHABLE if operator == "equals" else kind in _PRIMITIVE_KEYS
+        if members is None or kind is None or not (is_enum or comparable):
+            raise refuse(
+                "Ключ — строка, число или enum",
+                f"тип ключа {kind or 'неизвестен'} или сравнение `{operator}` не позволяют заменить его хеш-поиском",
+            )
+        found_reads = _getter_reads(c, members)
+        if found_reads is None:
+            raise refuse("Геттеры ключа просты", f"не удалось разобрать геттеры в «{e_text}»")
+        reads |= found_reads
+        key_types.append(kind)
+        parts.append((e_text, c_text))
+    written: set[str] = set()
+    context = c.resolver()
+    for statement in work:
+        if _mentions(c, statement, flag) or _mentions(c, statement, store):
+            raise refuse(
+                "Тело не трогает флаг и накопитель", "в теле используется флаг или накопитель"
+            )
+        if any(
+            n.type in {"break_statement", "continue_statement", "return_statement"}
+            for n in cst.walk(statement)
+        ):
+            raise refuse("Тело без выхода из итерации", "в теле есть break/continue/return")
+        names = _written_names(c.project, context, statement, set())
+        if names is None:
+            raise refuse(
+                "Эффекты тела известны",
+                f"не удалось определить, что меняет «{c.text(statement)[:40]}»",
+            )
+        written |= names
+    if written & reads:
+        raise refuse(
+            "Тело не меняет ключ",
+            "тело меняет поля, из которых строится ключ: " + ", ".join(sorted(written & reads)),
+        )
+
+    # сборка текста
+    source_text = c.source.decode("utf-8")
+    unit, base = indent_unit(source_text), line_indent(c.source, outer.start_byte)
+    used = {c.text(n) for n in cst.walk(c.body)} if c.body is not None else set()
+    index = _fresh_name(f"{store}Index", used)
+    key_name = _fresh_name("key", used | {index})
+    added = _fresh_name("added", used | {index, key_name})
+    single = len(parts) == 1
+    boxed = _BOXED.get(key_types[0], key_types[0]) if single else "List<Object>"
+
+    def key_of(texts: list[str]) -> str:
+        return texts[0] if single else f"Arrays.asList({', '.join(texts)})"
+
+    stored_keys = [re.sub(rf"\b{re.escape(var_e)}\b", added, e) for e, _ in parts]
+    siblings = (
+        [n for n in cst.named_children(outer.parent) if n.type not in _COMMENTS]
+        if outer.parent
+        else []
+    )
+    position = next((i for i, n in enumerate(siblings) if n.start_byte == outer.start_byte), 0)
+    previous = siblings[position - 1] if position else None
+    fresh_store = (
+        previous is not None
+        and previous.type == "local_variable_declaration"
+        and any(
+            c.text(d.child_by_field_name("name")) == store
+            and (v := d.child_by_field_name("value")) is not None
+            and v.type == "object_creation_expression"
+            and not _arguments(v)
+            for d in cst.children_of_type(previous, "variable_declarator")
+        )
+    )
+    lines = [f"Map<{boxed}, {type_e}> {index} = new HashMap<>();"]
+    if not fresh_store:  # накопитель мог уже содержать элементы: они находятся первыми
+        lines += [
+            f"for ({type_e} {var_e} : {store}) {{",
+            f"{unit}{index}.putIfAbsent({key_of([e for e, _ in parts])}, {var_e});",
+            "}",
+        ]
+    lines += [
+        f"for ({type_c} {var_c} : {c.text(source_node)}) {{",
+        f"{unit}{boxed} {key_name} = {key_of([k for _, k in parts])};",
+        f"{unit}{type_e} {var_e} = {index}.get({key_name});",
+    ]
+    add_lines = [
+        f"{unit}{unit}{type_e} {added} = {new_element};",
+        f"{unit}{unit}{store}.add({added});",
+        f"{unit}{unit}{index}.putIfAbsent({key_of(stored_keys)}, {added});",
+    ]
+    lines.append(f"{unit}if ({var_e} != null) {{")
+    shift = len(base) + len(unit)
+    for statement in work:
+        rows = c.source[statement.start_byte : statement.end_byte].decode("utf-8").split("\n")
+        lines.append(f"{unit}{unit}{rows[0]}")
+        lines += [
+            line[shift:] if line.startswith(base + unit) else line.lstrip() for line in rows[1:]
+        ]
+    lines.append(f"{unit}}} else {{")
+    lines += add_lines
+    lines.append(f"{unit}}}")
+    lines.append("}")
+    text = lines[0] + "".join("\n" + (base + line if line.strip() else "") for line in lines[1:])
+    edits = [TextEdit(c.file, outer.start_byte, outer.end_byte, text)]
+    wanted = ["java.util.HashMap", "java.util.Map"] + (
+        [] if single else ["java.util.Arrays", "java.util.List"]
+    )
+    imports = ensure_imports(source_text, wanted)
+    if imports is not None:
+        edits.append(TextEdit(c.file, imports.start, imports.end, imports.text))
+    return edits, [
+        Check("Тело цикла — «найти элемент по ключу или добавить»", True),
+        Check(f"Ключ ({', '.join(key_types)}) сравнивается так же, как его хеш-поиск", True),
+        Check("Тело не меняет поля, из которых строится ключ", True),
+        Check(
+            "Первый подходящий элемент сохраняется (`putIfAbsent`), порядок накопителя прежний",
+            True,
+        ),
+    ]
+
+
 MORE_SPECS = {
     "PERF-04": (
         "OPT-04",
@@ -998,6 +1387,13 @@ MORE_SPECS = {
         "Неизменный вызов вычисляется один раз перед циклом и сохраняется в переменную.",
         True,
         opt_05,
+    ),
+    "PERF-09": (
+        "OPT-09",
+        "Индекс по ключу вместо поиска «найти или добавить»",
+        "Найденный элемент берётся из Map по ключу, а не перебором накопителя; порядок и состав накопителя те же.",
+        True,
+        opt_09,
     ),
     "PERF-08": (
         "OPT-08",

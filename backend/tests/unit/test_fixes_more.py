@@ -374,3 +374,162 @@ def test_opt_01_refuses_unhashable_keys_and_mutating_bodies():
         c.reason or "" for c in propose(project, finding_of(project, "PERF-01")).failed()
     )
     assert "изменяется items" in reasons
+
+
+# --- OPT-09: «найти или добавить» по ключу --------------------------------------------------------------------
+
+MERGE = """\
+import java.util.*;
+
+class A {
+    enum Kind { X, Y }
+
+    static class Item {
+        private final String name;
+        private final Kind kind;
+        private final double price;
+        private int qty;
+
+        Item(String name, Kind kind, double price, int qty) {
+            this.name = name;
+            this.kind = kind;
+            this.price = price;
+            this.qty = qty;
+        }
+
+        String getName() { return name; }
+        Kind getKind() { return kind; }
+        double getPrice() { return price; }
+        int getQty() { return qty; }
+        void addQty(int more) { qty += more; }
+        Item copy() { return new Item(name, kind, price, qty); }
+    }
+
+    List<Item> items = new ArrayList<>();
+    List<String> log = new ArrayList<>();
+
+    int merge() {
+        List<Item> merged = new ArrayList<>();
+        for (Item c : items) {
+            boolean found = false;
+            for (Item e : merged) {
+                if (e.getName().equals(c.getName()) && e.getKind() == c.getKind()) {
+                    e.addQty(c.getQty());
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                merged.add(c.copy());
+            }
+        }
+        return merged.size();
+    }
+}
+"""
+
+
+def merge_fixed(source: str) -> str:
+    project = JavaProject({"A.java": source})
+    proposal = propose(project, finding_of(project, "PERF-09"))
+    assert proposal is not None and proposal.available and proposal.behavior_preserving
+    return apply_proposal(project, proposal)["A.java"]
+
+
+def merge_refusal(source: str) -> str:
+    project = JavaProject({"A.java": source})
+    proposal = propose(project, finding_of(project, "PERF-09"))
+    assert proposal is not None and not proposal.available
+    return " ".join(c.reason or "" for c in proposal.failed())
+
+
+def test_opt_09_replaces_find_or_add_with_an_index_on_a_composite_key():
+    after = merge_fixed(MERGE)
+    assert "Map<List<Object>, Item> mergedIndex = new HashMap<>();" in after
+    assert "List<Object> key = Arrays.asList(c.getName(), c.getKind());" in after
+    assert "Item e = mergedIndex.get(key);" in after
+    assert "if (e != null) {\n                e.addQty(c.getQty());\n            } else {" in after
+    assert "Item added = c.copy();\n                merged.add(added);" in after
+    assert (
+        "mergedIndex.putIfAbsent(Arrays.asList(added.getName(), added.getKind()), added);" in after
+    )
+    assert "found" not in after
+    assert (
+        "import java.util.Arrays;" not in after.split("class A")[0]
+        or "import java.util.*;" in after
+    )
+    assert "PERF-09" not in rule_ids(after)
+
+
+def test_opt_09_uses_the_plain_key_for_a_single_term():
+    source = MERGE.replace(" && e.getKind() == c.getKind()", "")
+    after = merge_fixed(source)
+    assert "Map<String, Item> mergedIndex = new HashMap<>();" in after
+    assert "String key = c.getName();" in after
+    assert "mergedIndex.putIfAbsent(added.getName(), added);" in after
+    assert "Arrays" not in after
+
+
+def test_opt_09_indexes_the_elements_already_in_a_collection_that_is_not_fresh():
+    source = MERGE.replace(
+        "    int merge() {\n        List<Item> merged = new ArrayList<>();",
+        "    int merge(List<Item> merged) {",
+    )
+    after = merge_fixed(source)
+    assert (
+        "Map<List<Object>, Item> mergedIndex = new HashMap<>();\n"
+        "        for (Item e : merged) {\n"
+        "            mergedIndex.putIfAbsent(Arrays.asList(e.getName(), e.getKind()), e);\n"
+        "        }\n"
+    ) in after
+
+
+def test_opt_09_refuses_a_body_that_changes_the_key():
+    source = MERGE.replace("private final String name;", "private String name;").replace(
+        "void addQty(int more) { qty += more; }",
+        'void addQty(int more) { qty += more; name = name + "!"; }',
+    )
+    assert "name" in merge_refusal(source)
+
+
+def test_opt_09_refuses_keys_that_cannot_be_hashed_safely():
+    source = MERGE.replace("e.getKind() == c.getKind()", "e.getPrice() == c.getPrice()")
+    assert "тип ключа" in merge_refusal(source)
+
+
+def test_opt_09_refuses_a_condition_that_is_not_a_conjunction_of_key_equalities():
+    source = MERGE.replace("&& e.getKind() == c.getKind()", "|| e.getKind() == c.getKind()")
+    assert "не равенство ключей" in merge_refusal(source)
+    source = MERGE.replace(
+        "e.getName().equals(c.getName())", "e.getName().equals(c.getName().trim())"
+    )
+    assert merge_refusal(source)
+
+
+def test_opt_09_refuses_a_key_taken_from_different_getters():
+    source = MERGE.replace(
+        "e.getName().equals(c.getName())", "e.getName().equals(c.getKind().name())"
+    )
+    assert "ключи" in merge_refusal(source)
+
+
+def test_opt_09_refuses_extra_statements_around_the_search():
+    source = MERGE.replace(
+        "            if (!found) {", '            log.add("x");\n            if (!found) {'
+    )
+    assert "не три оператора" in merge_refusal(source)
+
+
+def test_opt_09_refuses_a_body_with_unknown_effects():
+    source = MERGE.replace(
+        "e.addQty(c.getQty());", "e.addQty(c.getQty());\n                    unknown(e);"
+    )
+    assert merge_refusal(source)
+
+
+def test_opt_09_refuses_an_accumulator_that_is_not_a_local_list():
+    source = MERGE.replace("        List<Item> merged = new ArrayList<>();\n", "").replace(
+        "    List<String> log = new ArrayList<>();",
+        "    List<String> log = new ArrayList<>();\n    List<Item> merged = new ArrayList<>();",
+    )
+    assert "локальная" in merge_refusal(source)

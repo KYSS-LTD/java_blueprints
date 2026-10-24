@@ -489,8 +489,19 @@ def _source_name(view: MemberView, loop: Node) -> str | None:
     return None
 
 
+_READERS = ("get", "is", "has", "equals", "compare", "to", "size", "contains")
+
+
 def _counts(view: MemberView, loop: Node) -> bool:
+    element = view.variable_of(loop)
     for node in cst.walk(loop):
+        if (
+            node.type == "method_invocation"
+            and element is not None
+            and view.text(node.child_by_field_name("object")) == element
+            and not view.text(node.child_by_field_name("name")).startswith(_READERS)
+        ):
+            return True  # найденный элемент меняется: ``existing.addQuantity(…)``
         if node.type == "update_expression":
             return True
         if node.type == "assignment_expression" and view.text(

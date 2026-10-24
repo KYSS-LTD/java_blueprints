@@ -193,3 +193,87 @@ def test_opt_01_on_the_slide_five_sample_keeps_every_scenario(client):
     assert info["summary"]["version_status"] == "passed", info["summary"]
     assert info["summary"]["passed"] == total
     assert info["summary"]["data"]["candidate"] == "promoted"
+
+
+# --- OPT-09: «найти или добавить» ------------------------------------------------------------------------------
+
+COUNTING = """\
+import java.util.*;
+
+public class Main {
+    static class Count {
+        private final String text;
+        private int times = 1;
+
+        Count(String text) {
+            this.text = text;
+        }
+
+        String getText() {
+            return text;
+        }
+
+        int getTimes() {
+            return times;
+        }
+
+        void increment() {
+            times++;
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner in = new Scanner(System.in);
+        List<String> words = new ArrayList<>();
+        while (in.hasNext()) {
+            words.add(in.next());
+        }
+        List<Count> counts = new ArrayList<>();
+        for (String w : words) {
+            boolean found = false;
+            for (Count k : counts) {
+                if (k.getText().equals(w)) {
+                    k.increment();
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                counts.add(new Count(w));
+            }
+        }
+        for (Count k : counts) {
+            System.out.println(k.getText() + " " + k.getTimes());
+        }
+    }
+}
+"""
+COUNTING_INPUTS = ["a b a c b a\n", "", "x\n", "p q r s t p q r s t u\n"]
+
+
+def test_opt_09_keeps_output_order_and_the_gate_green(client, make_project):
+    project = make_project({"Main.java": COUNTING}, name="find-or-add")
+    for index, stdin in enumerate(COUNTING_INPUTS):
+        client.post(url(project, "/scenarios"), json={"name": f"c{index}", "stdin": stdin})
+    assert run_kind(client, project, "baseline")["status"] == "done"
+    expected = [
+        run_kind(client, project, "run", stdin=s)["items"][0]["stdout"] for s in COUNTING_INPUTS
+    ]
+    offer = available(client, project)
+    assert "OPT-09" in offer
+    plan = client.post(url(project, "/optimize/plan"), json={}).json()
+    assert "OPT-09" in {s["fix_id"] for s in plan["steps"]}
+    versions = client.get(url(project, "/versions")).json()
+    response = client.post(
+        url(project, f"/fixes/{quote(offer['OPT-09'], safe=chr(47))}/apply"),
+        json={"base_version_id": versions["head_version_id"]},
+    )
+    assert response.status_code == 202, response.text
+    info = wait_run(client, response.json()["run_id"], 240)
+    assert info["summary"]["version_status"] == "passed", info["summary"]
+    assert info["summary"]["data"]["candidate"] == "promoted"
+    after = [
+        run_kind(client, project, "run", stdin=s)["items"][0]["stdout"] for s in COUNTING_INPUTS
+    ]
+    assert after == expected
+    assert "OPT-09" not in available(client, project)
