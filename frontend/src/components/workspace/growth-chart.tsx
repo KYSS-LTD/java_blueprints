@@ -42,11 +42,15 @@ export function singlePoints(samples: GrowthSample[]): {
   };
 }
 
-export function comparedPoints(samples: ComparedSample[]): {
+export function comparedPoints(
+  samples: ComparedSample[],
+  preferred?: "hits" | "time_ms",
+): {
   points: Point[];
   metric: "hits" | "time_ms";
 } {
-  const metric = pickMetric(samples.flatMap((s) => [s.before, s.after]));
+  // ось задаёт вызывающий (ускорение посчитано по времени или по счётчикам); без него — по данным
+  const metric = preferred ?? pickMetric(samples.flatMap((s) => [s.before, s.after]));
   const pick = (s: GrowthSample) => (metric === "hits" ? (s.hits ?? 0) : s.time_ms);
   return {
     metric,
@@ -64,11 +68,14 @@ const COMPARED: ChartConfig = {
 export function GrowthChart({
   samples,
   compared,
+  metric,
 }: {
   samples?: GrowthSample[];
   compared?: ComparedSample[];
+  /** Что откладывать по оси Y в режиме «до/после»; по умолчанию выбирается по данным. */
+  metric?: "hits" | "time_ms";
 }) {
-  const view = compared ? comparedPoints(compared) : singlePoints(samples ?? []);
+  const view = compared ? comparedPoints(compared, metric) : singlePoints(samples ?? []);
   if (view.points.length < 2) return null;
   const config = compared ? COMPARED : SINGLE;
   return (

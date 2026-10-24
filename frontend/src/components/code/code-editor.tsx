@@ -111,14 +111,21 @@ export default function CodeEditor({
       "jb",
       markers
         .filter((m) => m.range.start_line <= model.getLineCount())
-        .map((m) => ({
-          severity: SEVERITY(monaco, m.severity),
-          message: m.message,
-          startLineNumber: m.range.start_line,
-          startColumn: m.range.start_col,
-          endLineNumber: m.range.end_line,
-          endColumn: Math.max(m.range.end_col, m.range.start_col + 1),
-        })),
+        .map((m) => {
+          const endLine = Math.min(m.range.end_line, model.getLineCount());
+          return {
+            severity: SEVERITY(monaco, m.severity),
+            message: m.message,
+            startLineNumber: m.range.start_line,
+            startColumn: m.range.start_col,
+            endLineNumber: endLine,
+            // конец диапазона не дальше конца строки: так маркеру можно задать «до конца строки» большим числом
+            endColumn: Math.min(
+              Math.max(m.range.end_col, m.range.start_col + 1),
+              Math.max(model.getLineMaxColumn(endLine), m.range.start_col + 1),
+            ),
+          };
+        }),
     );
   };
 

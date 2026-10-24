@@ -151,6 +151,35 @@ export const analysisQuery = (projectId: number) =>
     retry: false,
   });
 
+/** История запусков проекта: из неё берутся итоги оптимизации (измеренное ускорение). */
+export const runsQuery = (projectId: number) =>
+  queryOptions({
+    queryKey: ["runs", projectId],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/runs", {
+          params: { path: { project_id: projectId } },
+        }),
+      ),
+    retry: false,
+  });
+
+/** Метрики версии; `compareTo` — версия «до» для сравнения «Оригинал → Текущая». */
+export const metricsQuery = (projectId: number, compareTo?: number | null) =>
+  queryOptions({
+    queryKey: ["metrics", projectId, compareTo ?? "none"],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/metrics", {
+          params: {
+            path: { project_id: projectId },
+            query: { compare_to: compareTo ?? undefined },
+          },
+        }),
+      ),
+    retry: false,
+  });
+
 export const scenariosQuery = (projectId: number) =>
   queryOptions({
     queryKey: ["scenarios", projectId],

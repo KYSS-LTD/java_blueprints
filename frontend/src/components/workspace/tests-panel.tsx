@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { FileDiffs } from "@/components/workspace/file-diffs";
+import { GateStages } from "@/components/workspace/gate-stages";
 import { GenerateDialog } from "@/components/workspace/generate-dialog";
 import { ScenarioDialog } from "@/components/workspace/scenario-dialog";
 import {
@@ -251,28 +252,6 @@ function ScenarioRow({
   );
 }
 
-function GateStages({ entry }: { entry: RunEntry }) {
-  const stages = new Map(entry.state.gate.map((g) => [g.stage, g]));
-  if (stages.size === 0) return null;
-  return (
-    <ol className="flex flex-wrap gap-1 px-3 pt-2 text-[10px]" aria-label={t.started.gate}>
-      {[...stages.values()].map((stage) => (
-        <li key={stage.stage} title={stage.details ?? undefined}>
-          <Badge
-            variant="outline"
-            className={cn(
-              stage.status === "passed" && "border-node-return/50 text-node-return",
-              stage.status === "failed" && "border-severity-high/50 text-severity-high",
-            )}
-          >
-            {t.gateStages[stage.stage]}: {t.gateStatus[stage.status]}
-          </Badge>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
 export function TestsPanel({ projectId }: { projectId: number }) {
   const queryClient = useQueryClient();
   const project = useQuery(projectQuery(projectId));
@@ -399,7 +378,9 @@ export function TestsPanel({ projectId }: { projectId: number }) {
         </div>
       </div>
 
-      {entry && entry.kind === "gate" && <GateStages entry={entry} />}
+      {entry && entry.kind === "gate" && (
+        <GateStages gate={entry.state.gate} className="px-3 pt-2" />
+      )}
 
       {(running || total > 0) && (
         <div className="px-3 pt-2">

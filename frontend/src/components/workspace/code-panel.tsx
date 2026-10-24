@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api/client";
 import { parseLive } from "@/lib/api/mutations";
-import { fileQuery } from "@/lib/api/queries";
+import { findingMarkers } from "@/lib/analysis/view";
+import { analysisQuery, fileQuery } from "@/lib/api/queries";
 import { flushDrafts, flushDraftsOnExit } from "@/lib/edit/session";
 import { findCachedBlock, locateInCache } from "@/lib/graph/flow-cache";
 import type { SourceRange } from "@/lib/graph/flow-model";
@@ -44,6 +45,8 @@ export function CodePanel({ projectId, versionId }: Props) {
     return id === undefined ? undefined : s.entries[id];
   });
   const file = useQuery(fileQuery(projectId, activeFile, versionId));
+  const analysis = useQuery(analysisQuery(projectId));
+  const showFindings = useWorkspaceStore((s) => s.overlays.findings);
   const draft = useEditorStore((s) => (activeFile ? s.drafts[activeFile] : undefined));
   const liveIssues = useEditorStore((s) => (activeFile ? s.issues[activeFile] : undefined));
   const locked = useEditorStore((s) => s.busy > 0);
@@ -83,8 +86,9 @@ export function CodePanel({ projectId, versionId }: Props) {
         },
       });
     }
+    if (showFindings) result.push(...findingMarkers(analysis.data?.findings ?? [], activeFile));
     return result;
-  }, [file.data, liveIssues, lastRun?.state.diagnostics, activeFile]);
+  }, [file.data, liveIssues, lastRun?.state.diagnostics, activeFile, showFindings, analysis.data]);
 
   // Курсор → узел графа (docs/09 § 4): сначала по уже загруженным схемам, затем у backend.
   const onCursor = useDebouncedCallback(async (line: number, column: number) => {

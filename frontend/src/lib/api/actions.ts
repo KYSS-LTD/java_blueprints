@@ -210,8 +210,10 @@ const PROJECT_KEYS = [
   "structure",
   "flow",
   "analysis",
+  "metrics",
   "fixes",
   "scenarios",
+  "runs",
   "diff",
 ] as const;
 

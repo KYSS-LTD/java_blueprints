@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { OptimizeDialog } from "@/components/analysis/optimize-dialog";
 import { ImportDialog } from "@/components/projects/import-dialog";
 import { HistorySheet } from "@/components/workspace/history-sheet";
 import { RunDialog } from "@/components/workspace/run-dialog";
@@ -151,6 +152,7 @@ export function WorkspaceHeader({ projectId }: { projectId: number }) {
   const [running, setRunning] = useState(false);
   const [debugging, setDebugging] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [optimizing, setOptimizing] = useState(false);
   const project = useQuery(projectQuery(projectId));
   const { head, canUndo, canRedo, working, undo, redo } = useEditing(projectId);
   const busy = useRunStore((s) => {
@@ -227,9 +229,15 @@ export function WorkspaceHeader({ projectId }: { projectId: number }) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <SoonButton label={t.optimize} hint={t.soonOptimize}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setOptimizing(true)}
+          title={t.optimizeHint}
+          data-testid="optimize-button"
+        >
           <Sparkles /> {t.optimize}
-        </SoonButton>
+        </Button>
 
         <Button size="sm" onClick={() => setRunning(true)} disabled={busy} data-testid="run-button">
           <Play /> {t.run}
@@ -255,6 +263,7 @@ export function WorkspaceHeader({ projectId }: { projectId: number }) {
       <RunDialog projectId={projectId} open={running} onOpenChange={setRunning} />
       <RunDialog projectId={projectId} open={debugging} onOpenChange={setDebugging} mode="trace" />
       <HistorySheet projectId={projectId} open={historyOpen} onOpenChange={setHistoryOpen} />
+      <OptimizeDialog projectId={projectId} open={optimizing} onOpenChange={setOptimizing} />
     </header>
   );
 }

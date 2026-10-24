@@ -42,6 +42,11 @@ export function isRunning(state: RunState): boolean {
   return state.status === "queued" || state.status === "running";
 }
 
+/** Запуск создан и не завершился; события могли ещё не прийти, тогда статус `idle`. */
+export function isInProgress(state: RunState): boolean {
+  return !state.done && state.error === null;
+}
+
 function diagnosticsOf(summary: RunSummary): Diagnostic[] {
   const found = summary.data?.diagnostics;
   return Array.isArray(found) ? (found as Diagnostic[]) : [];
