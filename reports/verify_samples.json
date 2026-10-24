@@ -14,15 +14,15 @@
     "total": 11,
     "coverage": 0.9042,
     "complexity": "O(n⁴)",
-    "optimized": "O(n³)",
-    "findings": 30,
+    "optimized": "O(n²)",
+    "findings": 35,
     "by_severity": {
       "high": 5,
-      "medium": 12,
-      "low": 13
+      "medium": 13,
+      "low": 17
     },
-    "fixable": 8,
-    "seconds": 5.6
+    "fixable": 21,
+    "seconds": 6.7
   },
   {
     "sample": "analyzer-pairs",
@@ -40,12 +40,13 @@
     "coverage": 1.0,
     "complexity": "O(n²)",
     "optimized": null,
-    "findings": 1,
+    "findings": 4,
     "by_severity": {
-      "high": 1
+      "high": 1,
+      "low": 3
     },
-    "fixable": 0,
-    "seconds": 3.0
+    "fixable": 1,
+    "seconds": 3.2
   },
   {
     "sample": "expression-calculator",
@@ -62,15 +63,15 @@
     "total": 10,
     "coverage": 0.9151,
     "complexity": "O(n^8)",
-    "optimized": null,
-    "findings": 40,
+    "optimized": "O(n^7)",
+    "findings": 46,
     "by_severity": {
       "high": 10,
-      "medium": 9,
-      "low": 21
+      "medium": 11,
+      "low": 25
     },
-    "fixable": 5,
-    "seconds": 5.0
+    "fixable": 16,
+    "seconds": 6.2
   },
   {
     "sample": "graph-paths",
@@ -87,15 +88,15 @@
     "total": 10,
     "coverage": 0.9413,
     "complexity": "O(n⁵)",
-    "optimized": "O(n⁴)",
-    "findings": 35,
+    "optimized": "O(n³)",
+    "findings": 38,
     "by_severity": {
       "high": 14,
       "medium": 11,
-      "low": 10
+      "low": 13
     },
-    "fixable": 8,
-    "seconds": 4.9
+    "fixable": 17,
+    "seconds": 5.9
   },
   {
     "sample": "inventory",
@@ -112,15 +113,15 @@
     "total": 9,
     "coverage": 0.9279,
     "complexity": "O(n³ log n)",
-    "optimized": null,
-    "findings": 23,
+    "optimized": "O(n² log n)",
+    "findings": 27,
     "by_severity": {
       "high": 5,
       "medium": 9,
-      "low": 9
+      "low": 13
     },
-    "fixable": 8,
-    "seconds": 4.7
+    "fixable": 17,
+    "seconds": 5.8
   },
   {
     "sample": "text-analyzer",
@@ -137,14 +138,14 @@
     "total": 9,
     "coverage": 0.9304,
     "complexity": "O(n^7)",
-    "optimized": null,
-    "findings": 21,
+    "optimized": "O(n^6)",
+    "findings": 23,
     "by_severity": {
       "high": 8,
       "medium": 6,
-      "low": 7
+      "low": 9
     },
-    "fixable": 5,
-    "seconds": 4.9
+    "fixable": 12,
+    "seconds": 5.9
   }
 ]

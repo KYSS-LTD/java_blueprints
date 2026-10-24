@@ -172,6 +172,8 @@ def markdown(result: dict[str, float], machine: str) -> str:
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):  # Windows: вывод в файл иначе идёт в кодовой странице консоли
+        stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--java-home", help="каталог JDK (иначе javac/java из PATH)")
     parser.add_argument("--out", default=str(ROOT / "reports"), help="куда писать отчёт")

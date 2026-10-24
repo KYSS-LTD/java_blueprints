@@ -146,7 +146,7 @@ cd frontend && pnpm test && pnpm e2e
 1. Linux-сервер (2 vCPU, 4 ГБ), Docker, домен/IP.
 2. `git clone` + `docker compose up -d --build`.
 3. Reverse proxy (Caddy/nginx) на порт 3000 с HTTPS; для SSE — отключить буферизацию.
-4. Предзагруженный пример: при первом старте backend создаёт проект «demo-orders» из `samples/` (флаг `JB_SEED_DEMO=1`).
+4. Предзагруженный пример: при первом старте backend создаёт проект «Demo: заказы» из `samples/demo-orders` (флаг `JB_SEED_DEMO=1`, в `docker-compose.yml` включён) и в фоне записывает эталон и прогоняет gate (`JB_SEED_PREPARE=1` по умолчанию; нужен JDK). Для демо с нуля отключите флаг и очистите том: `docker compose down -v`.
 5. Резервная копия: том `jb-data`.
 
 Так как API не защищён аутентификацией, а пользовательский Java-код выполняется на сервере, публичный стенд закрывается базовой авторизацией на reverse proxy или ограничением по IP (допущение: монолиты доверенные).

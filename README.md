@@ -75,15 +75,43 @@ backend/    FastAPI (app/) и ядро без веб-зависимостей (e
 frontend/   Next.js, shadcn/ui, граф и редактор
 samples/    корпус Java-примеров: демо-монолит, фикстуры scope, сломанные и вне рамок (см. samples/README.md)
 reports/    результаты проверки поведения для сдачи
-scripts/    служебные скрипты: doctor.py, verify_corpus.py (проверка корпуса), gen_mock_fixtures.py (моки frontend)
+scripts/    служебные скрипты: doctor.py, verify_corpus.py, verify_samples.py, bug_bash.py, perf_budget.py, submit.py, gen_mock_fixtures.py (моки frontend)
 docs/       документация и план разработки
 ```
 
+## Демо-путь
+
+С `docker compose up --build` (или локально с `JB_SEED_DEMO=1`) на старте создаётся проект «Demo: заказы» — монолит на ≈1000 строк с 11 сценариями; в фоне записывается эталон и проходит gate, поэтому в шапке сразу «✓ поведение совпадает (11/11)». Для демо «с нуля» импортируйте `samples/demo-orders/Main.java` кнопкой «Импорт Java» (или запустите без `JB_SEED_DEMO`). Пошаговый сценарий на 7 минут — [docs/12-demo-and-submission.md](docs/12-demo-and-submission.md).
+
+## Проверка и отчёты
+
+```bash
+python scripts/verify_samples.py   # 6 примеров целиком через API → reports/verify_samples.md|json
+python scripts/bug_bash.py         # весь корпус (48 проектов): граф всех методов, исправления, javac на экспорте → reports/bug_bash.md
+python scripts/perf_budget.py      # бюджеты docs/10 § 3.6 → reports/perf_budget.md
+make submit                        # тесты + отчёты + архив dist/java-blueprints-submission.zip (reports/SUMMARY.md)
+```
+
+| Бюджет (`demo-orders`, 995 строк) | Замер |
+|---|---|
+| Разбор + граф всех методов (≤ 0,3 с) | 0,04 с |
+| Операция над графом (≤ 0,5 с) | 0,05 с |
+| Анализ (≤ 1 с) | 0,41 с |
+| Холодная компиляция (≤ 3 с) | 1,5 с |
+| Gate на 15 сценариях (≤ 20 с) | 3,3 с |
+
 ## Статус
+
+Все этапы плана ([docs/plan](docs/plan/README.md)) реализованы; подробная приёмка по пунктам ТЗ и список ограничений — [docs/13-acceptance.md](docs/13-acceptance.md), описание решения — [SOLUTION.md](SOLUTION.md).
 
 | Этап | Состояние |
 |---|---|
-| S0 Каркас и окружение | сделан: backend, frontend, тесты, CI, Dockerfile; спайк tree-sitter-java зелёный. Сборка Docker-образов не проверена (нет Docker на машине разработки) |
-| S1 Контракт API и корпус | сделан: схемы и 65 эндпоинтов-заглушек (`501`), типы и моки frontend (`pnpm dev:mock`, экран `/preview`), корпус `samples/` (демо-монолит 995 строк и ещё 4 монолита, 38 фикстур scope, `broken/`, `out-of-scope/`), `scripts/verify_corpus.py`. Корпус проверен на JDK 17, на JDK 21 его проверит CI (не запускался) |
-| S2 Разбор и граф | сделан, кроме семантики JDK: символы, блок-схемы всех видов операторов, граф структуры, структурные ID и `locate`, инварианты I1 и I3 на всём корпусе (`backend/engine/{java,graph}`), ≈40 мс на `demo-orders`. Не сделаны каталог типов JDK, эффекты и чистота методов (нужны S7–S9) |
-| S3–S10 | по [плану](docs/plan/README.md) |
+| S0–S3 Каркас, контракт API, разбор и граф, backend-ядро | сделаны |
+| S4–S5 Рабочая область и двусторонняя правка граф ↔ код | сделаны (undo/redo, история, палитра, инспектор, мультивыбор) |
+| S6 Проверка поведения | сделан: сценарии, эталон, gate, трассировка, генератор, бенчмарк |
+| S7 Диагностика | сделан: 33 правила, Big O, метрики, «Проверить» |
+| S8 Оптимизация | сделан: 20 автоисправлений, пакетная «Оптимизировать» с измеренным ускорением (нет `OPT-09/10`) |
+| S9 Выделение метода и декомпозиция | сделаны |
+| S10 Приёмка и сдача | отчёт приёмки, баг-баш, бюджеты, `SOLUTION.md`, `make submit`; не сделаны Playwright E2E, видео и проверка Docker на чистой машине |
+
+Проверено на Windows и JDK 17; JDK 21 (целевой), Linux и Docker проверяет CI и ручной прогон на чистой машине.

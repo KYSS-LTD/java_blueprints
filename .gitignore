@@ -37,3 +37,6 @@ data/
 .env
 .env.*
 !.env.example
+
+# комплект сдачи
+dist/

@@ -10,7 +10,9 @@ services:
       JB_DATA_DIR: /data
       JB_MAX_PARALLEL_RUNS: "4"
       JB_RUN_TIMEOUT_S: "10"
-      # JB_SEED_DEMO: "1"   # создать проект demo-orders при старте (появится в S3.9)
+      # Демо-проект «Demo: заказы» при первом старте: эталон записан, gate зелёный (запасной план демо).
+      # Для демо «с нуля» поставьте "0" и очистите том: docker compose down -v
+      JB_SEED_DEMO: "1"
     volumes:
       - jb-data:/data
     mem_limit: 2g

@@ -35,4 +35,4 @@ doctor:
 	python scripts/doctor.py
 
 submit:
-	@echo "Сборка комплекта сдачи появится на этапе S10"
+	python scripts/submit.py
