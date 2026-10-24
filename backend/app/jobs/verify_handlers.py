@@ -521,6 +521,8 @@ def _gate_stages(ctx: JobContext) -> Outcome:
         "passed" if result.passed == result.total else "failed",
         f"{result.passed} из {result.total}",
     )
+    if summary.version_status == "passed":
+        _coverage_stage(ctx, built, result, summary)
     gate_status = {
         "passed": GateStatus.PASSED,
         "failed": GateStatus.FAILED,
@@ -528,6 +530,58 @@ def _gate_stages(ctx: JobContext) -> Outcome:
     }[summary.version_status or "unknown"]
     _set_gate(ctx, gate_status.value)
     return Outcome(RunStatus.DONE.value, summary, result.items)
+
+
+def _coverage_stage(
+    ctx: JobContext, built: Built, result: ScenarioRun, summary: schemas.RunSummary
+) -> None:
+    """Покрытие блоков сценариями gate (docs/07 § 8). Низкое покрытие не краснит gate, но не даёт
+    заявить «поведение сохранено»: статус версии становится «не проверено»."""
+    from app.jobs.trace_handlers import prepare_traced, run_traced
+    from engine.runtime.trace import coverage_of
+
+    _stage(ctx, "coverage", "running")
+    with Session(get_engine()) as session:
+        project = session.get(Project, ctx.project_id)
+        minimum = float((project.settings or {}).get("gate_min_coverage", 0.6)) if project else 0.6
+        scenarios = [
+            s
+            for s in load_scenarios(session, ctx.project_id, ctx.request.scenario_ids)
+            if s.name in {i.name for i in result.items}
+        ]
+    traced, _ = prepare_traced(ctx, built)
+    if traced is None:
+        _stage(
+            ctx,
+            "coverage",
+            "passed",
+            "покрытие не измерено: инструментированная копия не собралась",
+        )
+        return
+    main = require_main(ctx)
+    hits = []
+
+    def work(scenario: ScenarioData):  # type: ignore[no-untyped-def]
+        return run_traced(ctx, traced, main, scenario.stdin, list(scenario.args))[1]
+
+    run_parallel(ctx, scenarios, work, lambda _scenario, h: hits.append(h))
+    coverage = coverage_of(traced.build.instrumented, hits)
+    summary.coverage = round(coverage.ratio, 4)
+    data = dict(summary.data or {})
+    data.update(
+        coverage_total=coverage.total, coverage_covered=len(coverage.covered), coverage_min=minimum
+    )
+    summary.data = data
+    percent = f"{coverage.ratio * 100:.0f}%"
+    if coverage.ratio + 1e-9 < minimum:
+        _stage(ctx, "coverage", "failed", f"{percent} ниже порога {minimum * 100:.0f}%")
+        summary.version_status = "unknown"
+        summary.message = (
+            f"Все тесты пройдены, но покрытие {percent} ниже порога {minimum * 100:.0f}%: "
+            "поведение подтверждено не полностью"
+        )
+    else:
+        _stage(ctx, "coverage", "passed", f"{percent} блоков")
 
 
 def verify_handlers() -> dict[str, Handler]:

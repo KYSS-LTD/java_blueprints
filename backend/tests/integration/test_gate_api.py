@@ -299,6 +299,8 @@ def test_gate_is_green_on_the_original_and_red_after_a_regression(client, calc):
         ("compile", "passed"),
         ("scenarios", "running"),
         ("scenarios", "passed"),
+        ("coverage", "running"),
+        ("coverage", "passed"),
     ]
     assert version_gate(client, calc, calc["head_version_id"]) == "passed"
     detail = client.get(f"/api/projects/{calc['id']}").json()
@@ -380,3 +382,58 @@ def test_demo_orders_baseline_and_gate_on_the_full_corpus(client, demo_orders):
     assert gate["summary"]["version_status"] == "passed", gate["summary"]
     assert gate["summary"]["passed"] == 11
     assert all(i["verdict"] == "PASS" for i in gate["items"])
+
+
+WIDE = """\
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner in = new Scanner(System.in);
+        String cmd = in.hasNext() ? in.next() : "";
+        if (cmd.equals("a")) {
+            System.out.println("A");
+        } else if (cmd.equals("b")) {
+            System.out.println("B");
+        } else if (cmd.equals("c")) {
+            System.out.println("C");
+        } else if (cmd.equals("d")) {
+            System.out.println("D");
+        } else {
+            System.out.println("?");
+        }
+    }
+}
+"""
+
+
+def test_low_coverage_keeps_the_gate_from_claiming_success(client, make_project):
+    project = make_project({"Main.java": WIDE}, name="wide")
+    for index in range(3):  # три сценария, все ходят одной веткой
+        client.post(
+            f"/api/projects/{project['id']}/scenarios",
+            json={"name": f"same{index}", "stdin": "a\n"},
+        )
+    assert start(client, project, "baseline")["status"] == "done"
+
+    info = start(client, project, "gate")
+    assert info["summary"]["version_status"] == "unknown", info["summary"]
+    assert info["summary"]["coverage"] < 0.6
+    assert "покрытие" in info["summary"]["message"] and "ниже порога" in info["summary"]["message"]
+    assert gate_stages(client, info["id"])[-2:] == [("coverage", "running"), ("coverage", "failed")]
+    assert version_gate(client, project, project["head_version_id"]) == "unknown"
+
+    client.patch(f"/api/projects/{project['id']}", json={"settings": {"gate_min_coverage": 0.2}})
+    relaxed = start(client, project, "gate")
+    assert relaxed["summary"]["version_status"] == "passed"
+    assert gate_stages(client, relaxed["id"])[-1] == ("coverage", "passed")
+    assert relaxed["summary"]["data"]["coverage_min"] == 0.2
+
+
+def test_red_scenarios_skip_the_coverage_stage(client, calc):
+    add_scenarios(client, calc, 4)
+    start(client, calc, "baseline")
+    edit(client, calc, CALC.replace("a + b", "a * b"), calc["head_version_id"])
+    red = start(client, calc, "gate")
+    assert red["summary"]["version_status"] == "failed"
+    assert all(stage != "coverage" for stage, _ in gate_stages(client, red["id"]))
