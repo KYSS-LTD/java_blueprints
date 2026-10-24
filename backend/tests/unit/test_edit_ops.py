@@ -232,6 +232,11 @@ def test_insert_into_an_empty_block_and_a_braceless_body():
     assert "if (n > 0) {\n            h();\n            g();\n        }" in out
 
 
+def test_javadoc_continuation_lines_do_not_shrink_the_indent_unit():
+    source = "/**\n * Описание.\n */\nclass A {\n    void f() {\n        g();\n    }\n}\n"
+    assert indent_unit(source) == "    "
+
+
 def test_insert_uses_tabs_when_the_file_is_tab_indented():
     source = SRC.replace("    ", "\t")
     assert indent_unit(source) == "\t"

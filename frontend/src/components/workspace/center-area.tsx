@@ -9,9 +9,12 @@ import { StructureCanvas } from "@/components/graph/structure-canvas";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fileQuery, flowQuery, structureQuery } from "@/lib/api/queries";
+import { NodeInspector } from "@/components/workspace/node-inspector";
+import { ApiError, fileQuery, flowQuery, structureQuery } from "@/lib/api/queries";
+import { modelOf } from "@/lib/graph/flow-cache";
 import { ru } from "@/lib/i18n/ru";
 import { cn } from "@/lib/utils";
+import { useEditorStore } from "@/stores/editor-store";
 import { type CenterTab, useWorkspaceStore } from "@/stores/workspace-store";
 
 const t = ru.workspace;
@@ -114,23 +117,46 @@ function ErrorBox({ title, message }: { title: string; message: string }) {
 function MethodView({ projectId, versionId, methodId }: Props & { methodId: string }) {
   const openMethod = useWorkspaceStore((s) => s.openMethod);
   const flow = useQuery(flowQuery(projectId, methodId, versionId));
-  const file = useQuery(fileQuery(projectId, flow.data?.file ?? null, versionId));
-  const syntaxError = file.data?.syntax_errors[0];
+  // Пока код набирается, схема берётся из живого разбора; без правок это обычная схема версии.
+  const live = useEditorStore((s) => s.liveFlows[methodId]);
+  const shown = live ?? flow.data;
+  const file = useQuery(fileQuery(projectId, shown?.file ?? null, versionId));
+  const liveIssues = useEditorStore((s) => (shown ? s.issues[shown.file] : undefined));
+  const issues = liveIssues ?? file.data?.syntax_errors ?? [];
+  const syntaxError = issues[0];
   const onOpenMethod = useCallback((id: string) => openMethod(id), [openMethod]);
 
-  if (flow.isLoading) return <Skeleton className="m-4 h-64" />;
-  if (flow.error) return <ErrorBox title={ru.graph.loadFailed} message={flow.error.message} />;
-  if (!flow.data) return null;
+  if (!shown && flow.isLoading) return <Skeleton className="m-4 h-64" />;
+  if (!shown && flow.error) {
+    const gone = flow.error instanceof ApiError && flow.error.code === "NOT_FOUND";
+    return <ErrorBox title={ru.graph.loadFailed} message={gone ? ru.graph.methodGone : flow.error.message} />;
+  }
+  if (!shown) return null;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       {syntaxError && (
         <div className="shrink-0 border-b border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs text-destructive" role="alert">
-          {ru.graph.syntaxBanner} {syntaxError.range.start_line}: {syntaxError.message}
+          {ru.graph.syntaxBanner} {syntaxError.range.start_line}: {syntaxError.message}. {ru.graph.syntaxBlocked}
         </div>
       )}
-      <div className="min-h-0 flex-1">
-        <FlowCanvas key={methodId} projectId={projectId} flow={flow.data} onOpenMethod={onOpenMethod} />
+      <div className="relative min-h-0 flex-1">
+        <FlowCanvas
+          key={methodId}
+          projectId={projectId}
+          versionId={versionId}
+          flow={shown}
+          editable={syntaxError === undefined && versionId !== undefined}
+          onOpenMethod={onOpenMethod}
+        />
+        {versionId !== undefined && (
+          <NodeInspector
+            projectId={projectId}
+            versionId={versionId}
+            methodId={methodId}
+            model={modelOf(shown)}
+          />
+        )}
       </div>
     </div>
   );

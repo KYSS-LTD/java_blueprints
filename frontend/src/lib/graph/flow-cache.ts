@@ -15,16 +15,24 @@ export function modelOf(flow: FlowGraph): FlowModel {
   return model;
 }
 
-/** Загруженные блок-схемы проекта из кеша запросов (ключ `["flow", projectId, versionId, methodId]`). */
-export function cachedFlows(queryClient: QueryClient, projectId: number): FlowGraph[] {
+/**
+ * Загруженные блок-схемы проекта из кеша запросов (ключ `["flow", projectId, versionId, methodId]`).
+ * После правок в кеше лежат и схемы прежних версий: с `versionId` берутся только схемы этой версии.
+ */
+export function cachedFlows(queryClient: QueryClient, projectId: number, versionId?: number): FlowGraph[] {
   return queryClient
     .getQueriesData<FlowGraph>({ queryKey: ["flow", projectId] })
-    .flatMap(([, flow]) => (flow ? [flow] : []));
+    .flatMap(([, flow]) => (flow && (versionId === undefined || flow.version_id === versionId) ? [flow] : []));
 }
 
 /** Блок по id среди загруженных схем (нужен, чтобы подсветить в коде узел, выбранный без диапазона). */
-export function findCachedBlock(queryClient: QueryClient, projectId: number, nodeId: string): Block | null {
-  for (const flow of cachedFlows(queryClient, projectId)) {
+export function findCachedBlock(
+  queryClient: QueryClient,
+  projectId: number,
+  nodeId: string,
+  versionId?: number,
+): Block | null {
+  for (const flow of cachedFlows(queryClient, projectId, versionId)) {
     const block = modelOf(flow).blocks.get(nodeId);
     if (block) return block;
   }
@@ -43,9 +51,10 @@ export function locateInCache(
   file: string,
   line: number,
   column: number,
+  versionId?: number,
 ): LocatedBlock | null {
   let best: { located: LocatedBlock; depth: number } | null = null;
-  for (const flow of cachedFlows(queryClient, projectId)) {
+  for (const flow of cachedFlows(queryClient, projectId, versionId)) {
     if (flow.file !== file) continue;
     const model = modelOf(flow);
     const id = locateBlock(model, line, column);

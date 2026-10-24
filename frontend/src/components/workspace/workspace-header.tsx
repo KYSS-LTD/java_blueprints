@@ -19,6 +19,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { ImportDialog } from "@/components/projects/import-dialog";
+import { HistorySheet } from "@/components/workspace/history-sheet";
 import { RunDialog } from "@/components/workspace/run-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,10 +31,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { exportUrl } from "@/lib/api/projects";
-import { projectQuery, versionsQuery } from "@/lib/api/queries";
+import { projectQuery } from "@/lib/api/queries";
+import { useEditing } from "@/lib/edit/use-editing";
 import { ru } from "@/lib/i18n/ru";
 import { cn } from "@/lib/utils";
 import { isRunning } from "@/lib/run/run-state";
+import { useEditorStore } from "@/stores/editor-store";
 import { useRunStore } from "@/stores/run-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
 
@@ -65,6 +68,61 @@ function SoonButton({
   );
 }
 
+function IconButton({
+  label,
+  disabled,
+  onClick,
+  children,
+  testId,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  testId?: string;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {/* span: у отключённой кнопки нет событий мыши, а подсказка нужна */}
+        <span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="size-8 px-0"
+            disabled={disabled}
+            onClick={onClick}
+            aria-label={label}
+            data-testid={testId}
+          >
+            {children}
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Состояние автосохранения кода рядом с версией. */
+function SaveIndicator() {
+  const state = useEditorStore((s) => s.saveState);
+  const error = useEditorStore((s) => s.saveError);
+  if (state === "idle") return null;
+  const label =
+    state === "saving" ? t.saving : state === "error" ? `${t.saveFailed}${error ? `: ${error}` : ""}` : t.unsaved;
+  return (
+    <span
+      className={cn("text-[11px]", state === "error" ? "text-destructive" : "text-muted-foreground")}
+      role="status"
+      data-testid="save-state"
+      title={error ?? undefined}
+    >
+      {label}
+    </span>
+  );
+}
+
 function BehaviorBadge({ projectId }: { projectId: number }) {
   const project = useQuery(projectQuery(projectId));
   const setBottomTab = useWorkspaceStore((s) => s.setBottomTab);
@@ -90,14 +148,13 @@ function BehaviorBadge({ projectId }: { projectId: number }) {
 export function WorkspaceHeader({ projectId }: { projectId: number }) {
   const [importing, setImporting] = useState(false);
   const [running, setRunning] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const project = useQuery(projectQuery(projectId));
-  const versions = useQuery(versionsQuery(projectId));
+  const { head, canUndo, canRedo, working, undo, redo } = useEditing(projectId);
   const busy = useRunStore((s) => {
     const id = s.order[s.order.length - 1];
     return id !== undefined && s.entries[id].kind === "run" && isRunning(s.entries[id].state);
   });
-
-  const head = versions.data?.versions.find((v) => v.id === project.data?.head_version_id);
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-3 border-b bg-card px-3">
@@ -114,15 +171,16 @@ export function WorkspaceHeader({ projectId }: { projectId: number }) {
         <Badge variant="secondary" className="max-w-64 truncate font-mono text-[11px]" title={head?.description}>
           {head ? `v${head.number} · ${head.description || t.original}` : "v…"}
         </Badge>
-        <SoonButton label={t.undo} hint={t.soonEdit} className="size-8 px-0">
+        <IconButton label={`${t.undo} (Ctrl+Z)`} disabled={!canUndo || working} onClick={() => void undo()} testId="undo-button">
           <Undo2 />
-        </SoonButton>
-        <SoonButton label={t.redo} hint={t.soonEdit} className="size-8 px-0">
+        </IconButton>
+        <IconButton label={`${t.redo} (Ctrl+Shift+Z)`} disabled={!canRedo || working} onClick={() => void redo()} testId="redo-button">
           <Redo2 />
-        </SoonButton>
-        <SoonButton label={t.history} hint={t.soonEdit} className="size-8 px-0">
+        </IconButton>
+        <IconButton label={t.history} onClick={() => setHistoryOpen(true)} testId="history-button">
           <History />
-        </SoonButton>
+        </IconButton>
+        <SaveIndicator />
       </div>
 
       <div className="ml-auto flex items-center gap-2">
@@ -176,6 +234,7 @@ export function WorkspaceHeader({ projectId }: { projectId: number }) {
 
       <ImportDialog open={importing} onOpenChange={setImporting} />
       <RunDialog projectId={projectId} open={running} onOpenChange={setRunning} />
+      <HistorySheet projectId={projectId} open={historyOpen} onOpenChange={setHistoryOpen} />
     </header>
   );
 }

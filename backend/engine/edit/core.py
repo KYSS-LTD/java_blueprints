@@ -178,7 +178,8 @@ def indent_unit(source: str) -> str:
     tabs = 0
     for line in source.split("\n"):
         stripped = line.lstrip(" \t")
-        if not stripped:
+        # продолжение блочного комментария (` * текст`) выровнено на пробел и не показывает отступ кода
+        if not stripped or stripped.startswith("*"):
             continue
         lead = line[: len(line) - len(stripped)]
         if lead.startswith("\t"):

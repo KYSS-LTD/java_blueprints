@@ -14,6 +14,8 @@ import {
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { currentDrag, endDrag } from "@/lib/edit/drag";
+import { dropPoint, isInside, isMovable, isSamePlace, methodBodyEnd } from "@/lib/edit/slots";
 import { layoutWithElk } from "@/lib/graph/elk-client";
 import {
   buildElkGraph,
@@ -25,13 +27,17 @@ import {
 } from "@/lib/graph/flow-layout";
 import { modelOf } from "@/lib/graph/flow-cache";
 import { ancestorsOf, defaultCollapsed, type FlowGraph, type FlowModel } from "@/lib/graph/flow-model";
+import { isEditableTarget } from "@/lib/edit/use-hotkeys";
 import { ru } from "@/lib/i18n/ru";
+import { useEditorStore } from "@/stores/editor-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
 
 import { blockStyle } from "./block-style";
 import { CanvasToolbar } from "./canvas-toolbar";
 import { toRfEdge } from "./flow-edges";
-import { CanvasContext, type CanvasActions, flowNodeTypes, type FlowRfNode } from "./flow-nodes";
+import { CanvasContext, type CanvasActions, type DropHint, flowNodeTypes, type FlowRfNode } from "./flow-nodes";
+import { DeleteBlockDialog, type MenuState, NodeMenu } from "./node-menu";
+import { capabilitiesOf, useCanvasEditing } from "./use-canvas-editing";
 
 type Layout = { vis: VisibleFlow; placements: Map<string, Placement> };
 
@@ -52,6 +58,11 @@ function absoluteCenter(model: FlowModel, placements: Map<string, Placement>, id
   return { x: x + own.width / 2, y: y + own.height / 2 };
 }
 
+/** Контейнеры, в тело которых можно бросить блок. */
+function isContainerKind(kind: string): boolean {
+  return ["loop_for", "loop_foreach", "loop_while", "try", "catch", "finally"].includes(kind);
+}
+
 function countDescendants(model: FlowModel, id: string): number {
   let count = 0;
   const stack = [...(model.blocks.get(id)?.children ?? [])];
@@ -66,11 +77,14 @@ function countDescendants(model: FlowModel, id: string): number {
 
 type Props = {
   projectId: number;
+  versionId?: number;
   flow: FlowGraph;
+  /** Правка разрешена: нет синтаксических ошибок, версия известна. */
+  editable?: boolean;
   onOpenMethod: (methodId: string) => void;
 };
 
-function FlowCanvasInner({ projectId, flow, onOpenMethod }: Props) {
+function FlowCanvasInner({ projectId, flow, editable = false, onOpenMethod }: Props) {
   const reactFlow = useReactFlow();
   const model = useMemo(() => modelOf(flow), [flow]);
   const overrides = useWorkspaceStore((s) => s.collapsedOverrides[flow.method_id]);
@@ -79,6 +93,10 @@ function FlowCanvasInner({ projectId, flow, onOpenMethod }: Props) {
   const setCollapsed = useWorkspaceStore((s) => s.setCollapsed);
   const selectNode = useWorkspaceStore((s) => s.selectNode);
   const viewportKey = `${projectId}:${flow.method_id}`;
+  const wrapper = useRef<HTMLDivElement>(null);
+  const editing = useCanvasEditing(projectId, model);
+  const [menu, setMenu] = useState<MenuState | null>(null);
+  const [dropHint, setDropHint] = useState<DropHint | null>(null);
 
   const collapsed = useMemo(() => {
     const result = defaultCollapsed(model);
@@ -126,6 +144,89 @@ function FlowCanvasInner({ projectId, flow, onOpenMethod }: Props) {
     [toggleCollapse, onOpenMethod],
   );
 
+  // Куда упадёт перетаскиваемый блок: самый глубокий блок под указателем и его половина (верх/низ).
+  const resolveDrop = useCallback(
+    (clientX: number, clientY: number) => {
+      const payload = currentDrag();
+      if (!payload || !editable) return null;
+      let target: { id: string; half: "top" | "bottom" } | null = null;
+      let depth = -1;
+      if (typeof document.elementsFromPoint === "function") {
+        for (const element of document.elementsFromPoint(clientX, clientY)) {
+          const nodeElement = element.closest(".react-flow__node");
+          const id = nodeElement?.getAttribute("data-id");
+          const block = id ? model.blocks.get(id) : undefined;
+          if (!nodeElement || !block || block.kind === "external" || block.depth <= depth) continue;
+          const rect = nodeElement.getBoundingClientRect();
+          depth = block.depth;
+          target = { id: block.id, half: clientY < rect.top + rect.height / 2 ? "top" : "bottom" };
+        }
+      }
+      const point = target ? dropPoint(model, target.id, target.half) : methodBodyEnd(model);
+      if (!point) return null;
+      if (
+        payload.type === "node" &&
+        (isInside(model, point.parentId, payload.nodeId) || isSamePlace(model, payload.nodeId, point))
+      ) {
+        return null;
+      }
+      const block = target ? model.blocks.get(target.id) : undefined;
+      const into = block !== undefined && isContainerKind(block.kind);
+      const hint: DropHint | null = target
+        ? { blockId: target.id, mode: into ? "into" : target.half === "top" ? "before" : "after" }
+        : null;
+      return { payload, point, hint };
+    },
+    [editable, model],
+  );
+
+  const onDragOver = (event: React.DragEvent) => {
+    const drop = resolveDrop(event.clientX, event.clientY);
+    if (!drop) {
+      setDropHint(null);
+      return;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = drop.payload.type === "node" ? "move" : "copy";
+    setDropHint((previous) =>
+      previous?.blockId === drop.hint?.blockId && previous?.mode === drop.hint?.mode ? previous : drop.hint,
+    );
+  };
+
+  const onDrop = (event: React.DragEvent) => {
+    const drop = resolveDrop(event.clientX, event.clientY);
+    setDropHint(null);
+    if (!drop) return;
+    event.preventDefault();
+    const { payload, point } = drop;
+    endDrag();
+    if (payload.type === "palette") void editing.insert(payload.kind, point);
+    else editing.move(payload.nodeId, point);
+  };
+
+  // Клавиши холста: Delete, Ctrl+D, Enter (docs/09 § 3.3). Поля ввода и редактор кода забирают клавиши себе.
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    // Меню и диалоги рисуются порталом, но события React всплывают через него: чужие клавиши не наши
+    if (!editable || isEditableTarget(event.target) || !event.currentTarget.contains(event.target as Node)) return;
+    if (event.key === "Escape") {
+      useEditorStore.getState().openInspector(null);
+      return;
+    }
+    const block = selection ? model.blocks.get(selection.nodeId) : undefined;
+    if (!block) return;
+    const caps = capabilitiesOf(model, block);
+    if ((event.key === "Delete" || event.key === "Backspace") && caps.remove) {
+      event.preventDefault();
+      editing.requestDelete(block.id);
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d" && caps.duplicate) {
+      event.preventDefault();
+      editing.duplicate(block.id);
+    } else if (event.key === "Enter" && caps.edit) {
+      event.preventDefault();
+      editing.edit(block.id);
+    }
+  };
+
   const nodes = useMemo<FlowRfNode[]>(() => {
     if (!layout) return [];
     const { vis: laid, placements } = layout;
@@ -150,11 +251,12 @@ function FlowCanvasInner({ projectId, flow, onOpenMethod }: Props) {
             block,
             collapsed: isCollapsed,
             hiddenCount: isCollapsed ? countDescendants(laid.model, id) : 0,
+            movable: editable && isMovable(laid.model, id),
           },
         } satisfies FlowRfNode,
       ];
     });
-  }, [layout]);
+  }, [layout, editable]);
 
   const selectedId = selection?.nodeId ?? null;
   const edges = useMemo(() => {
@@ -187,6 +289,16 @@ function FlowCanvasInner({ projectId, flow, onOpenMethod }: Props) {
     const center = absoluteCenter(model, layout.placements, selection.nodeId);
     if (!center) return;
     handled.current = selection.seq;
+    if (selection.source === "edit") {
+      // после правки схема не прыгает: камера двигается, только если блок вышел за границы окна
+      const { x, y, zoom } = reactFlow.getViewport();
+      const box = wrapper.current?.getBoundingClientRect();
+      const screenX = center.x * zoom + x;
+      const screenY = center.y * zoom + y;
+      const inside = box !== undefined && screenX > 40 && screenY > 40 && screenX < box.width - 40 && screenY < box.height - 40;
+      if (!inside) void reactFlow.setCenter(center.x, center.y, { zoom, duration: 300 });
+      return;
+    }
     void reactFlow.setCenter(center.x, center.y, { zoom: Math.max(reactFlow.getZoom(), 0.9), duration: 300 });
   }, [selection, model, collapsed, layout, reactFlow, setCollapsed, flow.method_id]);
 
@@ -201,8 +313,19 @@ function FlowCanvasInner({ projectId, flow, onOpenMethod }: Props) {
   }
 
   return (
-    <CanvasContext.Provider value={{ actions, overlays }}>
-      <div className="relative h-full w-full" data-testid="flow-canvas">
+    <CanvasContext.Provider value={{ actions, overlays, dropHint }}>
+      <div
+        ref={wrapper}
+        className="relative h-full w-full outline-none"
+        data-testid="flow-canvas"
+        data-editable={editable}
+        onKeyDown={onKeyDown}
+        onDragOver={onDragOver}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropHint(null);
+        }}
+        onDrop={onDrop}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -223,7 +346,16 @@ function FlowCanvasInner({ projectId, flow, onOpenMethod }: Props) {
           onNodeDoubleClick={(_, node) => {
             const block = node.data.block;
             if (block.kind === "external" && block.target) onOpenMethod(block.target);
+            else if (editable && capabilitiesOf(model, block).edit) editing.edit(block.id);
           }}
+          onNodeContextMenu={(event, node) => {
+            const block = node.data.block;
+            if (!editable || block.kind === "external") return;
+            event.preventDefault();
+            selectNode(block.id, "graph", block.range);
+            setMenu({ x: event.clientX, y: event.clientY, blockId: block.id });
+          }}
+          deleteKeyCode={null}
           onMoveEnd={(_, viewport) => viewportCache.set(viewportKey, viewport)}
         >
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="var(--border)" />
@@ -245,6 +377,13 @@ function FlowCanvasInner({ projectId, flow, onOpenMethod }: Props) {
           showMiniMap={showMiniMap}
           onToggleMiniMap={() => setShowMiniMap((value) => !value)}
           onFit={fitAll}
+        />
+        <NodeMenu model={model} state={menu} actions={editing} onClose={() => setMenu(null)} />
+        <DeleteBlockDialog
+          model={model}
+          blockId={editing.pendingDelete}
+          onCancel={editing.cancelDelete}
+          onDelete={(id, mode) => void editing.remove(id, mode)}
         />
         {pending && (
           <div className="pointer-events-none absolute top-3 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-md border bg-card/90 px-2.5 py-1 text-xs text-muted-foreground">

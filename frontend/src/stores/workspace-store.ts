@@ -3,7 +3,7 @@ import { create } from "zustand";
 import type { SourceRange } from "@/lib/graph/flow-model";
 
 /** Кто выбрал узел: остальные части интерфейса реагируют на выбор, сделанный не ими. */
-export type SelectionSource = "graph" | "code" | "tree" | "findings" | "url" | "structure";
+export type SelectionSource = "graph" | "code" | "tree" | "findings" | "url" | "structure" | "edit";
 
 export type CenterTab =
   | { id: string; kind: "method"; methodId: string; title: string }

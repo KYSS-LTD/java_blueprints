@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Play } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { scenariosQuery } from "@/lib/api/queries";
+import { flushDrafts } from "@/lib/edit/session";
 import { ru } from "@/lib/i18n/ru";
 import { useRunStore } from "@/stores/run-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
@@ -39,9 +40,12 @@ export function RunDialog({ projectId, open, onOpenChange }: Props) {
   const [scenarioId, setScenarioId] = useState("");
   const scenarios = useQuery({ ...scenariosQuery(projectId), enabled: open });
   const setBottomTab = useWorkspaceStore((s) => s.setBottomTab);
+  const queryClient = useQueryClient();
 
   const run = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
+      // запускается сохранённый код: набранное в редакторе уходит на сервер до запуска
+      await flushDrafts(queryClient, projectId);
       const scenario = scenarios.data?.scenarios.find((s) => String(s.id) === scenarioId);
       return useRunStore.getState().start(
         projectId,

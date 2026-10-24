@@ -20,9 +20,12 @@ import { ProjectTree } from "@/components/workspace/project-tree";
 import { TestsPanel } from "@/components/workspace/tests-panel";
 import { WorkspaceHeader } from "@/components/workspace/workspace-header";
 import { projectQuery } from "@/lib/api/queries";
+import { useHistoryHotkeys } from "@/lib/edit/use-hotkeys";
+import { useEditing } from "@/lib/edit/use-editing";
 import { useIsClient } from "@/lib/hooks/use-is-client";
 import { useMediaQuery } from "@/lib/hooks/use-media-query";
 import { ru } from "@/lib/i18n/ru";
+import { useEditorStore } from "@/stores/editor-store";
 import { useRunStore } from "@/stores/run-store";
 import {
   type BottomTab,
@@ -146,7 +149,7 @@ function Layout({ projectId, versionId }: { projectId: number; versionId?: numbe
           </ResizablePanel>
           <ResizableHandle />
           <ResizablePanel id="palette" defaultSize="36%" minSize="15%">
-            <BlockPalette />
+            <BlockPalette projectId={projectId} />
           </ResizablePanel>
         </ResizablePanelGroup>
       </ResizablePanel>
@@ -174,6 +177,16 @@ function Layout({ projectId, versionId }: { projectId: number; versionId?: numbe
   );
 }
 
+/** Горячие клавиши отмены и повтора версий: работают, пока фокус не в поле ввода или редакторе. */
+function HistoryHotkeys({ projectId }: { projectId: number }) {
+  const { canUndo, canRedo, working, undo, redo } = useEditing(projectId);
+  useHistoryHotkeys({
+    onUndo: () => canUndo && !working && void undo(),
+    onRedo: () => canRedo && !working && void redo(),
+  });
+  return null;
+}
+
 export function Workspace({ projectId }: { projectId: number }) {
   const project = useQuery(projectQuery(projectId));
   const ready = useIsClient() && project.isSuccess;
@@ -181,9 +194,11 @@ export function Workspace({ projectId }: { projectId: number }) {
   // Состояние рабочей области принадлежит проекту: при смене проекта начинаем с чистого листа.
   useEffect(() => {
     useWorkspaceStore.getState().reset();
+    useEditorStore.getState().reset();
     useRunStore.getState().clear();
     return () => {
       useRunStore.getState().clear();
+      useEditorStore.getState().reset();
     };
   }, [projectId]);
 
@@ -206,6 +221,7 @@ export function Workspace({ projectId }: { projectId: number }) {
 
   return (
     <div className="flex h-screen min-h-0 flex-col" data-testid="workspace">
+      {ready && <HistoryHotkeys projectId={projectId} />}
       <WorkspaceHeader projectId={projectId} />
       {ready ? (
         <Layout projectId={projectId} versionId={project.data?.head_version_id} />

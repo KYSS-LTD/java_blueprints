@@ -7,8 +7,11 @@ export type FlowEdgeKind = Schemas["FlowEdge"]["kind"];
 export type SourceRange = Schemas["SourceRange"];
 export type BlockBadge = Schemas["Badge"];
 
+/** Вид узла в контракте API: то, что можно вставить, изменить и удалить. */
+export type NodeKind = Schemas["FlowNode"]["kind"];
+
 /** Вид блока: виды узлов контракта плюс синтетический «внешний вызов» (его строит frontend). */
-export type BlockKind = Schemas["FlowNode"]["kind"] | "external";
+export type BlockKind = NodeKind | "external";
 
 export type Block = {
   id: string;

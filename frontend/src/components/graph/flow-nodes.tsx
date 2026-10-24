@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, ExternalLink, TriangleAlert } from "lucide-r
 import { createContext, memo, useContext } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { beginDrag, endDrag } from "@/lib/edit/drag";
 import { ru } from "@/lib/i18n/ru";
 import type { Block } from "@/lib/graph/flow-model";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,8 @@ export type BlockNodeData = {
   collapsed: boolean;
   /** Сколько блоков скрыто внутри свёрнутого контейнера. */
   hiddenCount: number;
+  /** Блок можно перетащить на другое место схемы. */
+  movable: boolean;
   [key: string]: unknown;
 };
 
@@ -28,11 +31,15 @@ export type CanvasActions = {
   openMethod: (methodId: string) => void;
 };
 
-type CanvasContextValue = { actions: CanvasActions; overlays: Overlays };
+/** Куда упадёт перетаскиваемый блок: перед блоком, после него или внутрь контейнера. */
+export type DropHint = { blockId: string; mode: "before" | "after" | "into" };
+
+type CanvasContextValue = { actions: CanvasActions; overlays: Overlays; dropHint: DropHint | null };
 
 export const CanvasContext = createContext<CanvasContextValue>({
   actions: { toggleCollapse: () => {}, openMethod: () => {} },
   overlays: { findings: true, complexity: true, coverage: false, calls: true },
+  dropHint: null,
 });
 
 function useIsSelected(id: string): boolean {
@@ -100,10 +107,29 @@ function selectionRing(selected: boolean): string {
   return selected ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : "";
 }
 
+/** Подсветка места, куда упадёт блок: полоса сверху или снизу, для контейнера — рамка вокруг. */
+function dropStyle(hint: DropHint | null, id: string): React.CSSProperties | undefined {
+  if (!hint || hint.blockId !== id) return undefined;
+  if (hint.mode === "before") return { boxShadow: "0 -4px 0 0 var(--primary)" };
+  if (hint.mode === "after") return { boxShadow: "0 4px 0 0 var(--primary)" };
+  return { outline: "2px dashed var(--primary)", outlineOffset: 2 };
+}
+
+/** Свойства перетаскиваемого блока: `nopan` отключает панорамирование холста, иначе оно отменяет перетаскивание. */
+function dragProps(id: string, movable: boolean) {
+  return movable
+    ? {
+        draggable: true,
+        onDragStart: (event: React.DragEvent) => beginDrag(event, { type: "node", nodeId: id }),
+        onDragEnd: endDrag,
+      }
+    : {};
+}
+
 /** Обычный блок: заголовок вида, код оператора, бейджи. */
 export const BlockNode = memo(function BlockNode({ id, data }: NodeProps<FlowRfNode>) {
-  const { block, collapsed, hiddenCount } = data;
-  const { actions } = useContext(CanvasContext);
+  const { block, collapsed, hiddenCount, movable } = data;
+  const { actions, dropHint } = useContext(CanvasContext);
   const selected = useIsSelected(id);
   const { icon: Icon, color } = blockStyle(block.kind);
   const hasError = block.errors.length > 0;
@@ -114,10 +140,12 @@ export const BlockNode = memo(function BlockNode({ id, data }: NodeProps<FlowRfN
         "relative flex h-full w-full flex-col justify-center gap-0.5 overflow-hidden rounded-lg border bg-card py-1.5 pr-2.5 pl-3.5 text-card-foreground shadow-sm transition-shadow hover:shadow-md",
         selectionRing(selected),
         hasError && "border-destructive",
+        movable && "nopan cursor-grab",
       )}
-      style={{ borderColor: hasError ? undefined : colorVar(color, 0.55) }}
+      style={{ borderColor: hasError ? undefined : colorVar(color, 0.55), ...dropStyle(dropHint, id) }}
       title={block.code}
       data-testid={`block-${block.kind}`}
+      {...dragProps(id, movable)}
     >
       <Handles />
       <span className="absolute inset-y-0 left-0 w-1.5" style={{ background: colorVar(color) }} aria-hidden />
@@ -146,8 +174,8 @@ export const BlockNode = memo(function BlockNode({ id, data }: NodeProps<FlowRfN
 
 /** Развёрнутый контейнер: цикл, try, catch, switch, лямбда. Содержимое рисует React Flow внутри. */
 export const ContainerNode = memo(function ContainerNode({ id, data }: NodeProps<FlowRfNode>) {
-  const { block } = data;
-  const { actions } = useContext(CanvasContext);
+  const { block, movable } = data;
+  const { actions, dropHint } = useContext(CanvasContext);
   const selected = useIsSelected(id);
   const { icon: Icon, color } = blockStyle(block.kind);
   const subtitle = block.kind === "catch" && block.exception ? block.exception : block.code;
@@ -158,14 +186,19 @@ export const ContainerNode = memo(function ContainerNode({ id, data }: NodeProps
         "relative h-full w-full rounded-xl border-2 border-dashed",
         selectionRing(selected),
       )}
-      style={{ borderColor: colorVar(color, 0.6), background: colorVar(color, 0.06) }}
+      style={{ borderColor: colorVar(color, 0.6), background: colorVar(color, 0.06), ...dropStyle(dropHint, id) }}
       data-testid={`container-${block.kind}`}
     >
       <Handles headerOffset={22} />
+      {/* тащить контейнер можно только за заголовок: пустое поле внутри нужно для панорамирования и сброса блоков */}
       <div
-        className="absolute inset-x-0 top-0 flex h-11 items-center gap-2 rounded-t-[10px] px-3"
+        className={cn(
+          "absolute inset-x-0 top-0 flex h-11 items-center gap-2 rounded-t-[10px] px-3",
+          movable && "nopan cursor-grab",
+        )}
         style={{ background: colorVar(color, 0.14) }}
         title={block.code}
+        {...dragProps(id, movable)}
       >
         <Icon className="size-4 shrink-0" style={{ color: colorVar(color) }} aria-hidden />
         <div className="min-w-0 flex-1">
