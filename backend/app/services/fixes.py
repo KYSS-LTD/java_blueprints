@@ -116,7 +116,14 @@ def create_candidate(
     files: dict[str, str],
     finding_id: str,
 ) -> Version:
-    origin = VersionOrigin.OPTIMIZE if proposal.fix_id.startswith("OPT") else VersionOrigin.AUTOFIX
+    origin = {
+        "OPT": VersionOrigin.OPTIMIZE,
+        "REF-01": VersionOrigin.EXTRACT_METHOD,
+        "REF-04": VersionOrigin.DECOMPOSE,
+    }.get(
+        proposal.fix_id[:3] if proposal.fix_id.startswith("OPT") else proposal.fix_id,
+        VersionOrigin.AUTOFIX,
+    )
     return versions_service.create_version(
         session,
         project,

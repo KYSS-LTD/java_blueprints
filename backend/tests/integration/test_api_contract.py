@@ -189,7 +189,6 @@ def test_unknown_op_is_rejected_with_bad_request(client):
 @pytest.mark.parametrize(
     ("method", "path", "body"),
     [
-        ("POST", "/api/projects/{p}/extract-method/preview", {"name": "extracted"}),
         ("POST", "/api/projects/{p}/decompose/plan", {}),
     ],
 )

@@ -645,7 +645,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Предпросмотр выделения метода */
+        /**
+         * Предпросмотр выделения метода
+         * @description Фрагмент задаётся `node_ids` (подряд идущие блоки одного блока схемы) либо `range`. Ответ содержит имя, сигнатуру, код нового метода, предусловия и diff; если выделить нельзя, `preconditions` объясняют почему, а `diff` пуст.
+         */
         post: operations["preview_extract_method"];
         delete?: never;
         options?: never;

@@ -31,6 +31,7 @@ from app.schemas.transform import (
 )
 from app.schemas.verify import RunRef, RunRequest
 from app.services import analysis as analysis_service
+from app.services import extract as extract_service
 from app.services import fixes as service
 from app.services import graphs
 from app.services import versions as versions_service
@@ -162,10 +163,19 @@ async def apply_optimize(
 
 
 @router.post(
-    "/projects/{project_id}/extract-method/preview", summary="Предпросмотр выделения метода"
+    "/projects/{project_id}/extract-method/preview",
+    summary="Предпросмотр выделения метода",
+    description=(
+        "Фрагмент задаётся `node_ids` (подряд идущие блоки одного блока схемы) либо `range`. "
+        "Ответ содержит имя, сигнатуру, код нового метода, предусловия и diff; если выделить нельзя, "
+        "`preconditions` объясняют почему, а `diff` пуст."
+    ),
 )
-def preview_extract_method(project_id: int, payload: ExtractMethodRequest) -> ExtractMethodPreview:
-    raise not_implemented("S9")
+def preview_extract_method(
+    project: ProjectDep, session: SessionDep, payload: ExtractMethodRequest
+) -> ExtractMethodPreview:
+    version = versions_service.resolve_version(session, project, payload.version_id)
+    return extract_service.preview(graphs.java_project(session, version), payload)
 
 
 @router.post(
@@ -174,8 +184,20 @@ def preview_extract_method(project_id: int, payload: ExtractMethodRequest) -> Ex
     summary="Выделить метод",
     description=_APPLY_NOTE,
 )
-def apply_extract_method(project_id: int, payload: ExtractMethodApply) -> ApplyResult:
-    raise not_implemented("S9")
+async def apply_extract_method(
+    project: ProjectDep, session: SessionDep, manager: RunManagerDep, payload: ExtractMethodApply
+) -> ApplyResult:
+    def prepare() -> int:
+        versions_service.require_head(project, payload.base_version_id)
+        head = versions_service.head_version(session, project)
+        java = graphs.java_project(session, head)
+        return extract_service.candidate(session, project, head, java, payload).id or 0
+
+    candidate_id = await run_in_threadpool(prepare)
+    run_id = await manager.submit(
+        project, RunRequest(kind="gate", version_id=candidate_id), candidate_id
+    )
+    return ApplyResult(candidate_version_id=candidate_id, run_id=run_id)
 
 
 @router.post("/projects/{project_id}/decompose/plan", summary="План декомпозиции монолита")
