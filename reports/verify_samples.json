@@ -15,14 +15,14 @@
     "coverage": 0.9042,
     "complexity": "O(n⁴)",
     "optimized": "O(n²)",
-    "findings": 35,
+    "findings": 37,
     "by_severity": {
-      "high": 5,
-      "medium": 13,
+      "high": 6,
+      "medium": 14,
       "low": 17
     },
-    "fixable": 21,
-    "seconds": 6.7
+    "fixable": 23,
+    "seconds": 5.6
   },
   {
     "sample": "analyzer-pairs",
@@ -46,7 +46,7 @@
       "low": 3
     },
     "fixable": 1,
-    "seconds": 3.2
+    "seconds": 2.8
   },
   {
     "sample": "expression-calculator",
@@ -64,14 +64,14 @@
     "coverage": 0.9151,
     "complexity": "O(n^8)",
     "optimized": "O(n^7)",
-    "findings": 46,
+    "findings": 48,
     "by_severity": {
-      "high": 10,
-      "medium": 11,
+      "high": 11,
+      "medium": 12,
       "low": 25
     },
-    "fixable": 16,
-    "seconds": 6.2
+    "fixable": 18,
+    "seconds": 4.6
   },
   {
     "sample": "graph-paths",
@@ -89,14 +89,14 @@
     "coverage": 0.9413,
     "complexity": "O(n⁵)",
     "optimized": "O(n³)",
-    "findings": 38,
+    "findings": 39,
     "by_severity": {
       "high": 14,
-      "medium": 11,
+      "medium": 12,
       "low": 13
     },
     "fixable": 17,
-    "seconds": 5.9
+    "seconds": 5.0
   },
   {
     "sample": "inventory",
@@ -114,14 +114,14 @@
     "coverage": 0.9279,
     "complexity": "O(n³ log n)",
     "optimized": "O(n² log n)",
-    "findings": 27,
+    "findings": 28,
     "by_severity": {
       "high": 5,
-      "medium": 9,
+      "medium": 10,
       "low": 13
     },
-    "fixable": 17,
-    "seconds": 5.8
+    "fixable": 18,
+    "seconds": 4.8
   },
   {
     "sample": "text-analyzer",
@@ -146,6 +146,6 @@
       "low": 9
     },
     "fixable": 12,
-    "seconds": 5.9
+    "seconds": 4.5
   }
 ]

@@ -169,7 +169,7 @@ def main() -> int:
 
     if jdk_sources(args.java_home):  # нужен src.zip JDK; без него шаг пропускается
         steps["jdk_sweep"] = run(
-            "прочность на чужом коде", [*uv, str(ROOT / "scripts" / "jdk_sweep.py"), "--limit", "60"], ROOT / "backend", env
+            "прочность на чужом коде", [*uv, str(ROOT / "scripts" / "jdk_sweep.py")], ROOT / "backend", env
         )
     else:
         print("src.zip JDK не найден: проверка на чужом коде пропущена")

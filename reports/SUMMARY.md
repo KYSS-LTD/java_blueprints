@@ -18,12 +18,14 @@
 | verify_samples | ✓ |
 | bug_bash | ✓ |
 | perf_budget | ✓ |
+| jdk_sweep | ✓ |
 
-- pytest: 1373 из 1375 (`reports/pytest-report.xml`)
-- vitest: 269 из 269 (`reports/vitest-report.xml`)
+- pytest: 1396 из 1398 (`reports/pytest-report.xml`)
+- vitest: 270 из 270 (`reports/vitest-report.xml`)
 - playwright: 8 из 8 (`reports/playwright-report.xml`; запуск: `cd frontend && pnpm e2e` при поднятом приложении)
 - корпус через API: `reports/verify_samples.md`, `reports/verify_samples.json`
 - баг-баш: `reports/bug_bash.md`
 - бюджеты производительности: `reports/perf_budget.md`
+- прочность на чужом коде (исходники JDK): `reports/jdk_sweep.md`
 
 Два теста backend требуют JDK 21+ и на более раннем JDK падают по замыслу (`test_jdk.py`, `/health`).

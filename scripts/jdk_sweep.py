@@ -7,7 +7,7 @@
 замена блоков их же текстом (инвариант I2: ни один байт не меняется). Результат — ``reports/jdk_sweep.md``;
 код выхода 1, если найдено нарушение.
 
-    python scripts/jdk_sweep.py                       # 60 крупнейших файлов java.base/java/util и java/lang
+    python scripts/jdk_sweep.py                       # 120 крупнейших файлов java.base: util, lang, io, text, time
     python scripts/jdk_sweep.py --limit 200 --prefix java.base/java/util/,java.desktop/javax/swing/
     python scripts/jdk_sweep.py --src /path/to/src.zip
 """
@@ -54,8 +54,10 @@ def main() -> int:
         stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--src", help="путь к src.zip (по умолчанию из JAVA_HOME / ~/.jdks)")
-    parser.add_argument("--limit", type=int, default=60, help="сколько крупнейших файлов взять")
-    parser.add_argument("--prefix", default="java.base/java/util/,java.base/java/lang/", help="пакеты через запятую")
+    parser.add_argument("--limit", type=int, default=120, help="сколько крупнейших файлов взять")
+    parser.add_argument("--prefix",
+        default="java.base/java/util/,java.base/java/lang/,java.base/java/io/,java.base/java/text/,java.base/java/time/",
+        help="пакеты через запятую",)
     parser.add_argument("--identity", type=int, default=6, help="методов на файл для проверки I2")
     parser.add_argument("--out", default=str(ROOT / "reports"))
     args = parser.parse_args()
