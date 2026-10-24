@@ -159,6 +159,10 @@ def insertion_edit(
     ed: Editor, parent_id: str, slot: str, index: int, text: str
 ) -> tuple[TextEdit, int]:
     """Правка, вставляющая ``text`` (оператор) в слот; второе значение — смещение оператора в новом тексте."""
+    group_file, group_start, group_end = ed.span(parent_id)
+    group = ts_node(ed.project, group_file, group_start, group_end)
+    if group.type == "switch_block_statement_group":
+        return case_insertion(ed, group_file, group, index, text)
     ensure_block(ed, parent_id, slot)
     file, start, end = ed.span(parent_id)
     container = ts_node(ed.project, file, start, end)
@@ -193,6 +197,36 @@ def insertion_edit(
     if data[at:begin].strip():  # оператор на одной строке с «{» или другим оператором
         return TextEdit(file, begin, begin, text + "\n" + inner_indent), begin
     return TextEdit(file, at, at, body + "\n"), at + len(inner_indent)
+
+
+def case_insertion(
+    ed: Editor, file: str, group: Node, index: int, text: str
+) -> tuple[TextEdit, int]:
+    """Вставка оператора в ветку классического ``switch`` (операторы лежат прямо в группе, без ``{}``)."""
+    data = ed.bytes_of(file)
+    statements = [c for c in cst.named_children(group) if c.type != "switch_label"]
+    labels = cst.children_of_type(group, "switch_label")
+    if statements:
+        indent = line_indent(data, statements[0].start_byte)
+        body = indented(text, indent)
+        if index >= len(statements):
+            last = statements[-1]
+            return TextEdit(
+                file, last.end_byte, last.end_byte, "\n" + body
+            ), last.end_byte + 1 + len(indent)
+        target = statements[index]
+        begin = _with_leading_comments(data, target)
+        at = line_start(data, begin)
+        if data[at:begin].strip():
+            return TextEdit(file, begin, begin, text + "\n" + indent), begin
+        return TextEdit(file, at, at, body + "\n"), at + len(indent)
+    colons = [c for c in group.children if c.type == ":"]
+    if not labels or not colons:
+        raise unsupported("в ветке нет метки")
+    anchor = colons[-1].end_byte
+    indent = line_indent(data, labels[-1].start_byte) + ed.unit(file)
+    body = indented(text, indent)
+    return TextEdit(file, anchor, anchor, "\n" + body), anchor + 1 + len(indent)
 
 
 def _with_leading_comments(data: bytes, node: Node) -> int:

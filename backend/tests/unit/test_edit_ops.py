@@ -918,3 +918,152 @@ def test_check_fragment_kinds():
     ):
         with pytest.raises(EditError):
             check_fragment(kind, text, "x")
+
+
+# --- S5 (остаток): ветки switch, константы enum, компоненты record ----------------------------------------------
+
+SWITCH_SRC = (
+    "class A {\n    void f(int n) {\n        switch (n) {\n            case 1:\n"
+    '                System.out.println("one");\n                break;\n            case 2:\n'
+    "            case 3:\n                n++;\n                break;\n        }\n    }\n}\n"
+)
+CASE_1 = "A.java#A.f(int)/switch[0]/case[0]"
+
+
+def test_insert_into_switch_case_groups():
+    inserted = edit(
+        [
+            {
+                "op": "insert_node",
+                "parent_id": CASE_1,
+                "slot": "body",
+                "index": 1,
+                "kind": "operation",
+                "fields": {"expr": "n++"},
+            }
+        ],
+        SWITCH_SRC,
+    )
+    assert (
+        '                System.out.println("one");\n                n++;\n                break;'
+        in inserted
+    )
+    last = edit(
+        [
+            {
+                "op": "insert_node",
+                "parent_id": CASE_1,
+                "slot": "body",
+                "index": 5,
+                "kind": "operation",
+                "fields": {"expr": "n--"},
+            }
+        ],
+        SWITCH_SRC,
+    )
+    assert "                break;\n                n--;" in last
+    labels_only = edit(
+        [
+            {
+                "op": "insert_node",
+                "parent_id": "A.java#A.f(int)/switch[0]/case[1]",
+                "slot": "body",
+                "index": 0,
+                "kind": "operation",
+                "fields": {"expr": "n += 2"},
+            }
+        ],
+        SWITCH_SRC,
+    )
+    assert "            case 2:\n                n += 2;\n            case 3:" in labels_only
+    assert not JavaProject({"A.java": inserted}).syntax_issues()
+
+
+ENUM_SRC = (
+    "class A {\n    enum Kind {\n        SMALL,\n        BIG(5);\n\n        private final int w;\n"
+    "        Kind() { this(0); }\n        Kind(int w) { this.w = w; }\n    }\n\n"
+    "    record Pair(int a, String b) {}\n\n    enum Empty {}\n    enum Inline { X, Y }\n}\n"
+)
+
+
+def test_add_and_delete_enum_constants():
+    added = edit(
+        [
+            {
+                "op": "add_member",
+                "type_id": "A.java#A.Kind",
+                "kind": "enum_constant",
+                "fields": {"name": "HUGE", "args": ["9"]},
+            }
+        ],
+        ENUM_SRC,
+    )
+    assert "        BIG(5),\n        HUGE(9);" in added
+    inline = edit(
+        [
+            {
+                "op": "add_member",
+                "type_id": "A.java#A.Inline",
+                "kind": "enum_constant",
+                "fields": {"name": "Z"},
+            }
+        ],
+        ENUM_SRC,
+    )
+    assert "enum Inline { X, Y, Z }" in inline
+    empty = edit(
+        [
+            {
+                "op": "add_member",
+                "type_id": "A.java#A.Empty",
+                "kind": "enum_constant",
+                "fields": {"name": "ONLY"},
+            }
+        ],
+        ENUM_SRC,
+    )
+    assert "ONLY" in empty and not JavaProject({"A.java": empty}).syntax_issues()
+    assert (
+        fails(
+            [
+                {
+                    "op": "add_member",
+                    "type_id": "A.java#A.Kind",
+                    "kind": "enum_constant",
+                    "fields": {"name": "BIG"},
+                }
+            ],
+            ENUM_SRC,
+        ).code
+        == "PRECONDITION_FAILED"
+    )
+    removed = edit([{"op": "delete_member", "member_id": "A.java#A.Kind.SMALL"}], ENUM_SRC)
+    assert "enum Kind {\n        BIG(5);" in removed
+    last = edit([{"op": "delete_member", "member_id": "A.java#A.Inline.Y"}], ENUM_SRC)
+    assert "enum Inline { X }" in last
+
+
+def test_add_and_delete_record_components():
+    added = edit(
+        [
+            {
+                "op": "add_member",
+                "type_id": "A.java#A.Pair",
+                "kind": "record_component",
+                "fields": {"type": "long", "name": "c"},
+            }
+        ],
+        ENUM_SRC,
+    )
+    assert "record Pair(int a, String b, long c) {}" in added
+    removed = edit([{"op": "delete_member", "member_id": "A.java#A.Pair.a"}], ENUM_SRC)
+    assert "record Pair(String b) {}" in removed
+    tail = edit([{"op": "delete_member", "member_id": "A.java#A.Pair.b"}], ENUM_SRC)
+    assert "record Pair(int a) {}" in tail
+    used = ENUM_SRC.replace(
+        "enum Empty {}", 'enum Empty {}\n    Object make() { return new Pair(1, "x"); }'
+    )
+    assert (
+        fails([{"op": "delete_member", "member_id": "A.java#A.Pair.a"}], used).code
+        == "PRECONDITION_FAILED"
+    )

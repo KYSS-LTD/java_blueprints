@@ -82,7 +82,7 @@ class RenameSymbol(BaseModel):
 class AddMember(BaseModel):
     op: Literal["add_member"] = "add_member"
     type_id: str
-    kind: Literal["field", "method", "constructor"]
+    kind: Literal["field", "method", "constructor", "enum_constant", "record_component"]
     fields: Fields = {}
 
 

@@ -1100,7 +1100,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "field" | "method" | "constructor";
+            kind: "field" | "method" | "constructor" | "enum_constant" | "record_component";
             /**
              * Fields
              * @default {}

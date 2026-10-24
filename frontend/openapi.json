@@ -3789,7 +3789,9 @@
             "enum": [
               "field",
               "method",
-              "constructor"
+              "constructor",
+              "enum_constant",
+              "record_component"
             ],
             "title": "Kind"
           },

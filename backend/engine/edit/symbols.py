@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from tree_sitter import Node
@@ -13,6 +14,7 @@ from engine.edit.core import (
     check_fragment,
     invalid,
     line_indent,
+    line_start,
     not_found,
     precondition,
     ts_node,
@@ -343,7 +345,9 @@ def _throws_text(fields: dict[str, Any]) -> str:
     return f" throws {', '.join(items)}" if items else ""
 
 
-def _type_body(project: JavaProject, type_id: str) -> tuple[str, TypeDecl, Node]:
+def _type_body(
+    project: JavaProject, type_id: str, *, bare_enum: bool = False
+) -> tuple[str, TypeDecl, Node]:
     decl = next((t for t in project.types() if t.id == type_id), None)
     if decl is None:
         raise not_found(f"тип {type_id} не найден")
@@ -352,12 +356,82 @@ def _type_body(project: JavaProject, type_id: str) -> tuple[str, TypeDecl, Node]
     body = node.child_by_field_name("body")
     if body is None:
         raise unsupported("у типа нет тела")
-    if body.type == "enum_body" and cst.first_child_of_type(body, "enum_body_declarations") is None:
+    if (
+        not bare_enum
+        and body.type == "enum_body"
+        and cst.first_child_of_type(body, "enum_body_declarations") is None
+    ):
         raise unsupported("в enum без секции членов добавить член нельзя")
     return file, decl, body
 
 
+def _add_enum_constant(ed: Editor, op: dict[str, Any]) -> None:
+    fields = op.get("fields") or {}
+    project = ed.project
+    file, decl, body = _type_body(project, op["type_id"], bare_enum=True)
+    if decl.kind != "enum":
+        raise unsupported("константу можно добавить только в enum")
+    name = templates.identifier(fields, "name")
+    if name in decl.constants:
+        raise precondition(f"константа «{name}» уже есть в {decl.name}")
+    args = [check_fragment("expression", str(a), "args") for a in fields.get("args") or []]
+    text = name + (f"({', '.join(args)})" if args else "")
+    data = ed.bytes_of(file)
+    base = line_indent(data, body.start_byte)
+    indent = base + ed.unit(file)
+    constants = cst.children_of_type(body, "enum_constant")
+    if constants:
+        last = constants[-1]
+        follower = last.next_sibling
+        multiline = (
+            b"\n" in data[body.start_byte : constants[0].start_byte]
+            or len(constants) > 1
+            and (b"\n" in data[constants[0].end_byte : last.start_byte])
+        )
+        separator = ",\n" + indent if multiline else ", "
+        if follower is not None and follower.type == ",":
+            edit = TextEdit(
+                file, follower.end_byte, follower.end_byte, separator.lstrip(",") + text + ","
+            )
+        else:
+            edit = TextEdit(file, last.end_byte, last.end_byte, separator + text)
+    else:
+        declarations = cst.first_child_of_type(body, "enum_body_declarations")
+        if declarations is not None:
+            edit = TextEdit(file, declarations.start_byte, declarations.start_byte, text)
+        else:
+            close = body.end_byte - 1
+            edit = TextEdit(file, body.start_byte + 1, close, "\n" + indent + text + "\n" + base)
+    ed.apply([edit], (file, edit.start))
+
+
+def _add_record_component(ed: Editor, op: dict[str, Any]) -> None:
+    fields = op.get("fields") or {}
+    project = ed.project
+    file, decl, _ = _type_body(project, op["type_id"])
+    if decl.kind != "record":
+        raise unsupported("компонент можно добавить только в record")
+    name = templates.identifier(fields, "name")
+    if any(c.name == name for c in decl.components):
+        raise precondition(f"компонент «{name}» уже есть в {decl.name}")
+    component = f"{templates.type_name(fields, 'type')} {name}"
+    node = ts_node(project, file, decl.start_byte, decl.end_byte)
+    header = node.child_by_field_name("parameters")
+    if header is None:
+        raise unsupported("у record нет списка компонентов")
+    close = header.end_byte - 1
+    existing = decl.components
+    edit = TextEdit(file, close, close, (", " if existing else "") + component)
+    ed.apply([edit], (file, close))
+
+
 def op_add_member(ed: Editor, op: dict[str, Any]) -> None:
+    if op["kind"] == "enum_constant":
+        _add_enum_constant(ed, op)
+        return
+    if op["kind"] == "record_component":
+        _add_record_component(ed, op)
+        return
     fields = op.get("fields") or {}
     project = ed.project
     file, decl, body = _type_body(project, op["type_id"])
@@ -479,11 +553,89 @@ def op_update_member(ed: Editor, op: dict[str, Any]) -> None:
         ed.apply(edits, (file, member.start_byte))
 
 
+def _delete_constant(ed: Editor, member: Member) -> None:
+    project = ed.project
+    file = project.file_of(member)
+    node = ts_node(project, file, member.start_byte, member.end_byte)
+    data = ed.bytes_of(file)
+    follower = node.next_sibling
+    if follower is not None and follower.type == ",":
+        end = follower.end_byte
+        while end < len(data) and data[end : end + 1] in (b" ", b"\t"):
+            end += 1
+        if data[end : end + 1] == b"\n":
+            end += 1
+            begin = line_start(data, node.start_byte)
+            if data[begin : node.start_byte].strip():
+                begin = node.start_byte
+        else:
+            begin = node.start_byte
+        edit = TextEdit(file, begin, end, "")
+    else:
+        before = node.prev_sibling
+        if before is not None and before.type == ",":
+            edit = TextEdit(file, before.start_byte, node.end_byte, "")
+        else:
+            edit = TextEdit(file, node.start_byte, node.end_byte, "")
+    ed.apply([edit], (file, node.start_byte))
+
+
+def _delete_component(ed: Editor, member: Member) -> None:
+    project = ed.project
+    file = project.file_of(member)
+    decl = next(t for t in project.types() if member in t.members)
+    node = ts_node(project, file, decl.start_byte, decl.end_byte)
+    header = node.child_by_field_name("parameters")
+    if header is None:
+        raise unsupported("у record нет списка компонентов")
+    parameters = [c for c in header.children if c.type == "formal_parameter"]
+    target = next(
+        (
+            p
+            for p in parameters
+            if (name := p.child_by_field_name("name")) is not None
+            and project.parsed(file).text(name) == member.name
+        ),
+        None,
+    )
+    if target is None:
+        raise not_found(f"компонент {member.name} не найден")
+    index = parameters.index(target)
+    if len(parameters) == 1:
+        edit = TextEdit(file, target.start_byte, target.end_byte, "")
+    elif index == len(parameters) - 1:
+        edit = TextEdit(file, parameters[index - 1].end_byte, target.end_byte, "")
+    else:
+        edit = TextEdit(file, target.start_byte, parameters[index + 1].start_byte, "")
+    ed.apply([edit], (file, target.start_byte))
+
+
 def op_delete_member(ed: Editor, op: dict[str, Any]) -> None:
     project = ed.project
     member = project.member(op["member_id"])
     if member is None:
         raise not_found(f"член {op['member_id']} не найден")
+    if member.role in {"constant", "component"}:
+        owner = next(t for t in project.types() if member in t.members)
+        users = []
+        for other in project.members():
+            if other.id == member.id or other.kind not in FLOWABLE:
+                continue
+            used = project.call_counts(other)[member.id] or project.use_counts(other)[0][member.id]
+            if used:
+                users.append(other.key)
+        if member.role == "component":
+            created = sum(
+                len(re.findall(rf"\bnew\s+{re.escape(owner.name)}\s*\(", text))
+                for text in project.files.values()
+            )
+            if created:
+                users.append(f"new {owner.name}(…) × {created}")
+        if users:
+            shown = ", ".join(users[:3]) + ("…" if len(users) > 3 else "")
+            raise precondition(f"«{member.name}» используется в: {shown}")
+        (_delete_constant if member.role == "constant" else _delete_component)(ed, member)
+        return
     users = []
     for other in project.members():
         if other.id == member.id or other.kind not in FLOWABLE:
