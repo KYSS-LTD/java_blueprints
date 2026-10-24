@@ -21,7 +21,8 @@ ENV JAVA_HOME=/opt/java/openjdk \
     LANG=C.UTF-8 \
     PYTHONUTF8=1 \
     PYTHONUNBUFFERED=1 \
-    JB_DATA_DIR=/data
+    JB_DATA_DIR=/data \
+    JB_SAMPLES_DIR=/app/samples
 
 # Непривилегированный пользователь: от него работают и сервер, и запускаемая Java-программа
 RUN useradd --create-home --uid 10001 runner \

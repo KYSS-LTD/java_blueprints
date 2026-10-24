@@ -53,12 +53,15 @@ class RunState:
     kind: str
     cancel: threading.Event = field(default_factory=threading.Event)
     events: list[tuple[str, str]] = field(default_factory=list)
-    finished: bool = False
+    finished: bool = (
+        False  # True только после последнего события (``done``): по нему закрывается SSE
+    )
     status: str = RunStatus.QUEUED.value
     candidate: str | None = (
         None  # судьба версии-кандидата после gate: promoted | rejected | candidate | stale
     )
     _claim: threading.Lock = field(default_factory=threading.Lock)
+    _claimed: bool = False
 
     def emit(self, event: SupportsEvent) -> None:
         self.events.append((event.event, event.data.model_dump_json()))
@@ -66,9 +69,9 @@ class RunState:
     def claim_finish(self) -> bool:
         """Только один путь (обработчик или отмена очереди) имеет право завершить запуск."""
         with self._claim:
-            if self.finished:
+            if self._claimed:
                 return False
-            self.finished = True
+            self._claimed = True
             return True
 
 
@@ -208,6 +211,7 @@ class RunManager:
         state.emit(schemas.ResultEvent(data=schemas.ResultData(summary=outcome.summary)))
         state.emit(schemas.StatusEvent(data=schemas.StatusData(status=outcome.status)))  # type: ignore[arg-type]
         state.emit(schemas.DoneEvent(data=schemas.DoneData()))
+        state.finished = True  # после ``done``: подписчик, дочитавший до конца, ничего не теряет
 
     # --- отмена ----------------------------------------------------------------------------------
 

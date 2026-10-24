@@ -309,7 +309,7 @@ public class Main {
     public static void main(String[] a) throws Exception {
         String[] cmd = System.getProperty("os.name").startsWith("Windows")
             ? new String[] {"ping", "-n", "60", "127.0.0.1"}
-            : new String[] {"sleep", "60"};
+            : new String[] {"/bin/sleep", "60"};  // PATH в чистом окружении запуска — только каталог Java
         Process child = new ProcessBuilder(cmd).start();
         System.out.println(child.pid());
         System.out.flush();

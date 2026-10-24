@@ -48,8 +48,8 @@
 | S0.3 БД | ✅ | Семь таблиц SQLModel, WAL, `foreign_keys=ON`; тесты на связи, уникальность и JSON-поля |
 | S0.4 Frontend-скелет | ✅ | Next 16 + Tailwind 4 + 30 компонентов shadcn, тёмная тема, `ru.ts`, rewrites, главная показывает `/api/health` через прокси |
 | S0.5 Генерация типов | ✅ | `app.export_openapi` → `frontend/openapi.json` → `pnpm gen:api`; `openapi-fetch`, TanStack Query |
-| S0.6 Docker | ⚠️ | Dockerfile и `docker-compose.yml` написаны, **не собраны**: на машине разработки нет Docker |
-| S0.7 Спайк tree-sitter | ✅ на Windows, ⚠️ в Docker | 8 тестов зелёные (Java 21, кириллица, эмодзи, CRLF, ошибки, `Query`); на Linux/в Docker проверит CI |
+| S0.6 Docker | ✅ | образы собраны, `docker compose up` поднимает backend и frontend (JDK 21, пользователь `runner`); найден и исправлен путь к `samples` в контейнере (`JB_SAMPLES_DIR`) |
+| S0.7 Спайк tree-sitter | ✅ на Windows и в Docker | 8 тестов зелёные (Java 21, кириллица, эмодзи, CRLF, ошибки, `Query`); на Linux/в Docker проверит CI |
 | S0.8 CI | ⚠️ | `.github/workflows/ci.yml` написан (4 задачи), синтаксис YAML проверен, но не запускался: репозиторий ещё не опубликован |
 | S0.9 `doctor.py` | ✅ | |
 

@@ -12,6 +12,7 @@ import pytest
 from sqlmodel import Session
 
 from app.db.models import Run
+from app.jobs import run_manager
 from app.jobs.run_manager import JobContext, Outcome
 from app.schemas import verify as schemas
 from tests.integration.conftest import read_sse, wait_run
@@ -100,6 +101,27 @@ def test_subscriber_connected_before_the_end_gets_the_whole_stream(client, make_
     events = read_sse(client, run_id)  # подключаемся, пока запуск ещё идёт
     assert names(events)[-1] == "done"
     assert "item" in names(events)
+
+
+def test_a_slow_finish_does_not_cut_the_stream_before_done(client, make_project, gate, monkeypatch):
+    """Запуск считается завершённым только после ``done``: подписчик не должен потерять итог."""
+    project = make_project()
+    run_id = start(client, project)
+    assert gate.started.acquire(timeout=5)
+    manager = client.app.state.run_manager
+    seen: dict[str, bool] = {}
+    real = run_manager.runs_service.finish
+
+    def slow_finish(*args, **kwargs):
+        time.sleep(0.4)  # запись итога в БД; подписчик к этому моменту прочитал все прежние события
+        seen["finished_while_writing"] = manager.states[run_id].finished
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(run_manager.runs_service, "finish", slow_finish)
+    threading.Timer(0.2, gate.release.set).start()
+    events = read_sse(client, run_id)
+    assert seen["finished_while_writing"] is False
+    assert names(events)[-3:] == ["result", "status", "done"]
 
 
 def test_events_are_restored_from_the_database_when_memory_is_gone(client, make_project, gate):
