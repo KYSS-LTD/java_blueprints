@@ -651,7 +651,10 @@ def fix_02(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
     statement_text = f"System.err.println({variable}); // TODO: обработать исключение"
     if comments:
         last = comments[-1].end_byte
-        edit = TextEdit(c.file, last, last, f"\n{inner}{statement_text}")
+        if b"\n" in c.source[last:close]:
+            edit = TextEdit(c.file, last, last, f"\n{inner}{statement_text}")
+        else:  # ``{ /* ignore */ }`` в одну строку: `//` закомментировал бы закрывающую скобку
+            edit = TextEdit(c.file, last, close, f"\n{inner}{statement_text}\n{base}")
     else:
         edit = TextEdit(c.file, body.start_byte + 1, close, f"\n{inner}{statement_text}\n{base}")
     return [edit], [

@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import hashlib
 from collections import Counter, OrderedDict
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
+from typing import TypeVar, cast
 
 from tree_sitter import Node
 
@@ -61,6 +62,9 @@ def content_hash_of(files: Mapping[str, str]) -> str:
     return digest.hexdigest()
 
 
+T = TypeVar("T")
+
+
 class JavaProject:
     """Набор Java-файлов одной версии проекта."""
 
@@ -74,6 +78,7 @@ class JavaProject:
         self._contexts: dict[str, tuple[Context, Node | None]] = {}
         self._calls: dict[str, Counter[str]] = {}
         self._uses: dict[str, tuple[Counter[str], Counter[str]]] = {}
+        self._memo: dict[tuple[str, str], object] = {}
 
     # --- файлы и символы ---------------------------------------------------------------------
 
@@ -92,6 +97,12 @@ class JavaProject:
         if self._table is None:
             self._table = SymbolTable(self.symbols(path) for path in self.files)
         return self._table
+
+    def memo(self, kind: str, key: str, make: Callable[[], T]) -> T:
+        """Результат ``make()``, посчитанный один раз на пару (вид, ключ): файлы версии не меняются."""
+        if (kind, key) not in self._memo:
+            self._memo[(kind, key)] = make()
+        return cast(T, self._memo[(kind, key)])
 
     def syntax_issues(self) -> dict[str, list[SyntaxIssue]]:
         """Синтаксические ошибки по файлам (только файлы с ошибками)."""

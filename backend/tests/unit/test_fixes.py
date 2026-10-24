@@ -263,6 +263,19 @@ def test_fix_02_keeps_existing_comments():
     assert "// ignore\n            System.err.println(ex);" in after
 
 
+def test_fix_02_does_not_comment_out_the_brace_of_a_one_line_block():
+    project = project_of(
+        "        try {\n            n = 1;\n        } catch (RuntimeException ex) { /* ignore */ }"
+    )
+    after = fixed(project, "BUG-02")
+    assert (
+        "catch (RuntimeException ex) { /* ignore */\n"
+        "            System.err.println(ex); // TODO: обработать исключение\n"
+        "        }"
+    ) in after
+    assert not JavaProject({"A.java": after}).syntax_issues()
+
+
 # --- доступность в находках ------------------------------------------------------------------------------------
 
 

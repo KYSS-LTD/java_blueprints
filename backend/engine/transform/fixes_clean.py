@@ -21,6 +21,7 @@ from engine.transform.dedupe import literal_type
 from engine.transform.fixes_more import statement_of
 
 if TYPE_CHECKING:
+    from engine.java.symbols import TypeDecl
     from engine.transform.fixes import Ctx
 
 _REMOVE_IF = frozenset(
@@ -411,6 +412,27 @@ def _in_label_or_annotation(node: Node) -> bool:
     return False
 
 
+def _literals_of(c: Ctx, decl: TypeDecl) -> dict[str, list[Node]]:
+    """Числовые и строковые литералы в телах методов класса по тексту; считается один раз на класс."""
+
+    def collect() -> dict[str, list[Node]]:
+        found: dict[str, list[Node]] = {}
+        for member in decl.members:
+            if member.kind not in {"method", "constructor"}:
+                continue
+            body = c.project.context(member)[1]
+            if body is None:
+                continue
+            for node in cst.walk(body):
+                if (
+                    node.type in _NUMBER or node.type == "string_literal"
+                ) and not _in_label_or_annotation(node):
+                    found.setdefault(c.text(node), []).append(node)
+        return found
+
+    return c.project.memo("literals", decl.id, collect)
+
+
 def clean_01(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
     item = next((e.text for e in c.finding.evidence.static if e.kind == "literal"), "")
     literal = item.rsplit(" × ", 1)[0].strip()
@@ -418,26 +440,18 @@ def clean_01(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
     decl = next((t for t in c.project.types() if t.id == decl_id), None)
     if not literal or decl is None:
         raise refuse("Литерал и класс найдены", "не удалось определить литерал или класс")
-    occurrences: list[Node] = []
-    kind = ""
-    for member in decl.members:
-        if member.kind not in {"method", "constructor"}:
-            continue
-        body = c.project.context(member)[1]
-        if body is None:
-            continue
-        for node in cst.walk(body):
-            if node.type in _NUMBER or node.type == "string_literal":
-                if c.text(node) != literal or _in_label_or_annotation(node):
-                    continue
-                occurrences.append(node)
-                kind = node.type
+    occurrences = _literals_of(c, decl).get(literal, [])
+    kind = occurrences[-1].type if occurrences else ""
     if len(occurrences) < 2:
         raise refuse("Литерал повторяется", f"{literal} встречается меньше двух раз")
     value_type = literal_type(kind, literal)
     if value_type is None:
         raise refuse("Тип литерала известен", literal)
-    used = {c.text(n) for n in cst.walk(c.parsed.root) if n.type == "identifier"}
+    used = c.project.memo(
+        "identifiers",
+        c.file,
+        lambda: {c.text(n) for n in cst.walk(c.parsed.root) if n.type == "identifier"},
+    )
     if kind == "string_literal":
         base = "TEXT"
         index = 1
