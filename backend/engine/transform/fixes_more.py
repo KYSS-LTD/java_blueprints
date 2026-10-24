@@ -1,5 +1,6 @@
-"""Следующие автоисправления (S8.3): OPT-04 (сортировка вне цикла), OPT-05 (инвариант вне цикла),
-OPT-07 (повторяющееся выражение — в переменную).
+"""Следующие автоисправления (S8.3–S8.4): OPT-04 (сортировка вне цикла), OPT-05 (инвариант вне цикла),
+OPT-07 (повторяющееся выражение — в переменную), OPT-08 (мемоизация чистой рекурсии), OPT-11 (порядок
+этапов Stream), OPT-12 (обёртка → примитив).
 
 Каждый построитель повторно проверяет условия правила на тексте и отказывается с понятной причиной.
 Типы переменных выводятся из каталога JDK-методов; если тип неизвестен, исправление недоступно.
@@ -12,10 +13,10 @@ from typing import TYPE_CHECKING
 
 from tree_sitter import Node
 
-from engine.edit.core import TextEdit, line_indent, line_start
-from engine.edit.operations import removal_range
+from engine.edit.core import TextEdit, indent_unit, line_indent, line_start
+from engine.edit.operations import _with_leading_comments, removal_range
 from engine.java import cst
-from engine.transform.base import Check, Refusal, refuse
+from engine.transform.base import Check, Refusal, ensure_imports, refuse
 
 if TYPE_CHECKING:
     from engine.transform.fixes import Ctx
@@ -456,6 +457,343 @@ def opt_07(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
     ]
 
 
+# --- OPT-08: мемоизация чистой рекурсии ---------------------------------------------------------------------------
+
+_BOXED = {
+    "int": "Integer",
+    "long": "Long",
+    "double": "Double",
+    "float": "Float",
+    "boolean": "Boolean",
+    "char": "Character",
+    "short": "Short",
+    "byte": "Byte",
+}
+_KEY_TYPES = frozenset(
+    {"int", "long", "char", "short", "byte", "boolean", "String", "Integer", "Long", "Character"}
+)
+_VALUE_TYPES = _KEY_TYPES | {"double", "float", "Double", "Float"}
+_PURE_OWNERS = frozenset(
+    {"Math", "Integer", "Long", "Double", "Character", "Boolean", "Objects", "StrictMath"}
+)
+_IMPURE_CALLS = frozenset({"random", "currentTimeMillis", "nanoTime"})
+
+
+def _impure(c: Ctx, body: Node, name: str) -> str | None:
+    """Причина, по которой тело метода нельзя считать чистой функцией аргумента, или ``None``."""
+    scope = c.resolver().scope
+    for node in cst.walk(body):
+        kind = node.type
+        if kind == "method_invocation":
+            receiver = node.child_by_field_name("object")
+            called = c.text(node.child_by_field_name("name"))
+            if receiver is None and called == name:
+                continue
+            owner = c.text(receiver) if receiver is not None else ""
+            if owner in _PURE_OWNERS and called not in _IMPURE_CALLS:
+                continue
+            if receiver is not None and c.resolver().expr_type(receiver) == "String":
+                continue
+            return f"вызывает {c.text(node)[:40]}"
+        if kind in {"assignment_expression", "update_expression"}:
+            target = (
+                node.child_by_field_name("left")
+                if kind == "assignment_expression"
+                else next((ch for ch in node.children if ch.type == "identifier"), None)
+            )
+            if target is None or target.type != "identifier" or c.text(target) not in scope:
+                return f"меняет не локальную переменную: {c.text(node)[:40]}"
+        elif kind == "identifier":
+            text = c.text(node)
+            parent = node.parent
+            if text == "System":
+                return "обращается к System"
+            if text in scope or parent is None or text[:1].isupper():
+                continue
+            if parent.type == "method_invocation" and parent.child_by_field_name("name") == node:
+                continue
+            if parent.type == "field_access" and parent.child_by_field_name("field") == node:
+                continue
+            found = c.project.table.field_type(c.resolver().owner, text)
+            if found is not None and "final" not in found[0].modifiers:
+                return f"читает изменяемое поле {text}"
+    return None
+
+
+def _fresh_name(wanted: str, used: set[str]) -> str:
+    name, index = wanted, 2
+    while name in used:
+        name = f"{wanted}{index}"
+        index += 1
+    return name
+
+
+def opt_08(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
+    member = c.member
+    if member is None or member.kind != "method":
+        raise refuse("Метод", "находка не привязана к методу")
+    declaration = c.project.context(member)[1]
+    body = declaration.child_by_field_name("body") if declaration is not None else None
+    if declaration is None or body is None:
+        raise refuse("Тело метода", "у метода нет тела")
+    if len(member.params) != 1 or member.params[0].varargs:
+        raise refuse("Один параметр", "мемоизируются методы ровно с одним параметром")
+    key_type, value_type = member.params[0].type, member.type_text or ""
+    if key_type not in _KEY_TYPES or value_type not in _VALUE_TYPES:
+        raise refuse(
+            "Простые типы ключа и результата",
+            f"ключ {key_type} или результат {value_type or 'void'} не подходят для кэша",
+        )
+    if any(a.endswith("Override") for a in member.annotations) or member.type_params:
+        raise refuse(
+            "Не переопределяет и не обобщённый", "метод переопределяет другой или обобщённый"
+        )
+    reason = _impure(c, body, member.name)
+    if reason is not None:
+        raise refuse("Метод — чистая функция аргумента", reason)
+    source_text = c.source.decode("utf-8")
+    used = set(re.findall(r"\w+", source_text))
+    base = member.name
+    memo = _fresh_name(f"{base}Memo", used)
+    compute = _fresh_name(f"{base}Compute", used | {memo})
+    argument = member.params[0].name
+    local = _fresh_name("cached", used | {memo, compute, argument})
+    result = _fresh_name("result", used | {memo, compute, argument, local})
+    unit = indent_unit(source_text)
+    begin = _with_leading_comments(c.source, declaration)
+    indent = line_indent(c.source, member.start_byte)
+    header = c.source[member.start_byte : body.start_byte].decode("utf-8").rstrip()
+    boxed_key, boxed_value = _BOXED.get(key_type, key_type), _BOXED.get(value_type, value_type)
+    modifier = "private static final" if member.is_static else "private final"
+    wrapper = (
+        f"{modifier} Map<{boxed_key}, {boxed_value}> {memo} = new HashMap<>();\n\n"
+        f"{indent}{header} {{\n"
+        f"{indent}{unit}{boxed_value} {local} = {memo}.get({argument});\n"
+        f"{indent}{unit}if ({local} != null) {{\n"
+        f"{indent}{unit}{unit}return {local};\n"
+        f"{indent}{unit}}}\n"
+        f"{indent}{unit}{value_type} {result} = {compute}({argument});\n"
+        f"{indent}{unit}{memo}.put({argument}, {result});\n"
+        f"{indent}{unit}return {result};\n"
+        f"{indent}}}\n\n{indent}"
+    )
+    original = bytearray(c.source[begin : member.end_byte])
+    name_node = declaration.child_by_field_name("name")
+    assert name_node is not None
+    changes: list[tuple[int, int, str]] = [(name_node.start_byte, name_node.end_byte, compute)]
+    modifiers = cst.first_child_of_type(declaration, "modifiers")
+    access = (
+        next((m for m in modifiers.children if m.type in {"public", "protected", "private"}), None)
+        if modifiers is not None
+        else None
+    )
+    if access is not None:
+        changes.append((access.start_byte, access.end_byte, "private"))
+    elif modifiers is None:
+        changes.append((member.start_byte, member.start_byte, "private "))
+    else:
+        plain = [m for m in modifiers.children if "annotation" not in m.type]
+        if plain:
+            changes.append((plain[0].start_byte, plain[0].start_byte, "private "))
+        else:
+            changes.append((modifiers.end_byte, modifiers.end_byte, " private"))
+    for start, end, text in sorted(changes, reverse=True):
+        original[start - begin : end - begin] = text.encode("utf-8")
+    edits = [TextEdit(c.file, begin, member.end_byte, wrapper + original.decode("utf-8"))]
+    imports = ensure_imports(source_text, ["java.util.Map", "java.util.HashMap"])
+    if imports is not None:
+        edits.append(TextEdit(c.file, imports.start, imports.end, imports.text))
+    return edits, [
+        Check("Метод — чистая функция одного аргумента", True),
+        Check(f"Кэш: Map<{boxed_key}, {boxed_value}>", True),
+        Check("Рекурсивные вызовы идут через кэш", True),
+    ]
+
+
+# --- OPT-11: лишняя работа в стриме -------------------------------------------------------------------------------
+
+_SIDE_EFFECTS = frozenset(
+    {
+        "println",
+        "print",
+        "printf",
+        "add",
+        "remove",
+        "put",
+        "set",
+        "append",
+        "peek",
+        "clear",
+        "System",
+    }
+)
+
+
+def _ancestors(node: Node) -> list[Node]:
+    found = []
+    current = node.parent
+    while current is not None:
+        found.append(current)
+        current = current.parent
+    return found
+
+
+def opt_11(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
+    statement = statement_of(c)
+    calls = [n for n in cst.walk(statement) if n.type == "method_invocation"]
+
+    def name_of(call: Node) -> str:
+        return c.text(call.child_by_field_name("name"))
+
+    def arguments(call: Node) -> str:
+        holder = call.child_by_field_name("arguments")
+        return c.text(holder)[1:-1] if holder is not None else ""
+
+    # sorted → filter: меняем местами соседние этапы
+    for call in calls:
+        inner = call.child_by_field_name("object")
+        if (
+            name_of(call) == "filter"
+            and inner is not None
+            and inner.type == "method_invocation"
+            and name_of(inner) == "sorted"
+        ):
+            predicate = call.child_by_field_name("arguments")
+            effects = [
+                n
+                for n in (cst.walk(predicate) if predicate is not None else [])
+                if (n.type == "method_invocation" and name_of(n) in _SIDE_EFFECTS)
+                or (n.type == "identifier" and c.text(n) == "System")
+            ]
+            if effects:
+                raise refuse(
+                    "Предикат без побочных эффектов", "в предикате есть вывод или изменение"
+                )
+            source_call = inner.child_by_field_name("object")
+            assert source_call is not None
+            new = f"{c.text(source_call)}.filter({arguments(call)}).sorted({arguments(inner)})"
+            return [TextEdit(c.file, call.start_byte, call.end_byte, new)], [
+                Check("Этапы sorted и filter идут подряд", True),
+                Check("Предикат без побочных эффектов", True),
+            ]
+    # collect(toList()).stream() → без промежуточной коллекции
+    for call in calls:
+        inner = call.child_by_field_name("object")
+        if name_of(call) not in {"stream", "parallelStream"} or inner is None:
+            continue
+        if inner.type == "method_invocation" and (
+            (name_of(inner) == "collect" and _squash(arguments(inner)) == "Collectors.toList()")
+            or (name_of(inner) == "toList" and not arguments(inner))
+        ):
+            source_call = inner.child_by_field_name("object")
+            assert source_call is not None
+            return [TextEdit(c.file, source_call.end_byte, call.end_byte, "")], [
+                Check("Промежуточная коллекция — обычный список", True),
+                Check("Порядок элементов сохраняется", True),
+            ]
+    # stream().count() → size()
+    for call in calls:
+        inner = call.child_by_field_name("object")
+        if name_of(call) != "count" or inner is None or inner.type != "method_invocation":
+            continue
+        if name_of(inner) != "stream":
+            continue
+        receiver = inner.child_by_field_name("object")
+        if receiver is None or receiver.type != "identifier":
+            continue
+        kind = c.resolver().scope.get(c.text(receiver), "").split("<")[0]
+        if kind not in {
+            "List",
+            "ArrayList",
+            "LinkedList",
+            "Set",
+            "HashSet",
+            "TreeSet",
+            "Collection",
+        }:
+            raise refuse("Получатель — коллекция", f"«{c.text(receiver)}» не коллекция")
+        declaration = next(
+            (a for a in _ancestors(call) if a.type == "local_variable_declaration"), None
+        )
+        if declaration is not None and c.text(declaration.child_by_field_name("type")) == "Long":
+            raise refuse("Тип приёмника совместим", "size() возвращает int, а переменная типа Long")
+        return [TextEdit(c.file, inner.start_byte, call.end_byte, f"{c.text(receiver)}.size()")], [
+            Check("Получатель — коллекция", True),
+            Check("size() возвращает то же число", True),
+        ]
+    raise refuse("Лишний этап", "лишних этапов не найдено или они не соседние")
+
+
+# --- OPT-12: обёртка → примитив ------------------------------------------------------------------------------------
+
+_PRIMITIVES = {
+    "Integer": "int",
+    "Long": "long",
+    "Double": "double",
+    "Float": "float",
+    "Short": "short",
+    "Byte": "byte",
+    "Character": "char",
+}
+
+
+def opt_12(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
+    assert c.body is not None
+    texts = [e.text for e in c.finding.evidence.static if e.kind == "variable"]
+    if not texts:
+        raise refuse("Переменная", "в находке нет переменной")
+    wrapper, _, name = texts[0].partition(" ")
+    if wrapper not in _PRIMITIVES:
+        raise refuse("Тип-обёртка", f"{wrapper} не обёртка примитива")
+    declaration = c.declaration_of(name)
+    if declaration is None:
+        raise refuse("Локальная переменная", f"«{name}» не локальная переменная метода")
+    declarators = cst.children_of_type(declaration, "variable_declarator")
+    type_node = declaration.child_by_field_name("type")
+    if len(declarators) != 1 or type_node is None or c.text(type_node) != wrapper:
+        raise refuse(
+            "Одна переменная в объявлении", "в объявлении несколько переменных или тип иной"
+        )
+    value = declarators[0].child_by_field_name("value")
+    if value is not None and value.type == "null_literal":
+        raise refuse("Нет null", f"«{name}» инициализируется null")
+    primitives = set(_PRIMITIVES.values())
+    for ref in c.references(name, c.body):
+        parent = ref.parent
+        if parent is None:
+            continue
+        if parent.type == "method_invocation" and parent.child_by_field_name("object") == ref:
+            raise refuse("Нет вызовов методов у переменной", f"у «{name}» вызывается метод")
+        if parent.type == "binary_expression":
+            operator = c.text(parent.child_by_field_name("operator"))
+            other = parent.child_by_field_name("right")
+            if other is not None and other.id == ref.id:
+                other = parent.child_by_field_name("left")
+            if other is not None and other.type == "null_literal":
+                raise refuse("Нет сравнения с null", f"«{name}» сравнивается с null")
+            if operator in {"==", "!="} and other is not None:
+                kind = c.resolver().expr_type(other)
+                literal = other.type in {
+                    "decimal_integer_literal",
+                    "decimal_floating_point_literal",
+                }
+                if not literal and (kind is None or kind not in primitives):
+                    raise refuse(
+                        "Сравнение значений, а не ссылок",
+                        f"«{name}» сравнивается через == с объектом: смысл сравнения изменится",
+                    )
+        if parent.type == "assignment_expression" and parent.child_by_field_name("left") == ref:
+            right = parent.child_by_field_name("right")
+            if right is not None and right.type == "null_literal":
+                raise refuse("Нет присваивания null", f"«{name}» получает null")
+    primitive = _PRIMITIVES[wrapper]
+    return [TextEdit(c.file, type_node.start_byte, type_node.end_byte, primitive)], [
+        Check("Переменная не бывает null", True),
+        Check("У переменной не вызываются методы и нет сравнения ссылок", True),
+        Check(f"{wrapper} → {primitive}", True),
+    ]
+
+
 MORE_SPECS = {
     "PERF-04": (
         "OPT-04",
@@ -470,6 +808,27 @@ MORE_SPECS = {
         "Неизменный вызов вычисляется один раз перед циклом и сохраняется в переменную.",
         True,
         opt_05,
+    ),
+    "PERF-08": (
+        "OPT-08",
+        "Мемоизация рекурсии",
+        "Результаты чистой рекурсивной функции запоминаются в Map: повторные вызовы берут готовое значение.",
+        True,
+        opt_08,
+    ),
+    "PERF-11": (
+        "OPT-11",
+        "Лишний этап в стриме",
+        "Этапы Stream API переставляются или убираются, результат остаётся тем же.",
+        True,
+        opt_11,
+    ),
+    "PERF-12": (
+        "OPT-12",
+        "Обёртка → примитив",
+        "Накопитель в цикле объявляется примитивом: нет упаковки и распаковки.",
+        True,
+        opt_12,
     ),
     "PERF-07": (
         "OPT-07",

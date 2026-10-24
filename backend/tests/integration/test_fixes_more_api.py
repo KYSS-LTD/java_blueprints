@@ -102,3 +102,66 @@ def test_batch_optimization_applies_them_in_turn(client, program):
     info = wait_run(client, response.json()["run_id"], 300)
     assert info["status"] == "done", info
     assert outputs(client, program) == expected
+
+
+# --- OPT-08, OPT-11, OPT-12 -----------------------------------------------------------------------------------
+
+SECOND = """\
+import java.util.*;
+import java.util.stream.*;
+
+public class Main {
+    static long fib(int k) {
+        if (k < 2) {
+            return k;
+        }
+        return fib(k - 1) + fib(k - 2);
+    }
+
+    public static void main(String[] args) {
+        Scanner in = new Scanner(System.in);
+        List<String> words = new ArrayList<>();
+        while (in.hasNext()) {
+            words.add(in.next());
+        }
+        Integer total = 0;
+        for (String w : words) {
+            total += w.length();
+        }
+        List<String> kept = words.stream().sorted().filter(w -> w.length() > 2).collect(Collectors.toList());
+        System.out.println(total + " " + kept + " " + fib(Math.min(total, 25)));
+    }
+}
+"""
+SECOND_INPUTS = ["a bb ccc dddd\n", "", "hello world\n", "x\n"]
+
+
+@pytest.fixture
+def second(client, make_project):
+    project = make_project({"Main.java": SECOND}, name="more-fixes-2")
+    for index, stdin in enumerate(SECOND_INPUTS):
+        client.post(url(project, "/scenarios"), json={"name": f"t{index}", "stdin": stdin})
+    assert run_kind(client, project, "baseline")["status"] == "done"
+    return project
+
+
+def second_outputs(client, project) -> list[str]:
+    return [run_kind(client, project, "run", stdin=s)["items"][0]["stdout"] for s in SECOND_INPUTS]
+
+
+@pytest.mark.parametrize("fix_id", ["OPT-08", "OPT-11", "OPT-12"])
+def test_second_group_keeps_output_and_gate(client, second, fix_id):
+    assert fix_id in available(client, second)
+    expected = second_outputs(client, second)
+    finding = available(client, second)[fix_id]
+    versions = client.get(url(second, "/versions")).json()
+    response = client.post(
+        url(second, f"/fixes/{quote(finding, safe=chr(47))}/apply"),
+        json={"base_version_id": versions["head_version_id"]},
+    )
+    assert response.status_code == 202, response.text
+    info = wait_run(client, response.json()["run_id"], 240)
+    assert info["summary"]["version_status"] == "passed", info["summary"]
+    assert info["summary"]["data"]["candidate"] == "promoted"
+    assert second_outputs(client, second) == expected
+    assert fix_id not in available(client, second)

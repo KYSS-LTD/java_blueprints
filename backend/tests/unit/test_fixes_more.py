@@ -168,3 +168,130 @@ def test_opt_07_handles_a_repeat_inside_a_nested_block():
     after = fixed(project, "PERF-07")
     assert after.count("Integer.parseInt(items.get(0))") == 1
     assert "System.out.println(number);" in after
+
+
+# --- OPT-08 --------------------------------------------------------------------------------------------------
+
+FIB = (
+    "    int fib(int k) {\n"
+    "        if (k < 2) {\n"
+    "            return k;\n"
+    "        }\n"
+    "        return fib(k - 1) + fib(k - 2);\n"
+    "    }"
+)
+
+
+def test_opt_08_wraps_a_pure_recursive_function_in_a_cache():
+    after = fixed(project_of("n++;", FIB), "PERF-08")
+    assert "    private final Map<Integer, Integer> fibMemo = new HashMap<>();" in after
+    assert "        Integer cached = fibMemo.get(k);" in after
+    assert "        int result = fibCompute(k);\n        fibMemo.put(k, result);" in after
+    assert "    private int fibCompute(int k) {" in after
+    assert "return fib(k - 1) + fib(k - 2);" in after  # рекурсия идёт через обёртку с кэшем
+    assert "PERF-08" not in rule_ids(after)
+
+
+def test_opt_08_static_methods_get_a_static_cache_and_keep_visibility():
+    source = (
+        "import java.util.*;\n"
+        "public class A {\n"
+        "    public static long fib(int k) {\n"
+        "        return k < 2 ? k : fib(k - 1) + fib(k - 2);\n"
+        "    }\n"
+        "}\n"
+    )
+    project = JavaProject({"A.java": source})
+    after = fixed(project, "PERF-08")
+    assert "    private static final Map<Integer, Long> fibMemo = new HashMap<>();" in after
+    assert "    public static long fib(int k) {" in after
+    assert "    private static long fibCompute(int k) {" in after
+
+
+def test_opt_08_refuses_impure_functions():
+    printing = FIB.replace("if (k < 2) {", 'System.out.println("fib");\n        if (k < 2) {')
+    assert "System" in refusal(project_of("n++;", printing), "PERF-08")
+    stateful = "    int calls;\n" + FIB.replace(
+        "return fib(k - 1)", "calls++;\n        return fib(k - 1)"
+    )
+    assert "не локальную" in refusal(project_of("n++;", stateful), "PERF-08")
+    reads_field = "    int base = 1;\n" + FIB.replace("return k;", "return k + base;")
+    assert "изменяемое поле" in refusal(project_of("n++;", reads_field), "PERF-08")
+
+
+# --- OPT-11 --------------------------------------------------------------------------------------------------
+
+
+def test_opt_11_swaps_sorted_and_filter():
+    body = "        List<String> r = items.stream().sorted().filter(s -> s.length() > 2).collect(Collectors.toList());"
+    project = project_of(body)
+    after = fixed(project, "PERF-11")
+    assert "items.stream().filter(s -> s.length() > 2).sorted().collect(" in after
+    assert "PERF-11" not in rule_ids(after)
+
+
+def test_opt_11_drops_needless_collect_and_stream():
+    source = (
+        "import java.util.*;\nimport java.util.stream.*;\nclass A {\n"
+        "    long run(List<String> items) {\n"
+        "        return items.stream().map(String::trim).collect(Collectors.toList()).stream().filter(s -> !s.isEmpty()).count();\n"
+        "    }\n}\n"
+    )
+    after = fixed(JavaProject({"A.java": source}), "PERF-11")
+    assert "items.stream().map(String::trim).filter(s -> !s.isEmpty()).count()" in after
+
+
+def test_opt_11_replaces_stream_count_with_size():
+    source = (
+        "import java.util.*;\nimport java.util.stream.*;\nclass A {\n"
+        "    long run(List<String> items) {\n"
+        "        return items.stream().count();\n"
+        "    }\n}\n"
+    )
+    after = fixed(JavaProject({"A.java": source}), "PERF-11")
+    assert "return items.size();" in after
+
+
+def test_opt_11_refuses_a_filter_with_side_effects():
+    source = (
+        "import java.util.*;\nimport java.util.stream.*;\nclass A {\n"
+        "    void run(List<String> items) {\n"
+        "        items.stream().sorted().filter(s -> { System.out.println(s); return true; }).count();\n"
+        "    }\n}\n"
+    )
+    assert "предикате" in refusal(JavaProject({"A.java": source}), "PERF-11")
+
+
+# --- OPT-12 --------------------------------------------------------------------------------------------------
+
+
+def test_opt_12_turns_the_wrapper_accumulator_into_a_primitive():
+    project = project_of(
+        "        Integer total = 0;\n"
+        "        for (String s : items) {\n"
+        "            total += s.length();\n"
+        "        }\n"
+        "        System.out.println(total);"
+    )
+    after = fixed(project, "PERF-12")
+    assert "        int total = 0;" in after and "PERF-12" not in rule_ids(after)
+
+
+def test_opt_12_refuses_when_the_variable_is_used_as_an_object():
+    equals = project_of(
+        "        Integer total = 0;\n"
+        "        for (String s : items) {\n"
+        "            total += s.length();\n"
+        "        }\n"
+        "        System.out.println(total.equals(3));"
+    )
+    assert "метод" in refusal(equals, "PERF-12")
+    identity = project_of(
+        "        Integer other = items.size();\n"
+        "        Integer total = 0;\n"
+        "        for (String s : items) {\n"
+        "            total += s.length();\n"
+        "        }\n"
+        "        System.out.println(total == other);"
+    )
+    assert "==" in refusal(identity, "PERF-12")
