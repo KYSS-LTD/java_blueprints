@@ -277,3 +277,125 @@ def test_opt_09_keeps_output_order_and_the_gate_green(client, make_project):
     ]
     assert after == expected
     assert "OPT-09" not in available(client, project)
+
+
+# --- OPT-13: индекс для метода-поиска ----------------------------------------------------------------------------
+
+REGISTRY = """\
+import java.util.*;
+
+public class Main {
+    static class Item {
+        private final int id;
+        private int qty;
+
+        Item(int id, int qty) {
+            this.id = id;
+            this.qty = qty;
+        }
+
+        int getId() {
+            return id;
+        }
+
+        int getQty() {
+            return qty;
+        }
+
+        void addQty(int more) {
+            qty += more;
+        }
+    }
+
+    private final List<Item> items = new ArrayList<>();
+
+    private Item find(int id) {
+        for (Item item : items) {
+            if (item.getId() == id) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    void add(int id, int qty) {
+        Item existing = find(id);
+        if (existing != null) {
+            existing.addQty(qty);
+            return;
+        }
+        Item item = new Item(id, qty);
+        items.add(item);
+    }
+
+    boolean delete(int id) {
+        Item found = find(id);
+        if (found == null) {
+            return false;
+        }
+        items.remove(found);
+        return true;
+    }
+
+    void run(Scanner in) {
+        while (in.hasNext()) {
+            String command = in.next();
+            if (command.equals("add")) {
+                add(in.nextInt(), in.nextInt());
+            } else if (command.equals("del")) {
+                System.out.println(delete(in.nextInt()) ? "deleted" : "missing");
+            } else if (command.equals("get")) {
+                Item item = find(in.nextInt());
+                System.out.println(item == null ? "none" : "qty " + item.getQty());
+            } else if (command.equals("sum")) {
+                int sum = 0;
+                for (Item item : items) {
+                    sum += item.getQty();
+                }
+                System.out.println("sum " + sum);
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        new Main().run(new Scanner(System.in));
+    }
+}
+"""
+REGISTRY_INPUTS = [
+    "add 1 5\nadd 2 7\nadd 1 3\nget 1\nget 9\nsum\n",
+    "add 4 1\ndel 4\nget 4\nadd 4 2\nget 4\ndel 8\nsum\n",
+    "",
+    "add 3 1\nadd 2 1\nadd 1 1\ndel 2\nadd 2 9\nget 2\nsum\nget 3\n",
+]
+
+
+def test_opt_13_keeps_output_and_the_gate_green(client, make_project):
+    project = make_project({"Main.java": REGISTRY}, name="registry")
+    for index, stdin in enumerate(REGISTRY_INPUTS):
+        client.post(url(project, "/scenarios"), json={"name": f"r{index}", "stdin": stdin})
+    assert run_kind(client, project, "baseline")["status"] == "done"
+    expected = [
+        run_kind(client, project, "run", stdin=s)["items"][0]["stdout"] for s in REGISTRY_INPUTS
+    ]
+    offer = available(client, project)
+    assert "OPT-13" in offer
+    preview = client.post(
+        url(project, f"/fixes/{quote(offer['OPT-13'], safe=chr(47))}/preview"), json={}
+    )
+    assert preview.status_code == 200, preview.text
+    assert "itemsById" in preview.json()["diff"][0]["unified"]
+    versions = client.get(url(project, "/versions")).json()
+    response = client.post(
+        url(project, f"/fixes/{quote(offer['OPT-13'], safe=chr(47))}/apply"),
+        json={"base_version_id": versions["head_version_id"]},
+    )
+    assert response.status_code == 202, response.text
+    info = wait_run(client, response.json()["run_id"], 240)
+    assert info["summary"]["version_status"] == "passed", info["summary"]
+    assert info["summary"]["data"]["candidate"] == "promoted"
+    after = [
+        run_kind(client, project, "run", stdin=s)["items"][0]["stdout"] for s in REGISTRY_INPUTS
+    ]
+    assert after == expected
+    assert "OPT-13" not in available(client, project)

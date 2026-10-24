@@ -91,8 +91,15 @@ def _benchmark(ctx: JobContext, version_id: int) -> dict[str, Any]:
     return data
 
 
+NOTICEABLE = 1.25  # изменение времени меньше этого считается шумом: ввод-вывод и запуск JVM делят время с вычислением
+
+
 def speedup(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
-    """Измеренное ускорение на наибольшем общем размере: по времени, если оно заметно, иначе по счётчикам."""
+    """Измеренное ускорение на наибольшем общем размере.
+
+    Заголовок — по времени, если оно заметно изменилось; иначе по счётчикам блоков (сколько работы делает
+    программа). Оба показателя сохраняются: ``time_speedup`` и ``work_speedup``.
+    """
     if "error" in before or "error" in after:
         return {"error": before.get("error") or after.get("error")}
     old = {s["size"]: s for s in before["samples"]}
@@ -104,17 +111,30 @@ def speedup(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
         "samples": [{"size": n, "before": old[n], "after": new[n]} for n in common],
         "speedup": None,
     }
-    for size in reversed(common):
-        slow, fast = old[size]["time_ms"], new[size]["time_ms"]
-        if slow >= 20 and fast > 0:
-            result.update(speedup=round(slow / fast, 2), size=size, basis="time")
-            break
-    else:
-        for size in reversed(common):
-            slow, fast = old[size].get("hits"), new[size].get("hits")
-            if slow and fast:
-                result.update(speedup=round(slow / fast, 2), size=size, basis="hits")
-                break
+    by_time = next(
+        (
+            (round(old[n]["time_ms"] / new[n]["time_ms"], 2), n)
+            for n in reversed(common)
+            if old[n]["time_ms"] >= 20 and new[n]["time_ms"] > 0
+        ),
+        None,
+    )
+    by_work = next(
+        (
+            (round(old[n]["hits"] / new[n]["hits"], 2), n)
+            for n in reversed(common)
+            if old[n].get("hits") and new[n].get("hits")
+        ),
+        None,
+    )
+    if by_time:
+        result.update(time_speedup=by_time[0], time_size=by_time[1])
+    if by_work:
+        result.update(work_speedup=by_work[0], work_size=by_work[1])
+    if by_time and (by_time[0] >= NOTICEABLE or by_work is None or by_work[0] < NOTICEABLE):
+        result.update(speedup=by_time[0], size=by_time[1], basis="time")
+    elif by_work:
+        result.update(speedup=by_work[0], size=by_work[1], basis="hits")
     return result
 
 
@@ -155,7 +175,18 @@ def run_optimize(ctx: JobContext) -> Outcome:
         measured = speedup(before, _benchmark(ctx, head_id))
     message = f"Применено шагов: {len(applied)} из {len(steps)}"
     if measured.get("speedup"):
-        message += f"; ускорение до {measured['speedup']}× (N={measured['size']})"
+        if measured["basis"] == "hits":
+            message += (
+                f"; блоков выполняется в {measured['speedup']}× меньше (N={measured['size']})"
+            )
+            if measured.get("time_speedup"):
+                message += f", время программы — ×{measured['time_speedup']}"
+        else:
+            message += f"; ускорение до {measured['speedup']}× (N={measured['size']})"
+            if measured.get("work_speedup"):
+                message += (
+                    f"; блоков в {measured['work_speedup']}× меньше (N={measured['work_size']})"
+                )
     summary = schemas.RunSummary(
         passed=len(applied),
         total=len(steps),

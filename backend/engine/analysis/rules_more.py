@@ -11,9 +11,10 @@ from collections import defaultdict
 
 from tree_sitter import Node
 
-from engine.analysis.complexity import N
+from engine.analysis.complexity import ONE, Cost, N
 from engine.analysis.cost_model import Contribution as CostContribution
 from engine.analysis.cost_model import CostResult
+from engine.analysis.lookup import match_lookup
 from engine.analysis.model import (
     ComplexityEstimate,
     Contribution,
@@ -588,6 +589,93 @@ def rule_perf_09(ctx: AnalysisContext) -> list[Finding]:
                     )
                 )
                 break
+    return found
+
+
+# --- PERF-13: метод-поиск по ключу, вызываемый из цикла --------------------------------------------------------------
+
+
+def _hot_callees(ctx: AnalysisContext) -> dict[str, tuple[str, Cost]]:
+    """Методы проекта, которые вызываются в цикле с неконстантным числом итераций, прямо или по цепочке вызовов.
+
+    Значение — метод, в котором стоит такой цикл (для объяснения находки), и число итераций цикла.
+    """
+    hot: dict[str, tuple[str, Cost]] = {}
+    edges: dict[str, set[str]] = defaultdict(set)
+    for view, body in _body_of(ctx):
+        for call in _calls(body):
+            for callee in view.context.resolve_call(call):
+                edges[view.member.id].add(callee.id)
+                factor = ONE
+                for loop in view.enclosing_loops(call):
+                    factor = factor * loop.factor
+                if callee.id not in hot and not factor.is_constant:
+                    hot[callee.id] = (view.member.key, factor)
+    changed = True
+    while changed:
+        changed = False
+        for caller, callees in edges.items():
+            if caller not in hot:
+                continue
+            for target in callees - hot.keys():
+                hot[target] = hot[caller]
+                changed = True
+    return hot
+
+
+def rule_perf_13(ctx: AnalysisContext) -> list[Finding]:
+    found: list[Finding] = []
+    hot: dict[str, tuple[str, Cost]] | None = None
+    for member in _members(ctx):
+        lookup = match_lookup(ctx.project, member)
+        if lookup is None:
+            continue
+        if hot is None:
+            hot = _hot_callees(ctx)
+        entry = hot.get(member.id)
+        if entry is None:
+            continue
+        origin, factor = entry
+        view = MemberView(ctx.project, ctx.model, member)
+        field = lookup.field.name
+        node_cost = _node_cost(view, view.fid(lookup.loop))
+        complexity = None
+        if node_cost is not None:  # один поиск — O(n), а вызывается он на каждой итерации цикла
+            total = node_cost.scaled(
+                factor,
+                CostContribution(
+                    view.fid(lookup.loop), factor.factor(), f"вызывается в цикле из {origin}"
+                ),
+            )
+            complexity = estimate_of(total, factor)  # с индексом один поиск — O(1)
+        found.append(
+            _finding(
+                ctx,
+                view,
+                "PERF-13",
+                "high",
+                "PERF",
+                f"Линейный поиск по ключу в `{member.name}`",
+                lookup.loop,
+                (
+                    f"`{member.name}` перебирает всё поле `{field}` в поисках элемента с равным ключом "
+                    f"`{lookup.key}`, а вызывается в цикле (из `{origin}`): каждый вызов — O(n), всего {total.cost.format() if complexity else 'O(n²)'}.",
+                    "Поиск по ключу перебором вместо хеш-таблицы.",
+                    "Время растёт квадратично: при 100 000 элементов это порядка 10¹⁰ сравнений.",
+                    f"Хранить рядом индекс `Map<{lookup.key_type}, {lookup.element_type}>` и вести его вместе "
+                    f"со списком `{field}` (сбрасывать при удалении и перестановках).",
+                ),
+                [
+                    EvidenceItem(
+                        "call",
+                        f"{member.name} вызывается в цикле из {origin}",
+                        view.fid(lookup.loop),
+                    ),
+                    EvidenceItem("collection", f"{field}: {lookup.field.type_text}"),
+                ],
+                complexity,
+            )
+        )
     return found
 
 
@@ -1265,6 +1353,7 @@ RULES_MORE = (
     rule_perf_10,
     rule_perf_11,
     rule_perf_12,
+    rule_perf_13,
     rule_bug_03,
     rule_bug_04,
     rule_bug_05,

@@ -269,7 +269,7 @@ def test_demo_orders_optimisation_keeps_every_scenario_green(client, demo_orders
     assert run_kind(client, demo_orders, "baseline")["summary"]["passed"] == 11
     plan = client.post(url(demo_orders, "/optimize/plan"), json={}).json()
     ids = [s["step_id"] for s in plan["steps"]]
-    assert {s["fix_id"] for s in plan["steps"]} == {"OPT-02", "OPT-03", "OPT-09"}
+    assert {s["fix_id"] for s in plan["steps"]} == {"OPT-02", "OPT-03", "OPT-09", "OPT-13"}
 
     response = client.post(
         url(demo_orders, "/optimize/apply"),
@@ -283,7 +283,7 @@ def test_demo_orders_optimisation_keeps_every_scenario_green(client, demo_orders
     remaining = {
         f["rule_id"] for f in client.get(f"/api/projects/{pid}/findings").json()["findings"]
     }
-    assert not {"PERF-02", "PERF-03", "PERF-09"} & remaining
+    assert not {"PERF-02", "PERF-03", "PERF-09", "PERF-13"} & remaining
     build = client.post(f"/api/projects/{pid}/build", json={}).json()
     assert build["ok"], build["diagnostics"]
 

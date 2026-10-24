@@ -179,6 +179,23 @@ describe("итог оптимизации", () => {
     expect(report?.measured?.samples).toHaveLength(2);
   });
 
+  it("число выполненных блоков до/после читается отдельно от времени", () => {
+    const parsed = readMeasured({
+      measured: { ...measured, work_speedup: 9.2, work_size: 4000, time_speedup: 0.92 },
+    });
+    expect(parsed).toMatchObject({
+      speedup: 5.2,
+      workSpeedup: 9.2,
+      workSize: 4000,
+      timeSpeedup: 0.92,
+    });
+    expect(readMeasured({ measured })).toMatchObject({
+      workSpeedup: null,
+      workSize: null,
+      timeSpeedup: null,
+    });
+  });
+
   it("если измерить нельзя, причина сохраняется", () => {
     const parsed = readMeasured({ measured: { error: "ввод нечем масштабировать" } });
     expect(parsed).toMatchObject({

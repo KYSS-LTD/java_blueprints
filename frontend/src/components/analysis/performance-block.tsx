@@ -61,6 +61,19 @@ export function SpeedupLine({ measured }: { measured: Measured | null }) {
           {measured.basis && `, ${tp.basis[measured.basis]}`}
         </span>
       )}
+      {measured.basis === "hits" && measured.timeSpeedup !== null && (
+        <span className="text-muted-foreground" data-testid="time-speedup">
+          {" · "}
+          {tp.timeRatio} {formatSpeedup(measured.timeSpeedup)}
+        </span>
+      )}
+      {measured.workSpeedup !== null && measured.basis === "time" && (
+        <span className="text-muted-foreground" data-testid="work-speedup">
+          {" · "}
+          {tp.workFewer} {formatSpeedup(measured.workSpeedup)}
+          {measured.workSize !== null && ` (${tp.at} ${measured.workSize})`}
+        </span>
+      )}
     </span>
   );
 }

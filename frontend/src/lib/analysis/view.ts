@@ -134,6 +134,11 @@ export type Measured = {
   basis: "time" | "hits" | null;
   beforeK: number | null;
   afterK: number | null;
+  /** Во сколько раз меньше блоков выполняет программа (по счётчикам) и при каком N. */
+  workSpeedup: number | null;
+  workSize: number | null;
+  /** Отношение времени «до»/«после»; при основании «по счётчикам» показывается рядом (шум ввода-вывода). */
+  timeSpeedup: number | null;
   samples: MeasuredSample[];
   /** Почему измерить не удалось (ввод нечем масштабировать, ничего не применено). */
   error: string | null;
@@ -166,6 +171,9 @@ export function readMeasured(data: Record<string, unknown> | null | undefined): 
     basis,
     beforeK: numberOrNull(measured.before_k),
     afterK: numberOrNull(measured.after_k),
+    workSpeedup: numberOrNull(measured.work_speedup),
+    workSize: numberOrNull(measured.work_size),
+    timeSpeedup: numberOrNull(measured.time_speedup),
     samples,
     error: typeof measured.error === "string" ? measured.error : null,
   };

@@ -533,3 +533,170 @@ def test_opt_09_refuses_an_accumulator_that_is_not_a_local_list():
         "    List<String> log = new ArrayList<>();\n    List<Item> merged = new ArrayList<>();",
     )
     assert "локальная" in merge_refusal(source)
+
+
+# --- OPT-13: метод-поиск по ключу в поле-коллекции → индекс Map -------------------------------------------------
+
+LOOKUP = """\
+import java.util.*;
+
+class A {
+    static class Item {
+        private final int id;
+        private final String name;
+        private int qty;
+
+        Item(int id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+
+        int getId() { return id; }
+        String getName() { return name; }
+        int getQty() { return qty; }
+        void setQty(int qty) { this.qty = qty; }
+    }
+
+    private final List<Item> items = new ArrayList<>();
+
+    Item find(int id) {
+        for (Item item : items) {
+            if (item.getId() == id) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    void add(Item item) {
+        if (find(item.getId()) != null) {
+            throw new IllegalStateException("duplicate");
+        }
+        items.add(item);
+    }
+
+    boolean remove(int id) {
+        Item found = find(id);
+        if (found == null) {
+            return false;
+        }
+        items.remove(found);
+        return true;
+    }
+
+    int total() {
+        int sum = 0;
+        for (Item item : items) {
+            sum += item.getQty();
+        }
+        return sum;
+    }
+
+    void load(Scanner in) {
+        while (in.hasNextInt()) {
+            add(new Item(in.nextInt(), "x"));
+        }
+    }
+}
+"""
+
+
+def lookup_fixed(source: str) -> str:
+    project = JavaProject({"A.java": source})
+    proposal = propose(project, finding_of(project, "PERF-13"))
+    assert proposal is not None and proposal.available and proposal.behavior_preserving
+    after = apply_proposal(project, proposal)["A.java"]
+    assert not JavaProject({"A.java": after}).syntax_issues()
+    return after
+
+
+def lookup_refusal(source: str) -> str:
+    project = JavaProject({"A.java": source})
+    proposal = propose(project, finding_of(project, "PERF-13"))
+    assert proposal is not None and not proposal.available
+    return " ".join(c.reason or "" for c in proposal.failed())
+
+
+def test_perf_13_fires_only_when_the_lookup_is_called_from_a_loop():
+    assert "PERF-13" in rule_ids(LOOKUP)
+    quiet = LOOKUP.replace(
+        '        while (in.hasNextInt()) {\n            add(new Item(in.nextInt(), "x"));\n        }',
+        '        add(new Item(1, "x"));',
+    )
+    assert "PERF-13" not in rule_ids(quiet)
+
+
+def test_opt_13_keeps_an_index_next_to_the_list():
+    after = lookup_fixed(LOOKUP)
+    assert "    private Map<Integer, Item> itemsById;\n" in after
+    assert "if (itemsById == null) {" in after
+    assert "Map<Integer, Item> built = new HashMap<>();" in after
+    assert "built.putIfAbsent(item.getId(), item);" in after
+    assert "return itemsById.get(id);" in after
+    # добавление пополняет индекс, удаление сбрасывает
+    assert (
+        "        items.add(item);\n"
+        "        if (itemsById != null) {\n"
+        "            itemsById.putIfAbsent(item.getId(), item);\n"
+        "        }"
+    ) in after
+    assert "        items.remove(found);\n        itemsById = null;\n" in after
+    assert "PERF-13" not in rule_ids(after)
+
+
+def test_opt_13_resets_the_index_before_a_returned_mutation():
+    source = LOOKUP.replace(
+        "        items.remove(found);\n        return true;",
+        "        return items.remove(found);",
+    )
+    after = lookup_fixed(source)
+    assert "        itemsById = null;\n        return items.remove(found);" in after
+
+
+def test_opt_13_refuses_a_key_that_can_change_after_adding():
+    source = LOOKUP.replace("private final int id;", "private int id;").replace(
+        "int getQty()", "void setId(int id) { this.id = id; }\n        int getQty()"
+    )
+    assert "присваивается" in lookup_refusal(source)
+
+
+def test_opt_13_refuses_when_the_list_escapes():
+    source = LOOKUP.replace(
+        "    int total() {",
+        "    List<Item> all() {\n        return items;\n    }\n\n    int total() {",
+    )
+    assert "используется иначе" in lookup_refusal(source) or "понятны" in lookup_refusal(source)
+
+
+def test_opt_13_refuses_an_iterator_that_can_remove():
+    source = LOOKUP.replace(
+        "    int total() {",
+        "    void prune() {\n        Iterator<Item> it = items.iterator();\n        while (it.hasNext()) {\n"
+        "            if (it.next().getQty() == 0) {\n                it.remove();\n            }\n        }\n    }\n\n    int total() {",
+    )
+    assert "итератор" in lookup_refusal(source)
+
+
+def test_opt_13_refuses_a_mutation_inside_an_expression():
+    source = LOOKUP.replace(
+        "        items.add(item);\n    }",
+        "        if (items.add(item)) {\n            return;\n        }\n    }",
+    )
+    assert "внутри выражения" in lookup_refusal(source) or "вне блока" in lookup_refusal(source)
+
+
+def test_opt_13_refuses_a_list_that_a_callee_could_change():
+    source = LOOKUP.replace(
+        "    int total() {",
+        "    void shrink(List<Item> list) {\n        list.clear();\n    }\n\n    void reset() {\n        shrink(items);\n    }\n\n    int total() {",
+    )
+    assert "может менять" in lookup_refusal(source)
+
+
+def test_opt_13_allows_a_list_that_a_callee_only_reads():
+    source = LOOKUP.replace(
+        "    int total() {",
+        "    int count(List<Item> list) {\n        int n = 0;\n        for (Item x : list) {\n            n++;\n        }\n        return n;\n    }\n\n"
+        "    int size() {\n        return count(items);\n    }\n\n    int total() {",
+    )
+    assert "itemsById" in lookup_fixed(source)
