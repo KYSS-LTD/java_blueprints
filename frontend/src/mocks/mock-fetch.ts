@@ -36,6 +36,23 @@ const routes: Array<[method: string, pattern: string, handler: Handler]> = [
   ["GET", "/api/health", () => health],
   ["GET", "/api/samples", () => samples],
   ["GET", "/api/projects", () => projects],
+  [
+    "POST",
+    "/api/projects",
+    () => ({
+      status: 201,
+      body: {
+        id: project.id,
+        name: project.name,
+        head_version_id: project.head_version_id,
+        original_version_id: project.original_version_id,
+        main_class: project.main_class,
+        main_class_candidates: project.main_class_candidates,
+        syntax_errors: [],
+        files: files.files,
+      },
+    }),
+  ],
   ["GET", "/api/projects/:id", () => project],
   ["GET", "/api/projects/:id/versions", () => versions],
   ["GET", "/api/projects/:id/files", () => files],

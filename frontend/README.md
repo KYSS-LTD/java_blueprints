@@ -25,6 +25,15 @@ cd backend && uv run python ../scripts/gen_mock_fixtures.py --check  # свер�
 
 Незамоканные эндпоинты в режиме моков отвечают `501 NOT_IMPLEMENTED` в обычном формате ошибки, как и настоящий backend до этапа S3.
 
+## Рабочая область
+
+`/` — проекты и импорт, `/projects/[id]` — рабочая область (дерево, холст блок-схемы, граф структуры, Monaco, консоль, анализ). Параметры адреса `?file=Main.java&method=<id>&node=<id>` воспроизводят позицию.
+
+- Графы: `src/lib/graph/` — модель блок-схемы (`flow-model.ts`), подготовка графа для ELK (`flow-layout.ts`), поиск узла по позиции курсора (`locate.ts`); раскладка считается в Web Worker (`src/workers/elk.worker.ts`), холст — `src/components/graph/`.
+- Состояние: TanStack Query для данных сервера, Zustand — `src/stores/workspace-store.ts` (вкладки, выбор узла, свёрнутость контейнеров) и `run-store.ts` (запуски и SSE).
+- Monaco лежит в `public/monaco` (в git не хранится): `pnpm dev`, `pnpm dev:mock` и `pnpm build` копируют его из `node_modules` через `scripts/copy-monaco.mjs`; без этого редактор не загрузится.
+- Минимальное разрешение — 1280×720; нижние панели идут тремя колонками от 1500 px, на более узком экране — вкладками.
+
 Заметки:
 
 - Компоненты `src/components/ui/` — исходники shadcn/ui (стиль new-york), `components.json` совместим с CLI `shadcn add`.

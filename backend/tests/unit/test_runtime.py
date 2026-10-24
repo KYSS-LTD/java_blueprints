@@ -324,3 +324,14 @@ public class Main {
     pid = int(ran.stdout.strip().splitlines()[0])
     time.sleep(0.5)
     assert not _alive(pid), "потомок процесса пережил таймаут"
+
+
+def test_environment_failure_is_not_cached(tmp_path: Path) -> None:
+    # сбой без привязки к файлу (например, javac не нашёл @-файл) не должен навсегда залипнуть в кеше
+    from engine.runtime.compiler import _cacheable
+
+    located = CompileDiagnostic("Main.java", 3, 5, "error", "oops")
+    environment = CompileDiagnostic("", 0, 0, "error", "file not found")
+    assert _cacheable(True, [])
+    assert _cacheable(False, [located])
+    assert not _cacheable(False, [environment])

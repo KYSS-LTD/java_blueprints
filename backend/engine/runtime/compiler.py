@@ -110,11 +110,18 @@ def parse_diagnostics(output: str) -> list[CompileDiagnostic]:
     return result
 
 
+def _cacheable(ok: bool, diagnostics: list[CompileDiagnostic]) -> bool:
+    """Кешируются успех и ошибки в коде. Сбой без привязки к файлу (таймаут, окружение) — нет."""
+    return ok or any(d.file for d in diagnostics)
+
+
 def _load_cached(workspace: Workspace) -> CompileResult | None:
     path = workspace.root / _RESULT
     if not path.exists():
         return None
     data = json.loads(path.read_text(encoding="utf-8"))
+    if not _cacheable(data["ok"], [CompileDiagnostic(**d) for d in data["diagnostics"]]):
+        return None
     return CompileResult(
         ok=data["ok"],
         diagnostics=[CompileDiagnostic(**d) for d in data["diagnostics"]],
@@ -176,17 +183,18 @@ def compile_workspace(
         )
 
     result = CompileResult(ok, diagnostics, duration_ms, False, release, text)
-    (workspace.root / _RESULT).write_text(
-        json.dumps(
-            {
-                "ok": ok,
-                "diagnostics": [asdict(d) for d in diagnostics],
-                "duration_ms": duration_ms,
-                "release": release,
-                "log": text,
-            },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
+    if _cacheable(ok, diagnostics):
+        (workspace.root / _RESULT).write_text(
+            json.dumps(
+                {
+                    "ok": ok,
+                    "diagnostics": [asdict(d) for d in diagnostics],
+                    "duration_ms": duration_ms,
+                    "release": release,
+                    "log": text,
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
     return result

@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Monaco копируется из node_modules скриптом scripts/copy-monaco.mjs
+    "public/monaco/**",
   ]),
 ]);
 

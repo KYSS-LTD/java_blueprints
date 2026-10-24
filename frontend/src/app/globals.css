@@ -141,3 +141,10 @@
     font-family: var(--font-mono);
   }
 }
+
+/* Подсветка диапазона выбранного узла графа в редакторе Monaco (docs/09 § 4) */
+.jb-node-highlight {
+  background: color-mix(in oklab, var(--primary) 26%, transparent);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 55%, transparent);
+}

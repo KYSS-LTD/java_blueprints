@@ -6,7 +6,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     cors_origins: str = ""  # через запятую; нужно только при разработке без прокси Next.js
     seed_demo: bool = False
+
+    @field_validator("data_dir")
+    @classmethod
+    def _absolute_data_dir(cls, value: Path) -> Path:
+        # javac и java запускаются с другим cwd: относительные пути к сборкам перестали бы находиться
+        return value.resolve()
 
     @property
     def database_url(self) -> str:
