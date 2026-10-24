@@ -12,6 +12,7 @@ from collections import defaultdict
 from tree_sitter import Node
 
 from engine.analysis.complexity import N
+from engine.analysis.cost_model import Contribution as CostContribution
 from engine.analysis.cost_model import CostResult
 from engine.analysis.model import (
     ComplexityEstimate,
@@ -23,8 +24,8 @@ from engine.analysis.model import (
 )
 from engine.analysis.rules import (
     AnalysisContext,
+    LoopInfo,
     MemberView,
-    _loop_finding,
     _members,
     _node_cost,
     estimate_of,
@@ -228,6 +229,23 @@ def _constant_estimate(
     return estimate
 
 
+def _per_iteration_estimate(
+    view: MemberView, loops: list[LoopInfo], anchor: Node, why: str
+) -> ComplexityEstimate:
+    """Работа за итерацию (O(n)) умножает стоимость цикла; «после» — стоимость самого цикла."""
+    outer = next(lp for lp in loops if not lp.factor.is_constant)
+    result = _node_cost(view, outer.node_id) or CostResult()
+    after = result.cost
+    combined = outer.factor * N
+    if combined > result.cost:
+        result = CostResult(
+            combined,
+            (*result.chain[:1], CostContribution(view.fid(anchor), N.factor(), why)),
+            result.notes,
+        )
+    return estimate_of(result, after)
+
+
 def _body_of(ctx: AnalysisContext) -> list[tuple[MemberView, Node]]:
     result = []
     for member in _members(ctx):
@@ -334,25 +352,27 @@ def rule_perf_05(ctx: AnalysisContext) -> list[Finding]:
                 continue
             source = view.loop_info(loop).source
             found.append(
-                _loop_finding(
+                _finding(
                     ctx,
                     view,
                     "PERF-05",
                     "low",
+                    "PERF",
                     "Инвариант вычисляется в цикле",
-                    _anchor(view, call),
-                    loops,
+                    call,
                     (
                         f"`{text}` не зависит от переменных цикла по {source} и пересчитывается на каждой итерации.",
                         "Неизменяемое значение вычисляется заново на каждой итерации.",
                         "Лишняя работа пропорциональна числу итераций, а результат всегда один и тот же.",
-                        f"Вынести `{text}` в переменную перед циклом: итог — {{after}}.",
+                        f"Вынести `{text}` в переменную перед циклом.",
                     ),
                     [
                         EvidenceItem("call", text, view.fid(call)),
                         EvidenceItem("loop", f"цикл по {source}", view.loop_info(loop).node_id),
                     ],
-                    (N, f"`{text}` выполняется на каждой итерации"),
+                    _per_iteration_estimate(
+                        view, loops, _anchor(view, call), f"`{text}` выполняется на каждой итерации"
+                    ),
                 )
             )
     return found
@@ -381,15 +401,20 @@ def rule_perf_07(ctx: AnalysisContext) -> list[Finding]:
     for view, body in _body_of(ctx):
         groups: dict[str, list[Node]] = defaultdict(list)
         for call in _calls(body):
-            if _costly(view, call) and not any(
-                p.type == "method_invocation" and p.child_by_field_name("object") == call
-                for p in [call.parent]
-                if p is not None
-            ):
+            if _costly(view, call):
                 groups[_squash(view.text(call))].append(call)
+        repeated = {t for t, calls in groups.items() if len(calls) >= 2}
         for text, calls in groups.items():
             if len(calls) < 2:
                 continue
+            if all(
+                c.parent is not None
+                and c.parent.type == "method_invocation"
+                and c.parent.child_by_field_name("object") == c
+                and _squash(view.text(c.parent)) in repeated
+                for c in calls
+            ):
+                continue  # повторяется более длинная цепочка: сообщаем о ней
             involved = {
                 n
                 for n in _identifiers(view, calls[0])
