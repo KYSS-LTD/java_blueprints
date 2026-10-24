@@ -286,3 +286,48 @@ def test_demo_orders_optimisation_keeps_every_scenario_green(client, demo_orders
     assert "PERF-02" not in remaining and "PERF-03" not in remaining
     build = client.post(f"/api/projects/{pid}/build", json={}).json()
     assert build["ok"], build["diagnostics"]
+
+
+DEDUPE = """\
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner in = new Scanner(System.in);
+        int n = in.nextInt();
+        List<Integer> seen = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            int v = in.nextInt();
+            if (!seen.contains(v)) {
+                seen.add(v);
+            }
+        }
+        System.out.println(seen.size());
+    }
+}
+"""
+
+
+def test_optimize_reports_the_measured_speedup(client, make_project):
+    """S8.7: до/после на масштабируемом вводе — ускорение и показатели роста."""
+    project = make_project({"Main.java": DEDUPE}, name="dedupe")
+    for name, stdin in (("one", "1\n5\n"), ("dups", "4\n1 2 1 2\n"), ("zero", "0\n")):
+        client.post(url(project, "/scenarios"), json={"name": name, "stdin": stdin})
+    assert run_kind(client, project, "baseline")["status"] == "done"
+    plan = client.post(url(project, "/optimize/plan"), json={}).json()
+    assert [s["fix_id"] for s in plan["steps"]] == ["OPT-02"]
+    response = client.post(
+        url(project, "/optimize/apply"),
+        json={
+            "base_version_id": head(client, project)["id"],
+            "step_ids": [plan["steps"][0]["step_id"]],
+        },
+    )
+    info = wait_run(client, response.json()["run_id"], 300)
+    assert info["status"] == "done" and info["summary"]["passed"] == 1, info["summary"]
+    measured = info["summary"]["data"]["measured"]
+    assert "error" not in measured, measured
+    assert measured["speedup"] >= 2, measured
+    assert measured["before_k"] > measured["after_k"] + 0.4, measured
+    assert "ускорение до" in info["summary"]["message"]
+    assert {s["size"] for s in measured["samples"]} >= {1000, 8000}
