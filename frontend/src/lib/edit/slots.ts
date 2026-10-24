@@ -3,7 +3,7 @@ import type { Block, BlockKind, FlowModel } from "@/lib/graph/flow-model";
 /**
  * Место вставки оператора: аргументы `insert_node` и `move_node` (docs/08 § 5).
  * `slot` — `body`, `then`, `else`, `catch:<n>` или `finally`; `index` — позиция среди операторов слота
- * в тексте до правки.
+ * в тексте до правки. Для ветки `switch` родитель — сам блок `case`, слот `body`.
  */
 export type InsertPoint = { parentId: string; slot: string; index: number };
 
@@ -27,10 +27,19 @@ const TERMINATORS: ReadonlySet<BlockKind> = new Set(["return", "throw", "break",
 const NOT_STATEMENTS: ReadonlySet<BlockKind> = new Set(["method", "external", "catch", "finally", "case"]);
 
 /** Контейнеры, в конец тела которых попадает блок, брошенный на них. */
-const CONTAINERS: ReadonlySet<BlockKind> = new Set(["loop_for", "loop_foreach", "loop_while", "try", "catch", "finally"]);
+const CONTAINERS: ReadonlySet<BlockKind> = new Set([
+  "loop_for",
+  "loop_foreach",
+  "loop_while",
+  "try",
+  "catch",
+  "finally",
+  "case",
+]);
 
 const LOOP_SEGMENT = /^(for|foreach|while)\[\d+\]$/;
 const CATCH_SEGMENT = /^catch\[(\d+)\]$/;
+const CASE_SEGMENT = /^case\[\d+\]$/;
 
 function isStatement(block: Block): boolean {
   return !NOT_STATEMENTS.has(block.kind);
@@ -60,7 +69,9 @@ function slotOfStatement(model: FlowModel, block: Block): Slot | null {
   if (previous === "body" || previous === "finally") return { parentId: owner, slot: previous, prefix: `${section}/` };
   const clause = CATCH_SEGMENT.exec(previous);
   if (clause) return { parentId: owner, slot: `catch:${clause[1]}`, prefix: `${section}/` };
-  if (LOOP_SEGMENT.test(previous)) return { parentId: section, slot: "body", prefix: `${section}/` };
+  if (LOOP_SEGMENT.test(previous) || CASE_SEGMENT.test(previous)) {
+    return { parentId: section, slot: "body", prefix: `${section}/` };
+  }
   return null;
 }
 
@@ -83,6 +94,8 @@ function slotOfContainer(model: FlowModel, container: Block): Slot | null {
     }
     case "finally":
       return { parentId: joinPath(model, segments, segments.length - 1), slot: "finally", prefix: `${container.id}/` };
+    case "case":
+      return { parentId: container.id, slot: "body", prefix: `${container.id}/` };
     default:
       return null;
   }
@@ -165,7 +178,7 @@ export function dropPoint(model: FlowModel, targetId: string, half: "top" | "bot
 export function clickPoint(model: FlowModel, selectedId: string | null): InsertPoint {
   const selected = selectedId ? model.blocks.get(selectedId) : undefined;
   if (selected) {
-    if (CONTAINERS.has(selected.kind) && selected.children.length === 0) {
+    if (CONTAINERS.has(selected.kind) && (selected.children.length === 0 || selected.kind === "case")) {
       const inside = appendInto(model, selected.id);
       if (inside) return inside;
     }
@@ -190,6 +203,28 @@ export function siblingRange(model: FlowModel, fromId: string, toId: string): st
   const b = siblings.indexOf(toId);
   if (a === -1 || b === -1) return null;
   return siblings.slice(Math.min(a, b), Math.max(a, b) + 1);
+}
+
+/**
+ * Выделение рамкой: из блоков внутри рамки берутся операторы того же слота, что и первый по порядку кода,
+ * и выделяется подряд идущий отрезок от первого до последнего из них. Пусто, если в рамке нет операторов тела.
+ */
+export function rubberBandSelection(model: FlowModel, ids: readonly string[]): string[] {
+  const statements = ids
+    .map((id) => model.blocks.get(id))
+    .filter((block): block is Block => block !== undefined && slotOfStatement(model, block) !== null)
+    .sort((a, b) => {
+      const [la, ca] = position(a);
+      const [lb, cb] = position(b);
+      return la - lb || ca - cb;
+    });
+  const first = statements[0];
+  if (!first) return [];
+  let last = first.id;
+  for (const block of statements) {
+    if (siblingRange(model, first.id, block.id) !== null) last = block.id;
+  }
+  return siblingRange(model, first.id, last) ?? [first.id];
 }
 
 /** Оператор можно переместить, дублировать и удалить как строку тела. */

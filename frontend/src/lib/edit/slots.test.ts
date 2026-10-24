@@ -14,6 +14,7 @@ import {
   isMovable,
   isSamePlace,
   methodBodyEnd,
+  rubberBandSelection,
   siblingRange,
 } from "./slots";
 
@@ -117,6 +118,48 @@ describe("слоты вставки по структурным id", () => {
   });
 });
 
+// processCommand: switch[0] { case[1]: var[0..2], op[0], break[0]; case[19], case[20]: return[0] без операторов перед ним }
+const COMMAND = "Main.java#Main.processCommand(String, Scanner)";
+const commandModel: FlowModel = buildFlowModel(flows[COMMAND]);
+const caseId = (n: number, tail = "") => `${COMMAND}/switch[0]/case[${n}]${tail}`;
+
+describe("ветки switch", () => {
+  it("операторы ветки лежат в слоте body самого case; break остаётся последним", () => {
+    expect(insertBefore(commandModel, caseId(1, "/op[0]"))).toEqual({
+      parentId: caseId(1),
+      slot: "body",
+      index: 3,
+    });
+    expect(insertAfter(commandModel, caseId(1, "/var[0]"))).toEqual({ parentId: caseId(1), slot: "body", index: 1 });
+    expect(insertAfter(commandModel, caseId(1, "/break[0]"))).toEqual({ parentId: caseId(1), slot: "body", index: 4 });
+  });
+
+  it("бросок и клик на ветку кладут блок в конец её тела, перед завершающим break", () => {
+    expect(dropPoint(commandModel, caseId(1), "bottom")).toEqual({ parentId: caseId(1), slot: "body", index: 4 });
+    expect(appendInto(commandModel, caseId(1))).toEqual({ parentId: caseId(1), slot: "body", index: 4 });
+    expect(clickPoint(commandModel, caseId(1))).toEqual({ parentId: caseId(1), slot: "body", index: 4 });
+  });
+
+  it("ветка без операторов принимает блок; сама ветка не оператор: рядом с ней не вставляют", () => {
+    expect(appendInto(commandModel, caseId(19))).toEqual({ parentId: caseId(19), slot: "body", index: 0 });
+    expect(insertBefore(commandModel, caseId(1))).toBeNull();
+    expect(insertAfter(commandModel, caseId(1))).toBeNull();
+    expect(isMovable(commandModel, caseId(1))).toBe(false);
+  });
+
+  it("операторы ветки перемещаются, а диапазон не выходит за ветку", () => {
+    expect(isMovable(commandModel, caseId(1, "/op[0]"))).toBe(true);
+    expect(siblingRange(commandModel, caseId(1, "/var[0]"), caseId(1, "/op[0]"))).toEqual([
+      caseId(1, "/var[0]"),
+      caseId(1, "/var[1]"),
+      caseId(1, "/var[2]"),
+      caseId(1, "/op[0]"),
+    ]);
+    expect(siblingRange(commandModel, caseId(1, "/op[0]"), caseId(2, "/op[0]"))).toBeNull();
+    expect(isSamePlace(commandModel, caseId(1, "/op[0]"), { parentId: caseId(1), slot: "body", index: 3 })).toBe(true);
+  });
+});
+
 describe("перемещение", () => {
   it("внутрь самого себя нельзя; id устроены как пути", () => {
     expect(isInside(model, id("foreach[0]/if[0]"), id("foreach[0]"))).toBe(true);
@@ -159,5 +202,31 @@ describe("подряд идущие операторы одного слота",
   it("метод, ветки catch и неизвестные блоки не входят в диапазон", () => {
     expect(siblingRange(model, ORDERS, id("var[0]"))).toBeNull();
     expect(siblingRange(model, id("var[0]"), id("нет такого"))).toBeNull();
+  });
+});
+
+describe("выделение рамкой", () => {
+  it("из блоков в рамке берётся отрезок одного слота от первого оператора до последнего", () => {
+    expect(rubberBandSelection(model, [id("var[0]"), id("foreach[0]"), id("return[0]")])).toEqual([
+      id("var[0]"),
+      id("foreach[0]"),
+      id("return[0]"),
+    ]);
+    // порядок в рамке любой, блоки из чужих слотов (тело цикла) отбрасываются
+    expect(rubberBandSelection(model, [id("foreach[0]/if[0]"), id("foreach[0]"), id("var[0]")])).toEqual([
+      id("var[0]"),
+      id("foreach[0]"),
+    ]);
+  });
+
+  it("в рамке без операторов тела — пустое выделение", () => {
+    expect(rubberBandSelection(model, [])).toEqual([]);
+    expect(rubberBandSelection(model, [ORDERS, "нет-такого-блока"])).toEqual([]);
+  });
+
+  it("внутри ветки switch выделяются только её операторы", () => {
+    expect(
+      rubberBandSelection(commandModel, [caseId(1, "/var[1]"), caseId(1, "/op[0]"), caseId(2, "/op[0]")]),
+    ).toEqual([caseId(1, "/var[1]"), caseId(1, "/var[2]"), caseId(1, "/op[0]")]);
   });
 });

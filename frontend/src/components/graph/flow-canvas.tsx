@@ -15,7 +15,15 @@ import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { currentDrag, endDrag } from "@/lib/edit/drag";
-import { dropPoint, isInside, isMovable, isSamePlace, methodBodyEnd, siblingRange } from "@/lib/edit/slots";
+import {
+  dropPoint,
+  isInside,
+  isMovable,
+  isSamePlace,
+  methodBodyEnd,
+  rubberBandSelection,
+  siblingRange,
+} from "@/lib/edit/slots";
 import { layoutWithElk } from "@/lib/graph/elk-client";
 import {
   buildElkGraph,
@@ -103,6 +111,8 @@ function FlowCanvasInner({ projectId, flow, editable = false, onOpenMethod }: Pr
   const [menu, setMenu] = useState<MenuState | null>(null);
   // от этого блока Shift+клик тянет диапазон
   const anchor = useRef<string | null>(null);
+  // выделение рамкой (Shift+перетаскивание по полю): угол, с которого началась рамка, в координатах экрана
+  const boxStart = useRef<{ x: number; y: number } | null>(null);
   const [dropHint, setDropHint] = useState<DropHint | null>(null);
 
   const collapsed = useMemo(() => {
@@ -390,6 +400,28 @@ function FlowCanvasInner({ projectId, flow, editable = false, onOpenMethod }: Pr
             setMenu({ x: event.clientX, y: event.clientY, blockId: block.id });
           }}
           deleteKeyCode={null}
+          onSelectionStart={(event) => {
+            boxStart.current = { x: event.clientX, y: event.clientY };
+          }}
+          onSelectionEnd={(event) => {
+            const start = boxStart.current;
+            boxStart.current = null;
+            if (!start) return;
+            const a = reactFlow.screenToFlowPosition(start);
+            const b = reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+            const inside = reactFlow.getIntersectingNodes(
+              { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), width: Math.abs(a.x - b.x), height: Math.abs(a.y - b.y) },
+              false, // блок выделяется, только если рамка накрывает его целиком
+            );
+            const ids = rubberBandSelection(
+              model,
+              inside.map((node) => node.id),
+            );
+            if (ids.length === 0) return;
+            const lastBlock = model.blocks.get(ids[ids.length - 1]);
+            anchor.current = ids[0];
+            selectMany(ids, ids[ids.length - 1], lastBlock?.range);
+          }}
           onMoveEnd={(_, viewport) => viewportCache.set(viewportKey, viewport)}
         >
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="var(--border)" />

@@ -133,6 +133,10 @@ def child_block(container: Node, slot: str) -> Node | None:
             return cst.first_child_of_type(clause, "block") if clause is not None else None
     if kind == "block" and slot == "body":
         return container
+    if kind == "switch_rule" and slot == "body":  # ``case 1 -> { … }`` и ``case 1 -> r = 10;``
+        body = cst.named_children(container)[-1:]
+        if body and body[0].type in {"block", "expression_statement", "throw_statement"}:
+            return body[0]
     return None
 
 
@@ -171,6 +175,13 @@ def insertion_edit(
         raise unsupported(f"слот «{slot}» узла {parent_id} недоступен для вставки")
     if block.type != "block":
         raise unsupported("тело без фигурных скобок")
+    return block_insertion(ed, file, block, index, text)
+
+
+def block_insertion(
+    ed: Editor, file: str, block: Node, index: int, text: str
+) -> tuple[TextEdit, int]:
+    """Вставка оператора в блок ``{ … }`` на позицию ``index`` среди его операторов."""
     data = ed.bytes_of(file)
     unit = ed.unit(file)
     inner_indent = line_indent(data, block.start_byte) + unit
@@ -206,6 +217,10 @@ def case_insertion(
     data = ed.bytes_of(file)
     statements = [c for c in cst.named_children(group) if c.type != "switch_label"]
     labels = cst.children_of_type(group, "switch_label")
+    if (
+        len(statements) == 1 and statements[0].type == "block"
+    ):  # ``case 1: { … }`` — граф показывает операторы блока
+        return block_insertion(ed, file, statements[0], index, text)
     if statements:
         indent = line_indent(data, statements[0].start_byte)
         body = indented(text, indent)
@@ -424,6 +439,14 @@ def _owner_block(ts: Node) -> Node | None:
     return ts.parent if ts.parent is not None and ts.parent.type == "block" else None
 
 
+def _owner_scope(ts: Node) -> Node | None:
+    """Блок ``{ … }`` или ветка классического ``switch`` — места, где оператор можно удалить, скопировать, переместить."""
+    parent = ts.parent
+    if parent is not None and parent.type in {"block", "switch_block_statement_group"}:
+        return parent
+    return None
+
+
 def dedent_body(data: bytes, body: Node, base: str, unit: str) -> str:
     """Содержимое блока без фигурных скобок, сдвинутое на уровень ``base``."""
     statements = statements_of(body)
@@ -493,7 +516,7 @@ def op_delete_node(ed: Editor, op: dict[str, Any]) -> None:
     if flow_node.kind in {"catch", "finally"}:
         _remove_clause(ed, ts, file, data)
         return
-    if _owner_block(ts) is None:
+    if _owner_scope(ts) is None:
         raise precondition("оператор нельзя удалить: он единственный в теле без фигурных скобок")
     begin, finish = removal_range(data, ts)
     ed.apply([TextEdit(file, begin, finish, "")], (file, begin))
@@ -517,7 +540,7 @@ def op_duplicate_node(ed: Editor, op: dict[str, Any]) -> None:
         )
     file, start, end = ed.span(node_id)
     ts = ts_node(ed.project, file, start, end)
-    if _owner_block(ts) is None:
+    if _owner_scope(ts) is None:
         raise precondition("копию можно вставить только рядом с оператором в блоке")
     data = ed.bytes_of(file)
     indent = line_indent(data, ts.start_byte)
@@ -739,7 +762,7 @@ def op_move_node(ed: Editor, op: dict[str, Any]) -> None:
     if start <= parent_start and parent_end <= end:
         raise precondition("нельзя переместить блок внутрь самого себя")
     ts = ts_node(ed.project, file, start, end)
-    if _owner_block(ts) is None:
+    if _owner_scope(ts) is None:
         raise precondition("перемещать можно операторы внутри блока")
     data = ed.bytes_of(file)
     text = data[ts.start_byte : ts.end_byte].decode("utf-8")

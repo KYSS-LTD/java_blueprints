@@ -1067,3 +1067,116 @@ def test_add_and_delete_record_components():
         fails([{"op": "delete_member", "member_id": "A.java#A.Pair.a"}], used).code
         == "PRECONDITION_FAILED"
     )
+
+
+# --- ветка switch с блоком и правки операторов внутри веток -------------------------------------------------------
+
+BLOCK_SWITCH_SRC = (
+    "class A {\n    void f(int n) {\n        switch (n) {\n            case 1:\n"
+    "                n++;\n                n++;\n                break;\n            case 2: {\n"
+    "                n--;\n                break;\n            }\n            default:\n"
+    "                n = 0;\n        }\n    }\n}\n"
+)
+
+
+def test_insert_into_a_case_group_that_holds_a_block():
+    after = edit(
+        [
+            {
+                "op": "insert_node",
+                "parent_id": "A.java#A.f(int)/switch[0]/case[1]",
+                "slot": "body",
+                "index": 1,
+                "kind": "operation",
+                "fields": {"expr": "n += 5"},
+            }
+        ],
+        BLOCK_SWITCH_SRC,
+    )
+    # индекс считается по операторам блока (как в графе), а не по самому блоку
+    assert (
+        "                n--;\n                n += 5;\n                break;\n            }"
+        in after
+    )
+    assert not JavaProject({"A.java": after}).syntax_issues()
+
+
+def test_statements_inside_case_groups_can_be_duplicated_deleted_and_moved():
+    case = "A.java#A.f(int)/switch[0]/case[0]"
+    duplicated = edit([{"op": "duplicate_node", "node_id": case + "/assign[0]"}], BLOCK_SWITCH_SRC)
+    assert duplicated.count("n++;") == 3
+    deleted = edit([{"op": "delete_node", "node_id": case + "/assign[1]"}], BLOCK_SWITCH_SRC)
+    assert deleted.count("n++;") == 1 and "break;" in deleted
+    moved = edit(
+        [
+            {
+                "op": "move_node",
+                "node_id": case + "/assign[0]",
+                "new_parent_id": "A.java#A.f(int)/switch[0]/case[2]",
+                "slot": "body",
+                "index": 0,
+            }
+        ],
+        BLOCK_SWITCH_SRC,
+    )
+    assert "            default:\n                n++;\n                n = 0;" in moved
+    for text in (duplicated, deleted, moved):
+        assert not JavaProject({"A.java": text}).syntax_issues()
+
+
+ARROW_SRC = (
+    "class A {\n    int f(int k) {\n        int r = 0;\n        switch (k) {\n"
+    "            case 1 -> r = 10;\n            case 2 -> {\n                r = 20;\n"
+    "                r++;\n            }\n            default -> r = 0;\n        }\n        return r;\n    }\n}\n"
+)
+
+
+def test_insert_into_arrow_switch_rules():
+    case = "A.java#A.f(int)/switch[0]/case[{}]"
+    single = edit(
+        [
+            {
+                "op": "insert_node",
+                "parent_id": case.format(0),
+                "slot": "body",
+                "index": 1,
+                "kind": "operation",
+                "fields": {"expr": "r += 1"},
+            }
+        ],
+        ARROW_SRC,
+    )
+    # одиночный оператор правила превращается в блок, новый оператор встаёт после него
+    assert (
+        "            case 1 -> {\n                r = 10;\n                r += 1;\n            }"
+        in single
+    )
+    block = edit(
+        [
+            {
+                "op": "insert_node",
+                "parent_id": case.format(1),
+                "slot": "body",
+                "index": 0,
+                "kind": "operation",
+                "fields": {"expr": "r += 2"},
+            }
+        ],
+        ARROW_SRC,
+    )
+    assert "            case 2 -> {\n                r += 2;\n                r = 20;" in block
+    for text in (single, block):
+        assert not JavaProject({"A.java": text}).syntax_issues()
+    # единственный оператор правила без блока нельзя ни удалить, ни скопировать: сообщение говорит почему
+    assert (
+        "единственный"
+        in fails(
+            [{"op": "delete_node", "node_id": case.format(0) + "/assign[0]"}], ARROW_SRC
+        ).message
+    )
+    assert (
+        "в блоке"
+        in fails(
+            [{"op": "duplicate_node", "node_id": case.format(0) + "/assign[0]"}], ARROW_SRC
+        ).message
+    )
