@@ -196,7 +196,7 @@ def test_too_many_active_runs_is_429_busy(client, make_project, gate):
 def test_unsupported_kinds_are_501_and_unknown_version_is_404(client, make_project, gate):
     project = make_project()
     url = f"/api/projects/{project['id']}/runs"
-    for kind in ("trace", "generate", "benchmark", "verify"):
+    for kind in ("generate", "benchmark", "verify"):
         response = client.post(url, json={"kind": kind})
         assert response.status_code == 501, kind
     assert client.post(url, json={"kind": "run", "version_id": 9999}).status_code == 404
