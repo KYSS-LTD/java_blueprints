@@ -165,3 +165,31 @@ def test_second_group_keeps_output_and_gate(client, second, fix_id):
     assert info["summary"]["data"]["candidate"] == "promoted"
     assert second_outputs(client, second) == expected
     assert fix_id not in available(client, second)
+
+
+# --- OPT-01 на примере со слайда 5 -----------------------------------------------------------------------------
+
+
+def test_opt_01_on_the_slide_five_sample_keeps_every_scenario(client):
+    project = client.post("/api/projects", json={"sample_id": "analyzer-pairs"}).json()
+    baseline = run_kind(client, project, "baseline")
+    total = baseline["summary"]["passed"]
+    assert total >= 5
+    listed = client.get(url(project, "/fixes")).json()["fixes"]
+    [offer] = [f for f in listed if f["fix_id"] == "OPT-01" and f["available"]]
+    assert offer["behavior_preserving"] is False
+    preview = client.post(
+        url(project, f"/fixes/{quote(offer['finding_id'], safe=chr(47))}/preview"), json={}
+    )
+    assert preview.status_code == 200, preview.text
+    assert "computeIfAbsent" in preview.json()["diff"][0]["unified"]
+    versions = client.get(url(project, "/versions")).json()
+    response = client.post(
+        url(project, f"/fixes/{quote(offer['finding_id'], safe=chr(47))}/apply"),
+        json={"base_version_id": versions["head_version_id"]},
+    )
+    assert response.status_code == 202, response.text
+    info = wait_run(client, response.json()["run_id"], 300)
+    assert info["summary"]["version_status"] == "passed", info["summary"]
+    assert info["summary"]["passed"] == total
+    assert info["summary"]["data"]["candidate"] == "promoted"

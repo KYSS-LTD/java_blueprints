@@ -1,5 +1,5 @@
 """Следующие автоисправления (S8.3–S8.4): OPT-04 (сортировка вне цикла), OPT-05 (инвариант вне цикла),
-OPT-07 (повторяющееся выражение — в переменную), OPT-08 (мемоизация чистой рекурсии), OPT-11 (порядок
+OPT-07 (повторяющееся выражение — в переменную), OPT-01 (индексация по ключу вместо вложенного поиска), OPT-08 (мемоизация чистой рекурсии), OPT-11 (порядок
 этапов Stream), OPT-12 (обёртка → примитив).
 
 Каждый построитель повторно проверяет условия правила на тексте и отказывается с понятной причиной.
@@ -794,6 +794,196 @@ def opt_12(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
     ]
 
 
+# --- OPT-01: индексация по ключу вместо вложенного поиска ------------------------------------------------------
+
+_HASHABLE = frozenset(
+    {
+        "String",
+        "Integer",
+        "Long",
+        "Short",
+        "Byte",
+        "Character",
+        "Boolean",
+        "int",
+        "long",
+        "short",
+        "byte",
+        "char",
+        "boolean",
+    }
+)
+_COLLECTION_MUTATORS = frozenset(
+    {"add", "addAll", "remove", "removeAll", "removeIf", "retainAll", "clear", "set", "sort"}
+)
+
+
+def _only_statement(node: Node | None) -> Node | None:
+    if node is None:
+        return None
+    items = cst.named_children(node) if node.type == "block" else [node]
+    return items[0] if len(items) == 1 else None
+
+
+def _key_chain(text: str, variable: str) -> list[tuple[str, bool]] | None:
+    """Цепочка ``v.id()`` / ``v.owner.name()`` как список (имя, это вызов) или ``None``."""
+    match = re.fullmatch(rf"{re.escape(variable)}((?:\.\w+(?:\(\))?)+)", text.strip())
+    if match is None:
+        return None
+    return [
+        (part.rstrip("()"), part.endswith("()")) for part in match.group(1).strip(".").split(".")
+    ]
+
+
+def _chain_type(c: Ctx, type_name: str, chain: list[tuple[str, bool]]) -> str | None:
+    current = type_name.split("<")[0].strip()
+    for name, is_call in chain:
+        decl = c.project.table.type_named(current)
+        if decl is None:
+            return None
+        member = None
+        for owner in (decl, *c.project.table.supertypes(decl)):
+            member = next(
+                (
+                    m
+                    for m in owner.members
+                    if m.name == name
+                    and (m.kind == "method" and not m.params if is_call else m.kind == "field")
+                ),
+                None,
+            )
+            if member is not None:
+                break
+        if member is None or not member.type_text:
+            return None
+        current = member.type_text.split("<")[0].strip()
+    return current
+
+
+def opt_01(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
+    outer = statement_of(c)
+    if outer.type != "enhanced_for_statement":
+        raise refuse("Внешний цикл for each", "внешний цикл — не for each")
+    inner = _only_statement(outer.child_by_field_name("body"))
+    if inner is None or inner.type != "enhanced_for_statement":
+        raise refuse("Во внешнем цикле только внутренний", "в теле внешнего цикла есть другой код")
+    source_outer, source_inner = (
+        outer.child_by_field_name("value"),
+        inner.child_by_field_name("value"),
+    )
+    if (
+        source_outer is None
+        or source_inner is None
+        or source_outer.type != "identifier"
+        or c.text(source_outer) != c.text(source_inner)
+    ):
+        raise refuse("Оба цикла идут по одной коллекции", "циклы обходят разные коллекции")
+    collection = c.text(source_outer)
+    var_a, var_b = (
+        c.text(outer.child_by_field_name("name")),
+        c.text(inner.child_by_field_name("name")),
+    )
+    element_type = c.text(outer.child_by_field_name("type"))
+    if element_type == "var" or element_type != c.text(inner.child_by_field_name("type")):
+        raise refuse("Тип элементов задан явно", "тип элемента не указан или различается")
+    branch = _only_statement(inner.child_by_field_name("body"))
+    if branch is None or branch.type != "if_statement" or branch.child_by_field_name("alternative"):
+        raise refuse("В теле внутреннего цикла только if", "внутри внутреннего цикла не одно if")
+    condition = branch.child_by_field_name("condition")
+    inner_condition = (
+        next(iter(cst.named_children(condition)), None) if condition is not None else None
+    )
+    call = (
+        inner_condition
+        if inner_condition is not None and inner_condition.type == "method_invocation"
+        else None
+    )
+    if call is None or c.text(call.child_by_field_name("name")) != "equals":
+        raise refuse("Условие — equals ключей", "условие не вида a.key().equals(b.key())")
+    left = call.child_by_field_name("object")
+    arguments = call.child_by_field_name("arguments")
+    items = cst.named_children(arguments) if arguments is not None else []
+    if left is None or len(items) != 1:
+        raise refuse("Условие — equals ключей", "equals без одного аргумента")
+    texts = [c.text(left), c.text(items[0])]
+    chains = {
+        var: (_key_chain(t, var), t) for t in texts for var in (var_a, var_b) if _key_chain(t, var)
+    }
+    if set(chains) != {var_a, var_b}:
+        raise refuse("Ключи берутся из a и b одинаково", "в сравнении участвуют не оба элемента")
+    chain_a, key_a = chains[var_a][0], chains[var_a][1]
+    chain_b, key_b = chains[var_b][0], chains[var_b][1]
+    if chain_a != chain_b or chain_a is None:
+        raise refuse("Ключи берутся из a и b одинаково", "выражения ключей различаются")
+    key_type = _chain_type(c, element_type, chain_a)
+    if key_type not in _HASHABLE:
+        raise refuse(
+            "Ключ — строка или число",
+            f"тип ключа {key_type or 'неизвестен'}: хеширование небезопасно",
+        )
+    body_statement = branch.child_by_field_name("consequence")
+    assert body_statement is not None
+    for node in cst.walk(body_statement):
+        if node.type == "assignment_expression":
+            target = c.text(node.child_by_field_name("left"))
+            if target in {var_a, var_b, collection}:
+                raise refuse("Тело не меняет элементы цикла", f"в теле присваивается «{target}»")
+        if (
+            node.type == "method_invocation"
+            and c.text(node.child_by_field_name("object")) == collection
+            and c.text(node.child_by_field_name("name")) in _COLLECTION_MUTATORS
+        ):
+            raise refuse("Тело не меняет коллекцию", f"в теле изменяется {collection}")
+    unit = indent_unit(c.source.decode("utf-8"))
+    base = line_indent(c.source, outer.start_byte)
+    names = {c.text(n) for n in cst.walk(c.body)} if c.body is not None else set()
+    boxed = _BOXED.get(key_type, key_type)
+    index = _fresh_name(f"{collection}By{(chain_a[0][0][:1].upper() + chain_a[0][0][1:])}", names)
+    lambda_key = _fresh_name("key", names | {index})
+    inner_lines = (
+        c.source[body_statement.start_byte : body_statement.end_byte].decode("utf-8").split("\n")
+    )
+    if body_statement.type == "block":
+        inner_lines = inner_lines[1:-1]
+    else:
+        inner_lines = [inner_lines[0]] + inner_lines[1:]
+    body_indent = base + unit * 2
+    shifted: list[str] = []
+    for position, line in enumerate(inner_lines):
+        if not line.strip():
+            shifted.append("")
+            continue
+        text = line.lstrip() if position == 0 and body_statement.type != "block" else line
+        if body_statement.type == "block" or position > 0:
+            text = text[len(unit) :] if text.startswith(unit) else text
+        shifted.append(
+            text if text.startswith(" ") or text.startswith("\t") else body_indent + text
+        )
+    text = (
+        f"Map<{boxed}, List<{element_type}>> {index} = new HashMap<>();\n"
+        f"{base}for ({element_type} {var_b} : {collection}) {{\n"
+        f"{base}{unit}{index}.computeIfAbsent({key_b}, {lambda_key} -> new ArrayList<>()).add({var_b});\n"
+        f"{base}}}\n"
+        f"{base}for ({element_type} {var_a} : {collection}) {{\n"
+        f"{base}{unit}for ({element_type} {var_b} : {index}.getOrDefault({key_a}, List.of())) {{\n"
+        + "\n".join(shifted)
+        + f"\n{base}{unit}}}\n{base}}}"
+    )
+    edits = [TextEdit(c.file, outer.start_byte, outer.end_byte, text)]
+    imports = ensure_imports(
+        c.source.decode("utf-8"),
+        ["java.util.ArrayList", "java.util.HashMap", "java.util.List", "java.util.Map"],
+    )
+    if imports is not None:
+        edits.append(TextEdit(c.file, imports.start, imports.end, imports.text))
+    return edits, [
+        Check("Оба цикла идут по одной коллекции, условие — равенство ключей", True),
+        Check(f"Ключ {key_a} имеет тип {key_type}: его можно хешировать", True),
+        Check("Тело не меняет коллекцию и элементы цикла", True),
+        Check("Подтвердите: тело (например, merge) не меняет сами ключи", True),
+    ]
+
+
 MORE_SPECS = {
     "PERF-04": (
         "OPT-04",
@@ -829,6 +1019,14 @@ MORE_SPECS = {
         "Накопитель в цикле объявляется примитивом: нет упаковки и распаковки.",
         True,
         opt_12,
+    ),
+    "PERF-01": (
+        "OPT-01",
+        "Индексация по ключу вместо вложенного поиска",
+        "Элементы раскладываются в Map по ключу за один проход; для каждого элемента перебираются только совпадения. "
+        "Нужно подтверждение: тело цикла не должно менять ключи.",
+        False,
+        opt_01,
     ),
     "PERF-07": (
         "OPT-07",

@@ -295,3 +295,82 @@ def test_opt_12_refuses_when_the_variable_is_used_as_an_object():
         "        System.out.println(total == other);"
     )
     assert "==" in refusal(identity, "PERF-12")
+
+
+# --- OPT-01 --------------------------------------------------------------------------------------------------
+
+ITEMS = """\
+import java.util.*;
+
+class A {
+    static class Item {
+        private final String id;
+        private final int weight;
+        private int merged;
+
+        Item(String id, int weight) {
+            this.id = id;
+            this.weight = weight;
+        }
+
+        String id() {
+            return id;
+        }
+
+        int weight() {
+            return weight;
+        }
+
+        void absorb(int amount) {
+            merged += amount;
+        }
+    }
+
+    static void merge(Item a, Item b) {
+        a.absorb(b.weight());
+    }
+
+    static void analyze(List<Item> items) {
+        for (Item a : items) {
+            for (Item b : items) {
+                if (a.id().equals(b.id())) {
+                    merge(a, b);
+                }
+            }
+        }
+    }
+}
+"""
+
+
+def test_opt_01_indexes_the_nested_search_by_key():
+    project = JavaProject({"A.java": ITEMS})
+    finding = finding_of(project, "PERF-01")
+    proposal = propose(project, finding)
+    assert proposal is not None and proposal.available and not proposal.behavior_preserving
+    after = apply_proposal(project, proposal)["A.java"]
+    assert "Map<String, List<Item>> itemsById = new HashMap<>();" in after
+    assert "itemsById.computeIfAbsent(b.id(), key -> new ArrayList<>()).add(b);" in after
+    assert (
+        "for (Item b : itemsById.getOrDefault(a.id(), List.of())) {\n                merge(a, b);"
+        in after
+    )
+    assert "PERF-01" not in rule_ids(after)
+
+
+def test_opt_01_refuses_unhashable_keys_and_mutating_bodies():
+    unhashable = ITEMS.replace(
+        "String id() {\n            return id;", "Object id() {\n            return id;"
+    )
+    proposal = propose(
+        JavaProject({"A.java": unhashable}),
+        finding_of(JavaProject({"A.java": unhashable}), "PERF-01"),
+    )
+    assert proposal is not None and not proposal.available
+    assert "хеширование" in " ".join(c.reason or "" for c in proposal.failed())
+    mutating = ITEMS.replace("merge(a, b);", "merge(a, b);\n                    items.remove(b);")
+    project = JavaProject({"A.java": mutating})
+    reasons = " ".join(
+        c.reason or "" for c in propose(project, finding_of(project, "PERF-01")).failed()
+    )
+    assert "изменяется items" in reasons
