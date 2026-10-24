@@ -143,7 +143,15 @@ def measure(
                 data=schemas.ItemData(name=f"N={size}", verdict="PASS", duration_ms=int(median))
             )
         )
-        if not queue and median - startup < SIGNIFICANT_MS and size < 64_000 and len(samples) >= 3:
+        # время должно стать заметным и опираться минимум на три точки выше шума: иначе показатель роста
+        # по времени не считается и «до» оптимизации выглядит линейным
+        visible = sum(1 for s in samples if s.time_ms >= 5)
+        if (
+            not queue
+            and (median - startup < SIGNIFICANT_MS or visible < 3)
+            and size < 64_000
+            and len(samples) >= 3
+        ):
             queue.append(size * 2)
     return Measurement(samples, float(startup), warnings)
 

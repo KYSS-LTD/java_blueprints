@@ -25,12 +25,14 @@ from app.api import (
     versions,
 )
 from app.config import Settings, get_settings
+from app.db.models import Project
 from app.db.session import get_engine, init_db
 from app.errors import register_error_handlers
 from app.jobs.registry import all_handlers
 from app.jobs.run_manager import RunManager
 from app.logging_config import RequestIdMiddleware, configure_logging
 from app.openapi import install_openapi_extras
+from app.schemas.verify import RunRequest
 from app.services.seeding import seed_demo
 
 
@@ -47,17 +49,39 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if interrupted:
         log.warning("marked interrupted runs", extra={"count": interrupted})
     if settings.seed_demo:
-        await asyncio.to_thread(_seed, settings)
+        seeded = await asyncio.to_thread(_seed, settings)
+        if seeded is not None and settings.seed_prepare:
+            app.state.seed_task = asyncio.create_task(_prepare_demo(manager, seeded, log))
     log.info(
         "started", extra={"data_dir": str(settings.data_dir.resolve()), "version": __version__}
     )
     yield
+    task = getattr(app.state, "seed_task", None)
+    if task is not None and not task.done():
+        task.cancel()
     await manager.shutdown()
 
 
-def _seed(settings: Settings) -> None:
+def _seed(settings: Settings) -> int | None:
     with Session(get_engine()) as session:
-        seed_demo(session, settings)
+        project = seed_demo(session, settings)
+        return project.id if project is not None else None
+
+
+async def _prepare_demo(manager: RunManager, project_id: int, log: logging.Logger) -> None:
+    """Демо-проект «готовый»: эталон по оригиналу и зелёный gate, чтобы значок поведения сразу был ✓."""
+    try:
+        for kind in ("baseline", "gate"):
+            with Session(get_engine()) as session:
+                project = session.get(Project, project_id)
+                if project is None:
+                    return
+                version_id = project.head_version_id or 0
+            run_id = await manager.submit(project, RunRequest(kind=kind), version_id)  # type: ignore[arg-type]
+            await manager.wait_finished(run_id, timeout_s=300.0)
+        log.info("demo project is ready", extra={"project_id": project_id})
+    except Exception:  # noqa: BLE001 - без JDK демо остаётся без эталона, сервер работает
+        log.warning("demo project was not prepared", exc_info=True)
 
 
 def create_app() -> FastAPI:

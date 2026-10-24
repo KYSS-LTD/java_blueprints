@@ -141,6 +141,21 @@ def summary(session: Session, project: Project) -> ProjectSummary:
     )
 
 
+def _gate_summary(session: Session, head: Version) -> GateSummary:
+    """Статус поведения HEAD вместе со счётчиками последнего gate («✓ поведение совпадает (11/11)»)."""
+    summary: dict[str, Any] = {}
+    if head.gate_run_id is not None:
+        run = session.get(Run, head.gate_run_id)
+        summary = dict(run.summary or {}) if run is not None else {}
+    return GateSummary(
+        status=head.gate_status,  # type: ignore[arg-type]
+        passed=summary.get("passed"),
+        total=summary.get("total"),
+        coverage=summary.get("coverage"),
+        run_id=head.gate_run_id,
+    )
+
+
 def detail(session: Session, settings: Settings, project: Project) -> ProjectDetail:
     head = versions_service.head_version(session, project)
     java = get_project(versions_service.version_files(session, head.id or 0))
@@ -155,7 +170,7 @@ def detail(session: Session, settings: Settings, project: Project) -> ProjectDet
         original_version_id=project.original_version_id or head.id or 0,
         baseline_version_id=project.baseline_version_id,
         settings=project_settings(project, settings),
-        gate=GateSummary(status=head.gate_status, run_id=head.gate_run_id),  # type: ignore[arg-type]
+        gate=_gate_summary(session, head),
     )
 
 

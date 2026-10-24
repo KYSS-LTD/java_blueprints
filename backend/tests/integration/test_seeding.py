@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import time
+
+import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
@@ -37,6 +40,7 @@ def test_missing_sample_does_not_break_startup(session: Session, tmp_path):
 
 def test_app_seeds_on_startup_when_enabled(engine, monkeypatch):
     monkeypatch.setenv("JB_SEED_DEMO", "1")
+    monkeypatch.setenv("JB_SEED_PREPARE", "0")
     get_settings.cache_clear()
     try:
         with TestClient(create_app()) as client:
@@ -50,3 +54,24 @@ def test_app_seeds_on_startup_when_enabled(engine, monkeypatch):
 
 def test_app_does_not_seed_by_default(client):
     assert client.get("/api/projects").json() == {"projects": []}
+
+
+@pytest.mark.jdk
+def test_seeded_demo_is_ready_with_baseline_and_green_gate(engine, monkeypatch):
+    """«Готовый» демо-проект: после старта эталон записан, gate зелёный на всех сценариях."""
+    monkeypatch.setenv("JB_SEED_DEMO", "1")
+    get_settings.cache_clear()
+    try:
+        with TestClient(create_app()) as client:
+            deadline = time.monotonic() + 120
+            gate = {}
+            while time.monotonic() < deadline:
+                [project] = client.get("/api/projects").json()["projects"]
+                gate = client.get(f"/api/projects/{project['id']}").json()["gate"]
+                if gate["status"] != "unknown" and gate["total"] is not None:
+                    break
+                time.sleep(0.5)
+            assert gate["status"] == "passed" and gate["passed"] == gate["total"] == 11, gate
+    finally:
+        monkeypatch.delenv("JB_SEED_DEMO")
+        get_settings.cache_clear()

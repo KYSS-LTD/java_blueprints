@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     cors_origins: str = ""  # через запятую; нужно только при разработке без прокси Next.js
     seed_demo: bool = False
+    # демо-проект «готовый»: после посева записать эталон и прогнать gate (нужен JDK)
+    seed_prepare: bool = True
 
     @field_validator("data_dir")
     @classmethod
