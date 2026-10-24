@@ -58,6 +58,12 @@ def only_expected_failures(path: Path) -> bool:
     return failed <= JDK21_ONLY
 
 
+def jdk_sources(java_home: str | None) -> bool:
+    homes = [java_home, os.environ.get("JB_JAVA_HOME"), os.environ.get("JAVA_HOME")]
+    homes += [str(p) for p in (Path.home() / ".jdks").glob("*")]
+    return any(h and (Path(h) / "lib" / "src.zip").is_file() for h in homes)
+
+
 def pnpm() -> list[str]:
     found = shutil.which("pnpm")
     if found:
@@ -95,6 +101,7 @@ def summary(steps: dict[str, bool]) -> str:
         "- корпус через API: `reports/verify_samples.md`, `reports/verify_samples.json`",
         "- баг-баш: `reports/bug_bash.md`",
         "- бюджеты производительности: `reports/perf_budget.md`",
+        "- прочность на чужом коде (исходники JDK): `reports/jdk_sweep.md`",
         "",
         "Два теста backend требуют JDK 21+ и на более раннем JDK падают по замыслу (`test_jdk.py`, `/health`).",
     ]
@@ -159,6 +166,13 @@ def main() -> int:
     steps["perf_budget"] = run(
         "бюджеты", [*uv, str(ROOT / "scripts" / "perf_budget.py"), *java_args], ROOT / "backend", env
     )
+
+    if jdk_sources(args.java_home):  # нужен src.zip JDK; без него шаг пропускается
+        steps["jdk_sweep"] = run(
+            "прочность на чужом коде", [*uv, str(ROOT / "scripts" / "jdk_sweep.py"), "--limit", "60"], ROOT / "backend", env
+        )
+    else:
+        print("src.zip JDK не найден: проверка на чужом коде пропущена")
 
     (REPORTS / "SUMMARY.md").write_text(summary(steps), encoding="utf-8", newline="\n")
     target = archive()

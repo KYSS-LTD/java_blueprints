@@ -75,6 +75,7 @@ Java-монолит (≈1000 строк) показывается одновре
 | Автотесты frontend | 269 тестов Vitest + 8 сквозных сценариев Playwright (`reports/playwright-report.xml`); `eslint`, `tsc`, `next build` проходят |
 | Корпус через API | `reports/verify_samples.md`: 6 примеров, gate зелёный, покрытие 90–100% |
 | Баг-баш | `reports/bug_bash.md`: 48 проектов корпуса, дефектов нет; блок-схемы всех 562 методов, экспорт собирается `javac` |
+| Чужой код | `reports/jdk_sweep.md`: 120 крупнейших файлов JDK (7772 метода, 3080 находок, 1344 применимых исправления) — без падений, ни один оператор не потерян, результаты исправлений разбираются, замена блока его же текстом не меняет байты |
 | Бюджеты | `reports/perf_budget.md`: разбор 1000 строк ≈ 0,04 с, операция ≈ 0,05 с, анализ ≈ 0,4 с, компиляция ≈ 1,5 с, gate на 15 сценариях ≈ 3,3 с |
 | Декомпозиция | все 5 монолитов раскладываются на ≥ 3 класса, результат компилируется, сценарии зелёные, `Main.java` уменьшается вдвое и больше |
 
@@ -96,6 +97,7 @@ cd frontend && pnpm test                     # тесты frontend
 python scripts/verify_samples.py             # корпус через API → reports/verify_samples.md
 python scripts/bug_bash.py                   # корпус целиком → reports/bug_bash.md
 python scripts/perf_budget.py                # бюджеты → reports/perf_budget.md
+python scripts/jdk_sweep.py                  # исходники JDK (нужен src.zip) → reports/jdk_sweep.md
 make submit                                  # комплект сдачи → dist/
 ```
 

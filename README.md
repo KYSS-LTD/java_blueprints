@@ -75,7 +75,7 @@ backend/    FastAPI (app/) и ядро без веб-зависимостей (e
 frontend/   Next.js, shadcn/ui, граф и редактор
 samples/    корпус Java-примеров: демо-монолит, фикстуры scope, сломанные и вне рамок (см. samples/README.md)
 reports/    результаты проверки поведения для сдачи
-scripts/    служебные скрипты: doctor.py, verify_corpus.py, verify_samples.py, bug_bash.py, perf_budget.py, submit.py, gen_mock_fixtures.py (моки frontend)
+scripts/    служебные скрипты: doctor.py, verify_corpus.py, verify_samples.py, bug_bash.py, perf_budget.py, jdk_sweep.py, submit.py, gen_mock_fixtures.py (моки frontend)
 docs/       документация и план разработки
 ```
 
@@ -89,6 +89,7 @@ docs/       документация и план разработки
 python scripts/verify_samples.py   # 6 примеров целиком через API → reports/verify_samples.md|json
 python scripts/bug_bash.py         # весь корпус (48 проектов): граф всех методов, исправления, javac на экспорте → reports/bug_bash.md
 python scripts/perf_budget.py      # бюджеты docs/10 § 3.6 → reports/perf_budget.md
+python scripts/jdk_sweep.py        # прочность на исходниках JDK (нужен src.zip) → reports/jdk_sweep.md
 make submit                        # тесты + отчёты + архив dist/java-blueprints-submission.zip (reports/SUMMARY.md)
 ```
 
