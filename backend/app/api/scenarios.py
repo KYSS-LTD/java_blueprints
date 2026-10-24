@@ -5,13 +5,15 @@ from __future__ import annotations
 import dataclasses
 
 from fastapi import APIRouter, Response
+from fastapi.concurrency import run_in_threadpool
 
 from app.api.common import ERROR_RESPONSES
-from app.deps import ProjectDep, SessionDep
-from app.errors import not_implemented
+from app.deps import ProjectDep, RunManagerDep, SessionDep
+from app.errors import bad_request
 from app.schemas.verify import (
     InputSchema,
     RunRef,
+    RunRequest,
     Scenario,
     ScenarioCreate,
     ScenarioExport,
@@ -60,8 +62,22 @@ def export_scenarios(project: ProjectDep, session: SessionDep) -> ScenarioExport
     summary="Сгенерировать сценарии",
     description="Запуск `kind=generate`; результат — сценарии с `source=generated`.",
 )
-def generate_scenarios(project_id: int, version_id: int | None = None) -> RunRef:
-    raise not_implemented("S6")
+async def generate_scenarios(
+    project: ProjectDep,
+    session: SessionDep,
+    manager: RunManagerDep,
+    version_id: int | None = None,
+) -> RunRef:
+    target = version_id
+    if target is None:  # сценарии нужны эталонной версии: на ней записывается их эталон
+        target = project.baseline_version_id
+    version = await run_in_threadpool(versions_service.resolve_version, session, project, target)
+    if project.main_class is None:
+        raise bad_request("у проекта нет главного класса: выберите его в настройках проекта")
+    run_id = await manager.submit(
+        project, RunRequest(kind="generate", version_id=version.id), version.id or 0
+    )
+    return RunRef(run_id=run_id)
 
 
 @router.put(
