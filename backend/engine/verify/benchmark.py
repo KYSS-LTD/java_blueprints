@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import math
 import random
+import re
+from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
@@ -129,6 +131,73 @@ def _distinct(kind: str | None, _pools: Pools, rng: random.Random) -> str:
     if kind == "word":
         return f"w{rng.randrange(10**9)}"
     return f"text w{rng.randrange(10**9)}"
+
+
+# --- масштабирование по существующим сценариям ----------------------------------------------------------------
+
+_GROWTH = re.compile(r"^([^\W\d_][\w-]*) (\d+)(?: (.+))?$")
+
+
+@dataclass(frozen=True, slots=True)
+class Scaler:
+    """Ввод, выведенный из рабочих сценариев: команда «добавить с номером» размножается ``size`` раз."""
+
+    label: str
+    examples: tuple[str, ...]  # «хвосты» строк команды (без метки и номера), взятые из сценариев
+    head: tuple[str, ...]  # строки до первой команды роста
+    tail: tuple[str, ...]  # остальные строки (запросы, отчёты, выход)
+
+    def stdin(self, size: int) -> str:
+        grown = [
+            f"{self.label} {index + 1}"
+            + (f" {self.examples[index % len(self.examples)]}" if self.examples[0] else "")
+            for index in range(size)
+        ]
+        return join_lines([*self.head, *grown, *self.tail])
+
+
+def derive_scaler(stdins: Sequence[str]) -> Scaler | None:
+    """Самая частая команда вида ``метка номер [аргументы]`` в сценариях проекта становится «ростом» ввода.
+
+    Берутся реальные строки сценариев, поэтому программа принимает их как корректные команды и работа
+    растёт вместе с размером (в отличие от случайных токенов, которые программа отвергает).
+    """
+    labels: Counter[str] = Counter()
+    for text in stdins:
+        for line in text.splitlines():
+            match = _GROWTH.match(line.strip())
+            if match:
+                labels[match.group(1)] += 1
+    if not labels:
+        return None
+    label, count = labels.most_common(1)[0]
+    if count < 2:
+        return None
+    examples: list[str] = []
+    donor: list[str] = []
+    for text in stdins:
+        lines = text.splitlines()
+        found = [m for line in lines if (m := _GROWTH.match(line.strip())) and m.group(1) == label]
+        if len(found) > len(examples):
+            examples = [m.group(3) or "" for m in found]
+            donor = lines
+    if not donor:
+        return None
+    first = next(
+        i
+        for i, line in enumerate(donor)
+        if (m := _GROWTH.match(line.strip())) and m.group(1) == label
+    )
+    head = [line for line in donor[:first]]
+    crashing = _STOPPING - _TERMINATORS
+    rest = [
+        line
+        for line in donor[first:]
+        if not ((m := _GROWTH.match(line.strip())) and m.group(1) == label)
+        and (line.split() or [""])[0].lower() not in crashing  # аварийные команды обрывали бы замер
+    ]
+    unique = tuple(dict.fromkeys(examples)) or ("",)
+    return Scaler(label, unique, tuple(head), tuple(rest))
 
 
 def scaled_stdin(hints: InputHints, size: int, seed: int) -> str:

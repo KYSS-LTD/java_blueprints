@@ -97,3 +97,37 @@ def test_command_programs_scale_with_ordinary_commands_only():
     assert not commands & {"quit", "exit", "boom"}
     assert commands <= set(hints.commands)
     assert lines[0].split()[1] == "1" and lines[10].split()[1] == "11"  # номера возрастают
+
+
+# --- масштабирование по рабочим сценариям проекта -----------------------------------------------------------------
+
+
+def test_scaler_repeats_the_most_common_numbered_command_and_keeps_the_queries():
+    from engine.verify.benchmark import derive_scaler
+
+    scaler = derive_scaler(
+        [
+            "add 1 Иванов Хлеб 2 45.5\nadd 2 Орлова Масло 3 640\nstats\nquit\n",
+            "add 1 Попов Сыр 1 520\nstats\nboom\nquit\n",
+        ]
+    )
+    assert scaler is not None and scaler.label == "add"
+    lines = scaler.stdin(5).splitlines()
+    assert lines[:5] == [
+        "add 1 Иванов Хлеб 2 45.5",
+        "add 2 Орлова Масло 3 640",
+        "add 3 Иванов Хлеб 2 45.5",
+        "add 4 Орлова Масло 3 640",
+        "add 5 Иванов Хлеб 2 45.5",
+    ]
+    assert lines[5:] == [
+        "stats",
+        "quit",
+    ]  # запросы остаются после роста, аварийные команды отброшены
+
+
+def test_scaler_needs_a_repeated_numbered_command():
+    from engine.verify.benchmark import derive_scaler
+
+    assert derive_scaler(["hello\nworld\n", ""]) is None
+    assert derive_scaler(["add 1 x\nquit\n"]) is None  # одна строка — это не повторяемая команда

@@ -73,7 +73,10 @@ def _long_limits(ctx: JobContext):  # type: ignore[no-untyped-def]
 
 Make = Callable[[int], tuple[str, list[str]]]
 MAX_SAMPLES = 7
-SIGNIFICANT_MS = 100  # меньше — время тонет в шуме JIT и запуска JVM; размер удваивается
+SIGNIFICANT_MS = 100  # меньше — время тонет в шуме JIT и запуска JVM
+GROW_UNTIL_MS = (
+    300  # размер удваивается, пока наибольший замер короче: на больших N видна асимптотика
+)
 
 
 def measure(
@@ -119,6 +122,12 @@ def measure(
             warnings.append(f"на размере {size} превышено время: рост дальше не измерялся")
             break
         hits = collect(instrumented, result.trace)
+        if hits.saturated and size not in sizes:
+            # удвоенный размер уже не помещается в счётчики: остаются точки, где они точны
+            warnings.append(
+                f"на размере {size} счётчики выполнения переполнились: дальше не растим"
+            )
+            break
         durations: list[float] = []
         for attempt in range(4):  # прогрев + 3 замера
             timed = run_in_slot(ctx, built, main, stdin=stdin, args=args, limits=limits)
@@ -148,7 +157,7 @@ def measure(
         visible = sum(1 for s in samples if s.time_ms >= 5)
         if (
             not queue
-            and (median - startup < SIGNIFICANT_MS or visible < 3)
+            and (median - startup < GROW_UNTIL_MS or visible < 3)
             and size < 64_000
             and len(samples) >= 3
         ):
@@ -196,6 +205,17 @@ def _inputs(ctx: JobContext, built: Built, main: str) -> tuple[Make | None, list
             return bench.sized(row.stdin, n), [bench.sized(a, n) for a in row.args or []]
 
         return from_template, sizes, []
+    with Session(get_engine()) as session:
+        own = [
+            s.stdin
+            for s in load_scenarios(session, ctx.project_id, None)
+            if bench.TEMPLATE not in s.stdin
+        ]
+    scaler = bench.derive_scaler(own)
+    if (
+        scaler is not None
+    ):  # вход из рабочих сценариев проекта: программа принимает его как корректный
+        return lambda n: (scaler.stdin(n), []), sizes, []
     hints = infer(get_project(built.files), main)
     if not hints.inferred or not hints.reads_stdin:
         return None, sizes, [NO_INPUT]
