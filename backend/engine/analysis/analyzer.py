@@ -21,6 +21,7 @@ from engine.analysis.model import (
 )
 from engine.analysis.rules import RULES, AnalysisContext, estimate_of
 from engine.analysis.rules_extra import RULES_EXTRA
+from engine.analysis.rules_more import RULES_MORE
 from engine.graph.ids import split_node_id
 from engine.java.project import FLOWABLE, JavaProject
 
@@ -108,7 +109,7 @@ def analyze(project: JavaProject, thresholds: Mapping[str, float] | None = None)
     metrics = metrics_result(project)
     context = AnalysisContext(project, model, metrics, dict(thresholds or {}))
     findings: list[Finding] = []
-    for rule in (*RULES, *RULES_EXTRA):
+    for rule in (*RULES, *RULES_EXTRA, *RULES_MORE):
         findings.extend(rule(context))
     findings.sort(key=_sort_key)
     _attach_fixes(project, findings)
