@@ -10,7 +10,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from app.api.common import ERROR_JSON_RESPONSE, ERROR_RESPONSES, SseResponse
 from app.deps import ProjectDep, RunManagerDep, SessionDep, SettingsDep
-from app.errors import bad_request, not_implemented
+from app.errors import bad_request
 from app.schemas.verify import (
     BuildRequest,
     BuildResult,
@@ -54,7 +54,7 @@ async def create_run(
     project: ProjectDep, session: SessionDep, manager: RunManagerDep, payload: RunRequest
 ) -> RunRef:
     if payload.kind not in manager.handlers:
-        raise not_implemented("S6")
+        raise bad_request(f"вид запуска {payload.kind} не поддерживается")
     if payload.kind == "run" and project.main_class is None:
         raise bad_request("у проекта нет главного класса: выберите его в настройках проекта")
     # эталон по умолчанию пишется на эталонной версии проекта, остальное — на HEAD

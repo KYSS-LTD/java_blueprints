@@ -186,24 +186,12 @@ def test_unknown_op_is_rejected_with_bad_request(client):
     assert response.json()["error"]["code"] == "BAD_REQUEST"
 
 
-@pytest.mark.parametrize(
-    ("method", "path", "body"),
-    [
-        ("POST", "/api/projects/{p}/decompose/plan", {}),
-    ],
-)
-def test_stubs_answer_501_in_error_format(client, method, path, body):
-    """Эндпоинты S4–S10 описаны контрактом, но отвечают 501 в едином формате ошибок."""
-    created = client.post(
-        "/api/projects",
-        json={"name": "t", "files": [{"path": "A.java", "content": "class A {}"}]},
-    )
-    assert created.status_code == 201, created.text
-    response = client.request(method, path.format(p=created.json()["id"]), json=body)
-    assert response.status_code == 501, response.text
-    error = response.json()["error"]
-    assert error["code"] == "NOT_IMPLEMENTED"
-    assert "этап S" in error["message"]
+def test_no_endpoint_answers_501_any_more(client):
+    """Все эндпоинты docs/08-api.md реализованы: `501 NOT_IMPLEMENTED` больше не встречается."""
+    schema = client.get("/api/openapi.json").json()
+    assert "NOT_IMPLEMENTED" not in str(schema)
+    for path in REPO_ROOT.joinpath("backend", "app", "api").glob("*.py"):
+        assert "not_implemented(" not in path.read_text(encoding="utf-8"), path.name
 
 
 def test_stub_validates_request_before_answering(client):

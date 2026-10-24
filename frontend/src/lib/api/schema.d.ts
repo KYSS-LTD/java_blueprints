@@ -685,7 +685,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** План декомпозиции монолита */
+        /**
+         * План декомпозиции монолита
+         * @description Класс с `main` (иначе самый крупный) разбивается на ядро и 2–6 новых классов по связности методов (Louvain, фиксированный seed — результат детерминирован). Поля, конструкторы и точка входа остаются в ядре; прочие типы файла выносятся в отдельные файлы.
+         */
         post: operations["plan_decompose"];
         delete?: never;
         options?: never;
@@ -702,7 +705,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Предпросмотр декомпозиции по отредактированному плану */
+        /**
+         * Предпросмотр декомпозиции по отредактированному плану
+         * @description Применяет план к HEAD без сохранения: diff (новые файлы — `added`) и предупреждения, в том числе о том, что результат не компилируется.
+         */
         post: operations["preview_decompose"];
         delete?: never;
         options?: never;
@@ -721,7 +727,7 @@ export interface paths {
         put?: never;
         /**
          * Применить декомпозицию
-         * @description Создаётся версия-кандидат и запускается gate (`syntax → compile → scenarios`). Зелёный gate делает кандидата HEAD; красный — отклоняет.
+         * @description Создаётся версия-кандидат и запускается gate (`syntax → compile → scenarios`). Зелёный gate делает кандидата HEAD; красный — отклоняет. В `Version.meta` записывается `symbol_moves` (член → новый класс).
          */
         post: operations["apply_decompose"];
         delete?: never;

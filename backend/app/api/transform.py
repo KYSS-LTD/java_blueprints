@@ -8,7 +8,6 @@ from fastapi.concurrency import run_in_threadpool
 
 from app.api.common import ERROR_RESPONSES
 from app.deps import ProjectDep, RunManagerDep, SessionDep, SettingsDep
-from app.errors import not_implemented
 from app.schemas.transform import (
     ApplyResult,
     CandidateDecision,
@@ -31,6 +30,7 @@ from app.schemas.transform import (
 )
 from app.schemas.verify import RunRef, RunRequest
 from app.services import analysis as analysis_service
+from app.services import decompose as decompose_service
 from app.services import extract as extract_service
 from app.services import fixes as service
 from app.services import graphs
@@ -200,27 +200,58 @@ async def apply_extract_method(
     return ApplyResult(candidate_version_id=candidate_id, run_id=run_id)
 
 
-@router.post("/projects/{project_id}/decompose/plan", summary="План декомпозиции монолита")
-def plan_decompose(project_id: int, payload: DecomposePlanRequest) -> DecomposePlan:
-    raise not_implemented("S9")
+@router.post(
+    "/projects/{project_id}/decompose/plan",
+    summary="План декомпозиции монолита",
+    description=(
+        "Класс с `main` (иначе самый крупный) разбивается на ядро и 2–6 новых классов по связности "
+        "методов (Louvain, фиксированный seed — результат детерминирован). Поля, конструкторы и точка "
+        "входа остаются в ядре; прочие типы файла выносятся в отдельные файлы."
+    ),
+)
+def plan_decompose(
+    project: ProjectDep, session: SessionDep, payload: DecomposePlanRequest
+) -> DecomposePlan:
+    version = versions_service.resolve_version(session, project, payload.version_id)
+    return decompose_service.make_plan(graphs.java_project(session, version), payload.options)
 
 
 @router.post(
     "/projects/{project_id}/decompose/preview",
     summary="Предпросмотр декомпозиции по отредактированному плану",
+    description=(
+        "Применяет план к HEAD без сохранения: diff (новые файлы — `added`) и предупреждения, "
+        "в том числе о том, что результат не компилируется."
+    ),
 )
-def preview_decompose(project_id: int, payload: DecomposeEdit) -> DecomposePreview:
-    raise not_implemented("S9")
+def preview_decompose(
+    project: ProjectDep, session: SessionDep, settings: SettingsDep, payload: DecomposeEdit
+) -> DecomposePreview:
+    versions_service.require_head(project, payload.base_version_id)
+    head = versions_service.head_version(session, project)
+    return decompose_service.preview(graphs.java_project(session, head), settings, payload.plan)
 
 
 @router.post(
     "/projects/{project_id}/decompose/apply",
     status_code=202,
     summary="Применить декомпозицию",
-    description=_APPLY_NOTE,
+    description=_APPLY_NOTE + " В `Version.meta` записывается `symbol_moves` (член → новый класс).",
 )
-def apply_decompose(project_id: int, payload: DecomposeEdit) -> ApplyResult:
-    raise not_implemented("S9")
+async def apply_decompose(
+    project: ProjectDep, session: SessionDep, manager: RunManagerDep, payload: DecomposeEdit
+) -> ApplyResult:
+    def prepare() -> int:
+        versions_service.require_head(project, payload.base_version_id)
+        head = versions_service.head_version(session, project)
+        java = graphs.java_project(session, head)
+        return decompose_service.candidate(session, project, head, java, payload.plan).id or 0
+
+    candidate_id = await run_in_threadpool(prepare)
+    run_id = await manager.submit(
+        project, RunRequest(kind="gate", version_id=candidate_id), candidate_id
+    )
+    return ApplyResult(candidate_version_id=candidate_id, run_id=run_id)
 
 
 @router.post(

@@ -23,7 +23,7 @@ from sse_starlette import ServerSentEvent
 from app.config import Settings
 from app.db.models import Project, RunStatus
 from app.db.session import get_engine
-from app.errors import ApiError, busy, not_implemented
+from app.errors import ApiError, bad_request, busy
 from app.schemas import verify as schemas
 from app.services import runs as runs_service
 
@@ -129,7 +129,7 @@ class RunManager:
     async def submit(self, project: Project, request: schemas.RunRequest, version_id: int) -> int:
         """Создаёт запись запуска и ставит задачу в очередь; возвращает ``run_id``."""
         if request.kind not in self.handlers:
-            raise not_implemented("S6")
+            raise bad_request(f"вид запуска {request.kind} не поддерживается")
         if self.active() >= self.max_parallel + self.max_queue:
             raise busy("слишком много активных запусков, повторите позже")
         run_id = await asyncio.to_thread(

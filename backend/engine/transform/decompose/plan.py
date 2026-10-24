@@ -373,9 +373,9 @@ def build_plan(
     plan = Plan(decl.id, plan_classes)
     members_by_id = {m.id: m for m in decl.members}
     fields = {m.id for m in decl.members if m.kind == "field"}
-    plan.before = Stat(
-        lines_of(project, decl.members) + 2, lcom4_of(project, list(decl.members), fields)
-    )
+    file_text = project.files[file]
+    file_lines = file_text.count("\n") + (0 if file_text.endswith("\n") else 1)
+    plan.before = Stat(file_lines, lcom4_of(project, list(decl.members), fields))
 
     graph = build_graph(project, decl, movable)
     groups = merge_small(
@@ -456,8 +456,33 @@ def build_plan(
     _warn(plan)
     after = [lcom4_of(project, [members_by_id[i] for i in c.members], fields) for c in plan_classes]
     shown = [v for v in after if v > 0]
+
+    # прочие типы того же файла (кроме публичных) выносятся в отдельные файлы
+    parsed = project.parsed(file)
+    detached = 0
+    for other in project.symbols(file).types:
+        if other.id == decl.id or "public" in other.modifiers:
+            continue
+        span = parsed.lines.range(other.start_byte, other.end_byte)
+        size = span.end.line - span.start.line + 1
+        detached += size
+        plan_classes.append(
+            PlanClass(
+                other.name,
+                "model",
+                f"{other.name}.java",
+                [other.id],
+                size + 2,
+                "тип вынесен в отдельный файл",
+            )
+        )
+    moved_lines = sum(
+        lines_of(project, [members_by_id[i] for i in c.members])
+        for c in plan_classes
+        if c.role not in {"core", "model"}
+    )
     plan.after = Stat(
-        max((c.lines for c in plan_classes if c.role == "core"), default=0),
+        max(file_lines - moved_lines - detached + len(moved) + 1, 0),
         round(sum(shown) / len(shown), 2) if shown else 0.0,
     )
     return plan
