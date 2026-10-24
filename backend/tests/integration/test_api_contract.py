@@ -191,7 +191,6 @@ def test_unknown_op_is_rejected_with_bad_request(client):
     [
         ("POST", "/api/projects/{p}/findings/PERF-01:Main.java%23Main.run()/for[0]/verify", None),
         ("POST", "/api/projects/{p}/runs", {"kind": "verify"}),
-        ("GET", "/api/projects/{p}/input-schema", None),
         ("POST", "/api/projects/{p}/scenarios/generate", None),
     ],
 )

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import dataclasses
+
 from fastapi import APIRouter, Response
 
 from app.api.common import ERROR_RESPONSES
@@ -18,7 +20,10 @@ from app.schemas.verify import (
     ScenarioList,
     ScenarioUpdate,
 )
+from app.services import graphs
 from app.services import scenarios as service
+from app.services import versions as versions_service
+from engine.verify.generator.input_schema import infer
 
 router = APIRouter(tags=["scenarios"], responses=ERROR_RESPONSES)
 
@@ -85,5 +90,12 @@ def delete_scenario(project: ProjectDep, session: SessionDep, scenario_id: int) 
     summary="Выведенная схема ввода",
     description="Для отладки и отображения: как генератор понял формат ввода программы.",
 )
-def get_input_schema(project_id: int, version_id: int | None = None) -> InputSchema:
-    raise not_implemented("S6")
+def get_input_schema(
+    project: ProjectDep, session: SessionDep, version_id: int | None = None
+) -> InputSchema:
+    version = versions_service.resolve_version(session, project, version_id)
+    java = graphs.java_project(session, version)
+    hints = infer(java, project.main_class)
+    return InputSchema.model_validate(
+        {"inferred": hints.inferred, "root": [dataclasses.asdict(node) for node in hints.schema]}
+    )
