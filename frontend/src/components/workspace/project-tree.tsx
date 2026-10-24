@@ -240,7 +240,7 @@ function TreeRowView({
           <button
             type="button"
             tabIndex={-1}
-            aria-hidden={!hasChildren}
+            aria-hidden // строка дерева сама сообщает aria-expanded и разворачивается с клавиатуры
             className={cn("flex size-4 shrink-0 items-center justify-center", !hasChildren && "invisible")}
             onClick={(event) => {
               event.stopPropagation();

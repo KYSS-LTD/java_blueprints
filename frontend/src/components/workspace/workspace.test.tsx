@@ -93,7 +93,7 @@ describe("Workspace на моках", () => {
     window.history.replaceState(null, "", "/projects/1?method=" + method);
     await renderWorkspace();
     await screen.findByRole("tab", { name: /buildCsv\(\)/ });
-    await user.click(screen.getByRole("button", { name: /Закрыть вкладку: buildCsv\(\)/ }));
+    await user.click(screen.getByLabelText(/Закрыть вкладку: buildCsv\(\)/)); // кнопка скрыта от AT, закрывает и Delete
     expect(screen.queryByRole("tab", { name: /buildCsv\(\)/ })).not.toBeInTheDocument();
     expect(screen.getByText(ru.workspace.emptyCenter)).toBeInTheDocument();
   }, 20_000);

@@ -33,16 +33,18 @@ function TabBar() {
   const hasDecompose = tabs.some((tab) => tab.kind === "decompose");
 
   return (
-    <div className="flex h-9 shrink-0 items-end gap-0.5 overflow-x-auto border-b bg-card/60 px-2" role="tablist">
-      {tabs.map((tab) => (
-        <TabButton
-          key={tab.id}
-          tab={tab}
-          active={tab.id === activeTabId}
-          onSelect={() => setActiveTab(tab.id)}
-          onClose={() => closeTab(tab.id)}
-        />
-      ))}
+    <div className="flex h-9 shrink-0 items-end gap-0.5 overflow-x-auto border-b bg-card/60 px-2">
+      <div className="flex items-end gap-0.5" role="tablist">
+        {tabs.map((tab) => (
+          <TabButton
+            key={tab.id}
+            tab={tab}
+            active={tab.id === activeTabId}
+            onSelect={() => setActiveTab(tab.id)}
+            onClose={() => closeTab(tab.id)}
+          />
+        ))}
+      </div>
       {!hasStructure && (
         <Button
           variant="ghost"
@@ -86,6 +88,7 @@ function TabButton({
     <div
       role="tab"
       aria-selected={active}
+      aria-keyshortcuts="Delete"
       tabIndex={0}
       className={cn(
         "group flex max-w-56 shrink-0 cursor-pointer items-center gap-1.5 rounded-t-md border border-b-0 px-2.5 py-1.5 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -101,9 +104,9 @@ function TabButton({
     >
       <Icon className="size-3.5 shrink-0" aria-hidden />
       <span className="truncate">{tab.title}</span>
-      <button
-        type="button"
-        tabIndex={-1}
+      {/* не кнопка: внутри role="tab" интерактивные элементы недопустимы; с клавиатуры вкладка закрывается Delete */}
+      <span
+        aria-hidden
         aria-label={`${ru.tabs.close}: ${tab.title}`}
         className="rounded p-0.5 opacity-60 hover:bg-accent hover:opacity-100"
         onClick={(event) => {
@@ -112,7 +115,7 @@ function TabButton({
         }}
       >
         <X className="size-3" />
-      </button>
+      </span>
     </div>
   );
 }

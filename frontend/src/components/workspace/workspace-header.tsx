@@ -172,9 +172,12 @@ export function WorkspaceHeader({ projectId }: { projectId: number }) {
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-3 border-b bg-card px-3">
-      <Link href="/" className="flex items-center gap-2 text-sm font-semibold" aria-label={ru.common.back}>
-        <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">JB</span>
+      <Link href="/" className="flex items-center gap-2 text-sm font-semibold">
+        <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          JB
+        </span>
         <span className="hidden lg:inline">{ru.app.title}</span>
+        <span className="sr-only">: {ru.common.back}</span>
       </Link>
       <span className="text-muted-foreground">/</span>
       <h1 className="max-w-48 truncate text-sm font-medium" title={project.data?.name}>

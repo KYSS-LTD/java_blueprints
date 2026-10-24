@@ -67,7 +67,7 @@ export function ZoomPanel({ showMiniMap, onToggleMiniMap, onFit }: ZoomProps) {
               variant="ghost"
               size="sm"
               className="h-8 min-w-14 px-2 font-mono text-xs"
-              aria-label={t.zoomReset}
+              aria-label={`${t.zoomCurrent} ${Math.round(zoom * 100)}%, ${t.zoomResetHint}`}
               onClick={() => void zoomTo(1, { duration: 150 })}
             >
               {Math.round(zoom * 100)}%

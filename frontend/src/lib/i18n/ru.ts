@@ -152,6 +152,8 @@ export const ru = {
     zoomIn: "Увеличить",
     zoomOut: "Уменьшить",
     zoomReset: "Масштаб 100%",
+    zoomCurrent: "Масштаб",
+    zoomResetHint: "сбросить до 100%",
     fit: "Вписать в окно",
     minimap: "Мини-карта",
     overlays: "Оверлеи",
