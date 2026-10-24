@@ -1,4 +1,4 @@
-"""Автоисправления находок (S8.2–S8.5): OPT-02, OPT-03, OPT-06, FIX-01, FIX-02.
+"""Автоисправления находок (S8.2–S8.5, S9.3): OPT-02, OPT-03, OPT-06, FIX-01, FIX-02, REF-02.
 
 Каждое исправление проверяет предусловия на CST метода и либо строит точечные правки текста, либо
 отказывается с понятной причиной (``Refusal``). Нигде не меняется то, что не входит в правку.
@@ -27,6 +27,8 @@ from engine.transform.base import (
     ensure_imports,
     refuse,
 )
+from engine.transform.dedupe import build as build_dedupe
+from engine.transform.dedupe import checks_for, clone_places
 
 _LOOPS = ("for_statement", "enhanced_for_statement", "while_statement", "do_statement")
 _SAFE_HASH_TYPES = frozenset(
@@ -656,6 +658,18 @@ def fix_02(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
     ]
 
 
+# --- REF-02: клоны → общий метод ------------------------------------------------------------------------------------------
+
+
+def ref_02(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
+    where = c.finding.location
+    places = clone_places(c.project, where.file, where.start_line, where.end_line)
+    if len(places) < 2:
+        raise refuse("Клон найден", "вхождения клона больше не находятся в проекте")
+    result = build_dedupe(c.project, places)
+    return result.edits, checks_for(result)
+
+
 # --- реестр ----------------------------------------------------------------------------------------------------------------
 
 Builder = Callable[[Ctx], tuple[list[TextEdit], list[Check]]]
@@ -695,6 +709,13 @@ SPECS: dict[str, tuple[str, str, str, bool, Builder | None]] = {
         "В пустой `catch` добавляется вывод исключения в stderr.",
         False,
         fix_02,
+    ),
+    "MAINT-02": (
+        "REF-02",
+        "Общий метод вместо клонов",
+        "Одинаковый по структуре код выносится в один метод, различия становятся его параметрами.",
+        True,
+        ref_02,
     ),
     "PERF-01": (
         "OPT-01",

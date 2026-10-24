@@ -119,6 +119,7 @@ def create_candidate(
     origin = {
         "OPT": VersionOrigin.OPTIMIZE,
         "REF-01": VersionOrigin.EXTRACT_METHOD,
+        "REF-02": VersionOrigin.EXTRACT_METHOD,
         "REF-04": VersionOrigin.DECOMPOSE,
     }.get(
         proposal.fix_id[:3] if proposal.fix_id.startswith("OPT") else proposal.fix_id,

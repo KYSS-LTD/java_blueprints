@@ -111,6 +111,8 @@ def plan_optimize(
     for item in analysis.findings:
         if item.fix is None or not item.fix.available or not item.fix.behavior_preserving:
             continue
+        if not item.fix.fix_id.startswith("OPT"):
+            continue  # рефакторинги (REF-*) применяются по одному, а не пакетной оптимизацией
         place = item.location
         if any(
             f == place.file and not (place.end_line < a or place.start_line > b)
