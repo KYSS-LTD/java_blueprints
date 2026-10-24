@@ -1,4 +1,4 @@
-"""Автоисправления находок (S8.2–S8.5, S9.3): OPT-02, OPT-03, OPT-06, FIX-01, FIX-02, REF-02.
+"""Автоисправления находок (S8.2–S8.5, S9.3): OPT-*, FIX-*, CLEAN-*, REF-02.
 
 Каждое исправление проверяет предусловия на CST метода и либо строит точечные правки текста, либо
 отказывается с понятной причиной (``Refusal``). Нигде не меняется то, что не входит в правку.
@@ -29,6 +29,7 @@ from engine.transform.base import (
 )
 from engine.transform.dedupe import build as build_dedupe
 from engine.transform.dedupe import checks_for, clone_places
+from engine.transform.fixes_clean import CLEAN_SPECS
 from engine.transform.fixes_more import MORE_SPECS
 
 _LOOPS = ("for_statement", "enhanced_for_statement", "while_statement", "do_statement")
@@ -728,6 +729,7 @@ SPECS: dict[str, tuple[str, str, str, bool, Builder | None]] = {
 }
 
 SPECS.update(MORE_SPECS)
+SPECS.update(CLEAN_SPECS)
 
 
 def fix_id_for(rule_id: str) -> str | None:
