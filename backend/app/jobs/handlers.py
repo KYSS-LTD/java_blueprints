@@ -67,9 +67,20 @@ def limits_of(ctx: JobContext) -> RunLimits:
 
 
 def run_in_slot(
-    ctx: JobContext, built: Built, main_class: str, *, stdin: str, args: list[str]
+    ctx: JobContext,
+    built: Built,
+    main_class: str,
+    *,
+    stdin: str,
+    args: list[str],
+    trace_limit: int | None = None,
+    limits: RunLimits | None = None,
 ) -> RunResult:
-    """Одно выполнение программы под общим лимитом параллельных JVM."""
+    """Одно выполнение программы под общим лимитом параллельных JVM.
+
+    ``trace_limit`` включает сбор счётчиков (сборка должна быть инструментированной);
+    ``limits`` заменяет лимиты проекта (бенчмарк даёт больше времени).
+    """
     config = ctx.project_settings
     with jvm_slots(ctx.settings.max_parallel_runs):
         return run_java(
@@ -78,10 +89,11 @@ def run_in_slot(
             stdin=stdin,
             args=args,
             java_home=ctx.settings.java_home,
-            limits=limits_of(ctx),
+            limits=limits or limits_of(ctx),
             locale=config.get("locale", "en_US"),
             timezone=config.get("timezone", "UTC"),
             cancel=ctx.cancel,
+            trace_limit=trace_limit,
         )
 
 

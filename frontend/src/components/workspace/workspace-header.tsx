@@ -16,7 +16,7 @@ import {
   Undo2,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ImportDialog } from "@/components/projects/import-dialog";
 import { HistorySheet } from "@/components/workspace/history-sheet";
@@ -36,6 +36,7 @@ import { useEditing } from "@/lib/edit/use-editing";
 import { ru } from "@/lib/i18n/ru";
 import { cn } from "@/lib/utils";
 import { isRunning } from "@/lib/run/run-state";
+import { useDebugStore } from "@/stores/debug-store";
 import { useEditorStore } from "@/stores/editor-store";
 import { useRunStore } from "@/stores/run-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
@@ -148,6 +149,7 @@ function BehaviorBadge({ projectId }: { projectId: number }) {
 export function WorkspaceHeader({ projectId }: { projectId: number }) {
   const [importing, setImporting] = useState(false);
   const [running, setRunning] = useState(false);
+  const [debugging, setDebugging] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const project = useQuery(projectQuery(projectId));
   const { head, canUndo, canRedo, working, undo, redo } = useEditing(projectId);
@@ -155,6 +157,16 @@ export function WorkspaceHeader({ projectId }: { projectId: number }) {
     const id = s.order[s.order.length - 1];
     return id !== undefined && s.entries[id].kind === "run" && isRunning(s.entries[id].state);
   });
+  const tracing = useRunStore((s) => {
+    const id = s.order[s.order.length - 1];
+    return id !== undefined && s.entries[id].kind === "trace" && isRunning(s.entries[id].state);
+  });
+  const trace = useDebugStore((s) => s.trace);
+  const clearTrace = useDebugStore((s) => s.clear);
+  // счётчики относятся к версии, на которой шла трассировка: после правки идентификаторы блоков уже другие
+  useEffect(() => {
+    if (trace && head && trace.versionId !== null && trace.versionId !== head.id) clearTrace();
+  }, [trace, head, clearTrace]);
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-3 border-b bg-card px-3">
@@ -223,9 +235,16 @@ export function WorkspaceHeader({ projectId }: { projectId: number }) {
           <Play /> {t.run}
         </Button>
 
-        <SoonButton label={t.debug} hint={t.soonDebug}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setDebugging(true)}
+          disabled={tracing}
+          title={t.debugHint}
+          data-testid="debug-button"
+        >
           <Bug /> {t.debug}
-        </SoonButton>
+        </Button>
 
         <SoonButton label={t.settings} hint={ru.common.soon} className="size-8 px-0">
           <Settings />
@@ -234,6 +253,7 @@ export function WorkspaceHeader({ projectId }: { projectId: number }) {
 
       <ImportDialog open={importing} onOpenChange={setImporting} />
       <RunDialog projectId={projectId} open={running} onOpenChange={setRunning} />
+      <RunDialog projectId={projectId} open={debugging} onOpenChange={setDebugging} mode="trace" />
       <HistorySheet projectId={projectId} open={historyOpen} onOpenChange={setHistoryOpen} />
     </header>
   );

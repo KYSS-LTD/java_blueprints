@@ -43,9 +43,11 @@ _REPORT_TYPES: dict[int | str, dict[str, Any]] = {
     status_code=202,
     summary="Запустить задачу",
     description=(
-        "`kind`: `run`, `trace`, `baseline`, `test`, `gate`, `generate`, `benchmark`, `verify`. "
-        "Ответ `202`; ход выполнения — `GET /runs/{run_id}/events`. `429 BUSY` — слишком много "
-        "параллельных запусков. Пока реализован `run`; остальные виды отвечают `501`."
+        "`kind`: `run`, `trace`, `baseline`, `test`, `gate`, `optimize`, `generate`, `benchmark`, "
+        "`verify`. Ответ `202`; ход выполнения — `GET /runs/{run_id}/events`. `429 BUSY` — слишком "
+        "много параллельных запусков. `trace` — «Дебаг»: свой ввод (`stdin`/`args`) или сценарии "
+        "(`scenario_ids`, без полей — все включённые); счётчики блоков — в `items[].hits`, покрытие "
+        "и исходы условий — в `summary`. `generate`, `benchmark`, `verify` пока отвечают `501`."
     ),
 )
 async def create_run(

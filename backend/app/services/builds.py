@@ -13,6 +13,8 @@ from app.schemas.verify import BuildResult
 from engine.java.project import JavaProject, get_project
 from engine.runtime.compiler import CompileResult, compile_workspace
 from engine.runtime.jdk import JdkInfo, detect_jdk
+from engine.runtime.trace import TraceBuild
+from engine.runtime.trace import prepare_trace as prepare_trace_build
 from engine.runtime.workspace import Workspace, materialize
 
 
@@ -45,6 +47,23 @@ def prepare(
     except FileNotFoundError as exc:
         raise unavailable(str(exc)) from exc
     return workspace, result
+
+
+def prepare_trace(settings: Settings, files: Mapping[str, str]) -> TraceBuild:
+    """Инструментированная сборка версии (``TraceUnavailable`` — копия не компилируется)."""
+    jdk = jdk_info(settings)
+    if jdk.javac is None:
+        raise unavailable("javac не найден: проверьте PATH или JB_JAVA_HOME")
+    try:
+        return prepare_trace_build(
+            get_project(files),
+            settings.data_dir / "builds",
+            java_home=settings.java_home,
+            jdk_major=jdk.major,
+            timeout_s=settings.compile_timeout_s,
+        )
+    except FileNotFoundError as exc:
+        raise unavailable(str(exc)) from exc
 
 
 def diagnostics(result: CompileResult, project: JavaProject) -> list[Diagnostic]:

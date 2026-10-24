@@ -1,12 +1,14 @@
 "use client";
 
 import { Panel, useReactFlow, useStore } from "@xyflow/react";
-import { Layers, Map as MapIcon, Maximize, Minus, Plus } from "lucide-react";
+import { Layers, Map as MapIcon, Maximize, Minus, Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ru } from "@/lib/i18n/ru";
+import { formatCount } from "@/lib/debug/trace";
+import { useDebugStore } from "@/stores/debug-store";
 import { type Overlays, useWorkspaceStore } from "@/stores/workspace-store";
 
 const t = ru.graph;
@@ -40,11 +42,11 @@ function IconButton({
   );
 }
 
-const OVERLAY_ITEMS: Array<{ key: keyof Overlays; label: string; disabledHint?: string }> = [
+const OVERLAY_ITEMS: Array<{ key: keyof Overlays; label: string }> = [
   { key: "findings", label: t.overlayFindings },
   { key: "complexity", label: t.overlayComplexity },
   { key: "calls", label: t.overlayCalls },
-  { key: "coverage", label: t.overlayCoverage, disabledHint: t.overlayCoverageSoon },
+  { key: "coverage", label: t.overlayCoverage },
 ];
 
 type ZoomProps = { showMiniMap: boolean; onToggleMiniMap: () => void; onFit: () => void };
@@ -93,6 +95,8 @@ type Props = ZoomProps & { blocks: number };
 export function CanvasToolbar({ blocks, showMiniMap, onToggleMiniMap, onFit }: Props) {
   const overlays = useWorkspaceStore((s) => s.overlays);
   const setOverlay = useWorkspaceStore((s) => s.setOverlay);
+  const trace = useDebugStore((s) => s.trace);
+  const clearTrace = useDebugStore((s) => s.clear);
 
   return (
     <>
@@ -110,7 +114,7 @@ export function CanvasToolbar({ blocks, showMiniMap, onToggleMiniMap, onFit }: P
                   <Toggle
                     size="sm"
                     pressed={overlays[item.key]}
-                    disabled={item.disabledHint !== undefined}
+                    disabled={item.key === "coverage" && !trace}
                     onPressedChange={(value) => setOverlay(item.key, value)}
                     className="h-7 px-2 text-xs"
                   >
@@ -118,9 +122,28 @@ export function CanvasToolbar({ blocks, showMiniMap, onToggleMiniMap, onFit }: P
                   </Toggle>
                 </span>
               </TooltipTrigger>
-              {item.disabledHint && <TooltipContent>{item.disabledHint}</TooltipContent>}
+              {item.key === "coverage" && !trace && <TooltipContent>{t.overlayCoverageEmpty}</TooltipContent>}
             </Tooltip>
           ))}
+          {trace && (
+            <div
+              className="ml-1 flex items-center gap-1.5 border-l pl-2 text-xs"
+              data-testid="debug-summary"
+              title={trace.saturated ? t.debug.saturated : undefined}
+            >
+              <span className="font-medium">
+                {t.debug.coverage} {Math.round(trace.coverage * 100)}%
+              </span>
+              <span className="text-muted-foreground">
+                {formatCount(trace.covered)}/{formatCount(trace.total)} {t.debug.blocks}
+                {trace.runs > 1 ? ` · ${trace.runs} ${t.debug.runs}` : ""}
+                {trace.saturated ? " ⚠" : ""}
+              </span>
+              <Button variant="ghost" size="icon-sm" className="size-6" aria-label={t.debug.clear} onClick={clearTrace}>
+                <X />
+              </Button>
+            </div>
+          )}
         </div>
       </Panel>
 

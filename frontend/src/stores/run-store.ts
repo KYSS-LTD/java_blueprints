@@ -4,6 +4,7 @@ import { api } from "@/lib/api/client";
 import { unwrap } from "@/lib/api/queries";
 import type { components } from "@/lib/api/schema";
 import { openRunEvents } from "@/lib/api/sse";
+import { useDebugStore } from "@/stores/debug-store";
 import { initialRunState, reduceRunEvent, type RunState } from "@/lib/run/run-state";
 
 export type RunRequest = components["schemas"]["RunRequest"];
@@ -55,7 +56,14 @@ export const useRunStore = create<RunStore>((set, get) => ({
           entries: { ...s.entries, [runId]: { ...current, state: reduceRunEvent(current.state, event) } },
         };
       });
-      if (event.event === "done") unsubscribers.delete(runId);
+      if (event.event === "done") {
+        unsubscribers.delete(runId);
+        // счётчики трассировки лежат в итоге запуска, а не в событиях SSE
+        const finished = get().entries[runId];
+        if (finished?.kind === "trace" && finished.state.status === "done") {
+          void useDebugStore.getState().load(runId);
+        }
+      }
     });
     unsubscribers.set(runId, stop);
   },

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import contextlib
 import importlib
+import json
 import os
 import re
 import signal
@@ -25,10 +26,12 @@ import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from engine.runtime.jdk import tool_path
 from engine.runtime.workspace import Workspace
 
+_TRACE_FILE = "hits.json"
 _EXCEPTION = re.compile(
     r'Exception in thread "[^"]*" (?P<type>[\w.$]+)(?::[ \t]?(?P<rest>.*))?', re.S
 )
@@ -59,6 +62,7 @@ class RunResult:
     exception: ExceptionInfo | None
     duration_ms: int
     truncated: bool = False
+    trace: dict[str, Any] | None = None  # содержимое ``hits.json`` у инструментированного запуска
 
 
 def jvm_flags(limits: RunLimits, locale: str = "en_US", timezone: str = "UTC") -> list[str]:
@@ -181,24 +185,33 @@ def run_java(
     locale: str = "en_US",
     timezone: str = "UTC",
     cancel: threading.Event | None = None,
+    trace_limit: int | None = None,
 ) -> RunResult:
+    """Запускает ``main_class``; ``trace_limit`` включает сбор счётчиков ``JbTrace`` в ``RunResult.trace``."""
     java = tool_path("java", java_home)
     if java is None:
         return RunResult(
             "internal", "", "java не найден: проверьте PATH или JB_JAVA_HOME", None, None, 0
         )
 
-    command = [
-        java,
-        *jvm_flags(limits, locale, timezone),
-        "-cp",
-        str(workspace.classes),
-        main_class,
-        *args,
-    ]
     over = threading.Event()
     started = time.monotonic()
     with tempfile.TemporaryDirectory(prefix="jb-run-") as run_dir:
+        trace_file = Path(run_dir) / _TRACE_FILE
+        trace_flags = (
+            [f"-Djb.trace.out={trace_file}", f"-Djb.trace.limit={trace_limit}"]
+            if trace_limit is not None
+            else []
+        )
+        command = [
+            java,
+            *jvm_flags(limits, locale, timezone),
+            *trace_flags,
+            "-cp",
+            str(workspace.classes),
+            main_class,
+            *args,
+        ]
         env = clean_env(java, Path(run_dir))
         try:
             if sys.platform == "win32":
@@ -270,6 +283,7 @@ def run_java(
                     stream.close()
             except OSError:
                 pass
+        trace = _read_trace(trace_file) if trace_limit is not None else None
 
     stdout = out_reader.data.decode("utf-8", errors="replace")
     stderr = err_reader.data.decode("utf-8", errors="replace")
@@ -289,7 +303,17 @@ def run_java(
         exception=exception,
         duration_ms=int((time.monotonic() - started) * 1000),
         truncated=truncated,
+        trace=trace,
     )
+
+
+def _read_trace(path: Path) -> dict[str, Any] | None:
+    """``hits.json`` пишет shutdown hook; при убийстве по таймауту файла нет."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
 
 
 __all__ = [

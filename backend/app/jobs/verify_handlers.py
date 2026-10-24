@@ -132,13 +132,13 @@ def _diff_schema(diff: Difference | None) -> schemas.BehaviorDiff | None:
     )
 
 
-def _require_main(ctx: JobContext) -> str:
+def require_main(ctx: JobContext) -> str:
     if ctx.main_class is None:
         raise bad_request("у проекта нет главного класса: выберите его в настройках проекта")
     return ctx.main_class
 
 
-def _parallel[T](
+def run_parallel[T](
     ctx: JobContext,
     scenarios: list[ScenarioData],
     work: Callable[[ScenarioData], T],
@@ -169,7 +169,7 @@ def _parallel[T](
 
 def record_baselines(ctx: JobContext) -> Outcome:
     """Эталон: каждый включённый сценарий дважды на эталонной версии (docs/07 § 3.3, § 4.1)."""
-    main = _require_main(ctx)
+    main = require_main(ctx)
     with Session(get_engine()) as session:
         scenarios = load_scenarios(session, ctx.project_id, ctx.request.scenario_ids)
     if not scenarios:
@@ -232,7 +232,7 @@ def record_baselines(ctx: JobContext) -> Outcome:
             )
         )
 
-    if not _parallel(ctx, scenarios, work, done):
+    if not run_parallel(ctx, scenarios, work, done):
         return cancelled()
 
     order = {s.id: i for i, s in enumerate(scenarios)}
@@ -311,7 +311,7 @@ class ScenarioRun:
 
 def run_scenarios(ctx: JobContext, built: Built) -> ScenarioRun | None:
     """Прогон включённых сценариев с эталоном; ``None`` — запуск отменён."""
-    main = _require_main(ctx)
+    main = require_main(ctx)
     with Session(get_engine()) as session:
         scenarios = load_scenarios(session, ctx.project_id, ctx.request.scenario_ids)
         stored = load_baselines(session, ctx.project_id)
@@ -360,7 +360,7 @@ def run_scenarios(ctx: JobContext, built: Built) -> ScenarioRun | None:
             )
         )
 
-    if runnable and not _parallel(ctx, runnable, work, done):
+    if runnable and not run_parallel(ctx, runnable, work, done):
         return None
     order = {s.id: i for i, s in enumerate(runnable)}
     items.sort(key=lambda item: order.get(item.scenario_id or 0, 0))

@@ -2,13 +2,15 @@
 
 import { Handle, type Node, type NodeProps, Position } from "@xyflow/react";
 import { ChevronDown, ChevronRight, ExternalLink, TriangleAlert } from "lucide-react";
-import { createContext, memo, useContext } from "react";
+import { createContext, memo, useContext, useMemo } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { blockHeat, type BlockHeat, formatCount } from "@/lib/debug/trace";
 import { beginDrag, endDrag } from "@/lib/edit/drag";
 import { ru } from "@/lib/i18n/ru";
 import type { Block } from "@/lib/graph/flow-model";
 import { cn } from "@/lib/utils";
+import { useDebugStore } from "@/stores/debug-store";
 import { type Overlays, useWorkspaceStore } from "@/stores/workspace-store";
 
 import { blockStyle, colorVar } from "./block-style";
@@ -46,6 +48,33 @@ function useIsSelected(id: string): boolean {
   return useWorkspaceStore((state) => state.selection?.nodeId === id);
 }
 
+const NO_HEAT: BlockHeat = { state: "none" };
+
+/** Счётчики трассировки для блока (если включён оверлей «Покрытие» и «Дебаг» уже отработал). */
+function useHeat(id: string): BlockHeat {
+  const { overlays } = useContext(CanvasContext);
+  const trace = useDebugStore((s) => s.trace);
+  return useMemo(() => (overlays.coverage ? blockHeat(trace, id) : NO_HEAT), [overlays.coverage, trace, id]);
+}
+
+/** Подсказка к счётчику: исходы условия, входы в цикл. */
+function heatTitle(heat: BlockHeat, kind: string): string {
+  const d = ru.graph.debug;
+  if (heat.state === "idle") return d.idle;
+  if (heat.state !== "hit") return "";
+  const what = kind.startsWith("loop") ? d.iterations : kind === "condition" ? d.conditions : d.executions;
+  const parts = [`${what}: ${heat.count}`];
+  if (heat.entries !== undefined) parts.push(`${d.entered}: ${heat.entries}`);
+  if (heat.branch) parts.push(`${d.yes} ${heat.branch.true} / ${d.no} ${heat.branch.false}`);
+  return parts.join(" · ");
+}
+
+/** Фон блока: чем чаще он выполнялся, тем насыщеннее (логарифмическая шкала). */
+function heatBackground(heat: BlockHeat): string | undefined {
+  if (heat.state !== "hit") return undefined;
+  return `color-mix(in oklab, var(--primary) ${Math.round(heat.heat * 22)}%, var(--card))`;
+}
+
 const HIDDEN_HANDLE = "pointer-events-none !size-1 !min-h-0 !min-w-0 !border-0 !bg-transparent";
 
 function Handles({ headerOffset }: { headerOffset?: number }) {
@@ -68,13 +97,26 @@ function Handles({ headerOffset }: { headerOffset?: number }) {
 
 const CHIP = "rounded px-1.5 py-px text-[10px] leading-4 font-medium whitespace-nowrap";
 
-function BlockChips({ block }: { block: Block }) {
+function BlockChips({ block, heat }: { block: Block; heat: BlockHeat }) {
   const { overlays } = useContext(CanvasContext);
   const defect = block.badges.find((b) => b.kind === "defect");
   const io = block.badges.filter((b) => b.kind === "output" || b.kind === "input" || b.kind === "error_output");
   const calls = block.badges.filter((b) => b.kind === "call");
   return (
     <div className="flex shrink-0 items-center gap-1">
+      {heat.state !== "none" && (
+        <span
+          className={cn(
+            CHIP,
+            "font-mono",
+            heat.state === "hit" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground",
+          )}
+          title={heatTitle(heat, block.kind)}
+          data-testid="heat-chip"
+        >
+          ×{heat.state === "hit" ? formatCount(heat.count) : 0}
+        </span>
+      )}
       {overlays.findings && defect && (
         <span
           className={cn(CHIP, "flex items-center gap-1 bg-severity-high/20 text-severity-high")}
@@ -131,6 +173,7 @@ export const BlockNode = memo(function BlockNode({ id, data }: NodeProps<FlowRfN
   const { block, collapsed, hiddenCount, movable } = data;
   const { actions, dropHint } = useContext(CanvasContext);
   const selected = useIsSelected(id);
+  const heat = useHeat(id);
   const { icon: Icon, color } = blockStyle(block.kind);
   const hasError = block.errors.length > 0;
 
@@ -141,8 +184,13 @@ export const BlockNode = memo(function BlockNode({ id, data }: NodeProps<FlowRfN
         selectionRing(selected),
         hasError && "border-destructive",
         movable && "nopan cursor-grab",
+        heat.state === "idle" && "opacity-45 grayscale",
       )}
-      style={{ borderColor: hasError ? undefined : colorVar(color, 0.55), ...dropStyle(dropHint, id) }}
+      style={{
+        borderColor: hasError ? undefined : colorVar(color, 0.55),
+        background: heatBackground(heat),
+        ...dropStyle(dropHint, id),
+      }}
       title={block.code}
       data-testid={`block-${block.kind}`}
       {...dragProps(id, movable)}
@@ -152,7 +200,7 @@ export const BlockNode = memo(function BlockNode({ id, data }: NodeProps<FlowRfN
       <div className="flex items-center gap-1.5">
         <Icon className="size-3.5 shrink-0" style={{ color: colorVar(color) }} aria-hidden />
         <span className="min-w-0 flex-1 truncate text-xs font-semibold">{block.title}</span>
-        <BlockChips block={block} />
+        <BlockChips block={block} heat={heat} />
         {collapsed && (
           <button
             type="button"
@@ -177,6 +225,7 @@ export const ContainerNode = memo(function ContainerNode({ id, data }: NodeProps
   const { block, movable } = data;
   const { actions, dropHint } = useContext(CanvasContext);
   const selected = useIsSelected(id);
+  const heat = useHeat(id);
   const { icon: Icon, color } = blockStyle(block.kind);
   const subtitle = block.kind === "catch" && block.exception ? block.exception : block.code;
 
@@ -185,6 +234,7 @@ export const ContainerNode = memo(function ContainerNode({ id, data }: NodeProps
       className={cn(
         "relative h-full w-full rounded-xl border-2 border-dashed",
         selectionRing(selected),
+        heat.state === "idle" && "opacity-60 grayscale",
       )}
       style={{ borderColor: colorVar(color, 0.6), background: colorVar(color, 0.06), ...dropStyle(dropHint, id) }}
       data-testid={`container-${block.kind}`}
@@ -205,7 +255,7 @@ export const ContainerNode = memo(function ContainerNode({ id, data }: NodeProps
           <p className="truncate text-xs font-semibold">{block.title}</p>
           <p className="truncate font-mono text-[11px] leading-4 text-muted-foreground">{subtitle}</p>
         </div>
-        <BlockChips block={block} />
+        <BlockChips block={block} heat={heat} />
         <button
           type="button"
           className="nodrag nopan flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
