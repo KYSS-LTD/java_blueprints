@@ -15,8 +15,10 @@ from dataclasses import dataclass, field
 
 import networkx as nx
 
+from engine.java import cst
 from engine.java.project import FLOWABLE, JavaProject
 from engine.java.symbols import Member, TypeDecl, base_name
+from engine.transform.dataflow import _is_reference
 
 DEFAULT_SEED = 42
 DEFAULT_MAX_CLASSES = 6
@@ -164,6 +166,59 @@ def _overrides(project: JavaProject, decl: TypeDecl, method: Member) -> bool:
     return False
 
 
+def inner_classes(decl: TypeDecl) -> set[str]:
+    """Имена нестатических внутренних классов: создать их можно только из экземпляра ядра."""
+    return {t.name for t in decl.nested if t.kind == "class" and "static" not in t.modifiers}
+
+
+def _in_anonymous_class(node, boundary_start: int) -> bool:  # type: ignore[no-untyped-def]
+    parent = node.parent
+    while parent is not None and parent.start_byte >= boundary_start:
+        if (
+            parent.type == "class_body"
+            and parent.parent is not None
+            and parent.parent.type == "object_creation_expression"
+        ):
+            return True
+        parent = parent.parent
+    return False
+
+
+def reason_to_stay(project: JavaProject, decl: TypeDecl, member: Member) -> str | None:
+    """Почему метод нельзя выносить из ядра: внутренние классы, ``this`` в анонимных классах, унаследованные члены."""
+    ctx, declaration = project.context(member)
+    if declaration is None:
+        return None
+    source = project.files[project.file_of(member)].encode("utf-8")
+    inner = inner_classes(decl)
+    own = {m.id for m in decl.members}
+    own_fields = {m.name for m in decl.members if m.kind == "field"}
+    unknown_super = any(project.table.type_named(e) is None for e in decl.extends)
+    for node in cst.walk(declaration):
+        kind = node.type
+        text = source[node.start_byte : node.end_byte].decode("utf-8")
+        if kind in {"type_identifier", "identifier"} and text in inner:
+            return f"использует внутренний класс {text}: ему нужен экземпляр ядра"
+        if kind == "this" and _in_anonymous_class(node, declaration.start_byte):
+            return "захватывает this в анонимном классе"
+        if not decl.extends:
+            continue
+        if kind == "method_invocation" and node.child_by_field_name("object") is None:
+            name_node = node.child_by_field_name("name")
+            if name_node is not None and not any(t.id in own for t in ctx.resolve_call(node)):
+                called = source[name_node.start_byte : name_node.end_byte].decode("utf-8")
+                return f"вызывает унаследованный метод {called}()"
+        elif kind == "identifier" and _is_reference(node) and text not in ctx.scope:
+            if text in own_fields:
+                continue
+            found = ctx.table.field_type(ctx.owner, text)
+            if found is not None and found[1].id != decl.id:
+                return f"использует унаследованное поле {text}"
+            if found is None and unknown_super and text[:1].islower():
+                return f"использует «{text}» из суперкласса вне проекта"
+    return None
+
+
 def pinned(project: JavaProject, decl: TypeDecl) -> dict[str, str]:
     """Члены, которые остаются в ядре, и причина."""
     result: dict[str, str] = {}
@@ -177,6 +232,10 @@ def pinned(project: JavaProject, decl: TypeDecl) -> dict[str, str]:
                 result[member.id] = "точка входа"
             elif _overrides(project, decl, member):
                 result[member.id] = "переопределяет или реализует чужой метод"
+            else:
+                reason = reason_to_stay(project, decl, member)
+                if reason is not None:
+                    result[member.id] = reason
     # методы, на которые ссылаются как ``Тип::метод``: правила переписывания их не охватывают
     for path, text in project.files.items():
         parsed = project.parsed(path)

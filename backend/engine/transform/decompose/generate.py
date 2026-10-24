@@ -25,7 +25,7 @@ from engine.edit.operations import _with_leading_comments, removal_range
 from engine.java import cst
 from engine.java.project import FLOWABLE, JavaProject, get_project
 from engine.java.symbols import Member, TypeDecl
-from engine.transform.decompose.plan import Plan, pinned
+from engine.transform.decompose.plan import Plan, inner_classes, pinned
 
 
 class DecomposeError(Exception):
@@ -111,6 +111,8 @@ class _Rewriter:
         self.members = {m.id: m for m in decl.members}
         self.cluster_field = self._field_names(plan)
         self.expose: set[str] = set()
+        self.nested = {t.name: t for t in decl.nested if t.name not in inner_classes(decl)}
+        self.expose_types: set[str] = set()
         self.warnings: list[str] = []
 
     def _field_names(self, plan: Plan) -> dict[str, str]:
@@ -154,6 +156,8 @@ class _Rewriter:
                 edits.extend(self._field_access(node, ctx, text))
             elif node.type == "identifier" and caller not in (None, self.core):
                 edits.extend(self._identifier(node, ctx, text, member))
+            elif node.type == "type_identifier" and caller not in (None, self.core):
+                edits.extend(self._nested_type(node, text))
             elif node.type == "this" and caller not in (None, self.core):
                 parent = node.parent
                 qualified = parent is not None and (
@@ -215,6 +219,17 @@ class _Rewriter:
         self.expose.add(found[0].id)
         return [_Edit(receiver.start_byte, receiver.end_byte, "core")]
 
+    def _nested_type(self, node: Node, text) -> list[_Edit]:  # type: ignore[no-untyped-def]
+        """Вложенный тип монолита (``Kind``) в перенесённом коде пишется как ``Main.Kind``."""
+        parent = node.parent
+        name = text(node)
+        if name not in self.nested or (
+            parent is not None and parent.type == "scoped_type_identifier"
+        ):
+            return []
+        self.expose_types.add(self.nested[name].id)
+        return [_Edit(node.start_byte, node.start_byte, f"{self.decl.name}.")]
+
     def _identifier(self, node: Node, ctx, text, member) -> list[_Edit]:  # type: ignore[no-untyped-def]
         parent = node.parent
         if parent is None:
@@ -243,6 +258,13 @@ class _Rewriter:
         name = text(node)
         if name in ctx.scope:
             return []
+        if (
+            name in self.nested
+            and parent.type in {"field_access", "method_invocation"}
+            and parent.child_by_field_name("object") == node
+        ):
+            self.expose_types.add(self.nested[name].id)
+            return [_Edit(node.start_byte, node.start_byte, f"{self.decl.name}.")]
         found = ctx.table.field_type(ctx.owner, name)
         if found is None or found[0].id not in self.home:
             return []
@@ -378,6 +400,13 @@ def generate(project: JavaProject, plan: Plan) -> Generated:
         if exposed is not None and member_id not in moved_ids and home[member_id] == decl.name:
             for edit in _remove_private(node_of[member_id], source, 0):
                 file_edits.append(TextEdit(file, edit.start, edit.end, edit.text))
+    for nested in decl.nested:
+        if nested.id in rewriter.expose_types:  # вложенный тип виден из новых классов
+            spans = [(nested.start_byte, nested.end_byte)]
+            spans.extend((m.start_byte, m.end_byte) for m in nested.members)
+            for begin, finish in spans:
+                for edit in _remove_private(ts_node(project, file, begin, finish), source, 0):
+                    file_edits.append(TextEdit(file, edit.start, edit.end, edit.text))
     decl_node = ts_node(project, file, decl.start_byte, decl.end_byte)
     class_body = decl_node.child_by_field_name("body")
     if class_body is None:

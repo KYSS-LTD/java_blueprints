@@ -9,7 +9,7 @@ import pytest
 
 from engine.java.project import JavaProject
 from engine.transform.decompose.generate import DecomposeError, generate, validate
-from engine.transform.decompose.plan import Plan, build_plan
+from engine.transform.decompose.plan import Plan, build_plan, monolith, pinned
 
 SAMPLES = Path(__file__).resolve().parents[3] / "samples"
 
@@ -87,6 +87,49 @@ public class Main {
 }
 """
 CORE = "Main.java#Main"
+
+NESTED = SRC.replace(
+    "    void printHeader() {",
+    """    enum Kind { SMALL, BIG }
+
+    record Pair(int a, int b) {}
+
+    class Counter {
+        void inc() { total++; }
+    }
+
+    Kind kindOf(int v) {
+        return v > 5 ? Kind.BIG : Kind.SMALL;
+    }
+
+    void showPair() {
+        Pair p = new Pair(total, errors);
+        printLine(kindOf(p.a()) + ":" + p.b());
+    }
+
+    void bump() {
+        Counter c = new Counter();
+        c.inc();
+        printLine("bumped " + total);
+    }
+
+    void printHeader() {""",
+)
+INHERITED = (
+    SRC.replace("public class Main {", "public class Main extends Base {").replace(
+        'printLine("== report ==");',
+        'printLine("== report ==" + baseValue);\n        hello();',
+    )
+    + """
+class Base {
+    protected int baseValue = 5;
+
+    void hello() {
+        System.out.println("hi");
+    }
+}
+"""
+)
 
 
 def project() -> JavaProject:
@@ -228,3 +271,36 @@ def test_a_plan_needs_exactly_one_core_and_no_empty_classes():
 
     message = refuse(empty)
     assert "без методов" in message or "не хватает" in message
+
+
+# --- вложенные типы и наследование (S9.8) -------------------------------------------------------------------------------
+
+
+def where_is(plan: Plan, method: str) -> str:
+    return next(c.name for c in plan.classes if any(m.endswith(f".{method}") for m in c.members))
+
+
+def test_methods_using_inner_classes_stay_in_the_core():
+    project = JavaProject({"Main.java": NESTED})
+    plan = build_plan(project)
+    assert where_is(plan, "bump()") == "Main"
+    pins = pinned(project, monolith(project))
+    assert any("внутренний класс Counter" in reason for reason in pins.values())
+
+
+def test_static_nested_types_are_written_with_the_core_name_in_new_classes():
+    project = JavaProject({"Main.java": NESTED})
+    plan = build_plan(project)
+    generated = generate(project, plan)
+    moved = [c for c in plan.classes if c.role not in {"core", "model"}]
+    text = "\n".join(generated.files[c.file] for c in moved)
+    assert "Main.Kind" in text or "Main.Pair" in text
+    assert "Kind.BIG" not in text.replace("Main.Kind.BIG", "")
+    assert not JavaProject(generated.files).syntax_issues()
+
+
+def test_methods_using_inherited_members_stay_in_the_core():
+    project = JavaProject({"Main.java": INHERITED})
+    pins = pinned(project, monolith(project))
+    reasons = " ".join(pins.values())
+    assert "унаследованный метод hello()" in reasons or "унаследованное поле baseValue" in reasons

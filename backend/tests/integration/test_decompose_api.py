@@ -7,6 +7,7 @@ import copy
 import pytest
 
 from tests.integration.conftest import wait_run
+from tests.unit.test_decompose import INHERITED, NESTED
 
 pytestmark = pytest.mark.jdk
 
@@ -212,3 +213,18 @@ def test_every_monolith_decomposes_into_working_code(client, sample):
     lines = {f["path"]: f["lines"] for f in client.get(url(project, "/files")).json()["files"]}
     assert lines["Main.java"] * 2 <= before_lines
     assert all(c["file"] in lines for c in plan["classes"])
+
+
+@pytest.mark.parametrize("source", [NESTED, INHERITED], ids=["nested-types", "inheritance"])
+def test_nested_types_and_inheritance_still_compile(client, make_project, source):
+    project = make_project({"Main.java": source}, name="tricky")
+    plan = plan_of(client, project)
+    assert any(c["role"] not in {"core", "model"} for c in plan["classes"])
+    response = client.post(
+        url(project, "/decompose/preview"),
+        json={"base_version_id": project["head_version_id"], "plan": plan},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert not any("не компилируется" in w for w in body["warnings"]), body["warnings"]
+    assert any(d["status"] == "added" for d in body["diff"])
