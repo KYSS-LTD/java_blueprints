@@ -14,9 +14,10 @@ import re
 import subprocess
 import time
 from dataclasses import asdict, dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
-from engine.runtime.jdk import tool_path
+from engine.runtime.jdk import detect_jdk, tool_path
 from engine.runtime.workspace import Workspace
 
 TARGET_RELEASE = 21
@@ -132,6 +133,11 @@ def _load_cached(workspace: Workspace) -> CompileResult | None:
     )
 
 
+@lru_cache(maxsize=4)
+def _installed_major(java_home: Path | None) -> int | None:
+    return detect_jdk(java_home).major
+
+
 def compile_workspace(
     workspace: Workspace,
     java_home: Path | None = None,
@@ -146,7 +152,8 @@ def compile_workspace(
     javac = tool_path("javac", java_home)
     if javac is None:
         raise FileNotFoundError("javac не найден: проверьте PATH или JB_JAVA_HOME")
-    release = effective_release(jdk_major)
+    # версия JDK не передана — определяется по установленному: на JDK 17 цель 21 недоступна
+    release = effective_release(jdk_major if jdk_major is not None else _installed_major(java_home))
     sources = workspace.sources
     if not sources:
         return CompileResult(

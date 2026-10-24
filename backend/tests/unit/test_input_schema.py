@@ -17,7 +17,10 @@ SAMPLES = Path(__file__).resolve().parents[3] / "samples"
 def sample(name: str) -> JavaProject:
     root = SAMPLES / name
     return JavaProject(
-        {p.relative_to(root).as_posix(): p.read_text(encoding="utf-8") for p in root.rglob("*.java")}
+        {
+            p.relative_to(root).as_posix(): p.read_text(encoding="utf-8")
+            for p in root.rglob("*.java")
+        }
     )
 
 
@@ -75,7 +78,9 @@ def test_seeds_and_mutations_are_deterministic_for_the_same_seed():
     first = seed_inputs(hints, [], random.Random(7))
     second = seed_inputs(hints, [], random.Random(7))
     assert first == second
-    assert any("add 1 1 1 1 1" in s.stdin for s in first)  # «универсальный» токен проходит любой разбор
+    assert any(
+        "add 1 1 1 1 1" in s.stdin for s in first
+    )  # «универсальный» токен проходит любой разбор
 
     def mutants(seed: int) -> list[TestInput]:
         rng = random.Random(seed)
@@ -94,7 +99,9 @@ def test_search_keeps_only_inputs_with_new_coverage_and_is_repeatable():
     def executor(batch):
         """Покрытие — множество слов команд в вводе: чем больше разных команд, тем больше признаков."""
         return [
-            Execution(frozenset(f"cmd:{w}" for line in split_lines(item.stdin) for w in line.split()[:1]))
+            Execution(
+                frozenset(f"cmd:{w}" for line in split_lines(item.stdin) for w in line.split()[:1])
+            )
             for item in batch
         ]
 
