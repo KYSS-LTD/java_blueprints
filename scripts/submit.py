@@ -90,6 +90,8 @@ def summary(steps: dict[str, bool]) -> str:
         "",
         f"- pytest: {junit_counts(REPORTS / 'pytest-report.xml')} (`reports/pytest-report.xml`)",
         f"- vitest: {junit_counts(REPORTS / 'vitest-report.xml')} (`reports/vitest-report.xml`)",
+        f"- playwright: {junit_counts(REPORTS / 'playwright-report.xml')} (`reports/playwright-report.xml`; "
+        "запуск: `cd frontend && pnpm e2e` при поднятом приложении)",
         "- корпус через API: `reports/verify_samples.md`, `reports/verify_samples.json`",
         "- баг-баш: `reports/bug_bash.md`",
         "- бюджеты производительности: `reports/perf_budget.md`",

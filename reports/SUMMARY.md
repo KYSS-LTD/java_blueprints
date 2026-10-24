@@ -21,6 +21,7 @@
 
 - pytest: 1373 из 1375 (`reports/pytest-report.xml`)
 - vitest: 269 из 269 (`reports/vitest-report.xml`)
+- playwright: 8 из 8 (`reports/playwright-report.xml`; запуск: `cd frontend && pnpm e2e` при поднятом приложении)
 - корпус через API: `reports/verify_samples.md`, `reports/verify_samples.json`
 - баг-баш: `reports/bug_bash.md`
 - бюджеты производительности: `reports/perf_budget.md`

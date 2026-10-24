@@ -108,6 +108,8 @@
 | `undo_redo` | Операция → undo → код как до → redo |
 | `export` | «Экспорт Java» → архив скачан; (в тесте) компилируется `javac` |
 
+Реализация — `frontend/e2e/*.spec.ts`, запуск `cd frontend && pnpm e2e` при поднятом приложении (`E2E_BASE_URL`, по умолчанию `http://localhost:3000`; без загрузки браузеров — `E2E_CHANNEL=msedge` или `chrome`). Каждый тест создаёт свой проект из примера `demo-orders` через API и пишет JUnit в `reports/playwright-report.xml`. Компиляция экспорта `javac` проверяется в `scripts/bug_bash.py`.
+
 ## 6. CI (GitHub Actions)
 
 ```
