@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from fastapi import APIRouter
+from fastapi.concurrency import run_in_threadpool
 
 from app.api.common import ERROR_RESPONSES
-from app.deps import ProjectDep, SessionDep, SettingsDep
-from app.errors import not_implemented
+from app.deps import ProjectDep, RunManagerDep, SessionDep, SettingsDep
 from app.schemas.analysis import (
     AnalysisResponse,
     Category,
@@ -16,7 +16,7 @@ from app.schemas.analysis import (
     MetricsResponse,
     Severity,
 )
-from app.schemas.verify import RunRef
+from app.schemas.verify import RunRef, RunRequest
 from app.services import analysis as service
 from app.services import graphs
 from app.services import versions as versions_service
@@ -58,8 +58,21 @@ def list_findings(
     summary="Динамическая проверка находки",
     description="Запускает `kind=verify` (бенчмарк или трассировка); дальше — SSE запуска.",
 )
-def verify_finding(project_id: int, finding_id: str) -> RunRef:
-    raise not_implemented("S7")
+async def verify_finding(
+    project: ProjectDep,
+    session: SessionDep,
+    settings: SettingsDep,
+    manager: RunManagerDep,
+    finding_id: str,
+) -> RunRef:
+    def prepare() -> int:
+        version = versions_service.resolve_version(session, project, None)
+        service.finding(graphs.java_project(session, version), project, settings, finding_id)  # 404
+        return version.id or 0
+
+    version_id = await run_in_threadpool(prepare)
+    request = RunRequest(kind="verify", finding_id=finding_id, version_id=version_id)
+    return RunRef(run_id=await manager.submit(project, request, version_id))
 
 
 @router.get(
@@ -76,7 +89,9 @@ def get_finding(
 ) -> Finding:
     version = versions_service.resolve_version(session, project, version_id)
     java = graphs.java_project(session, version)
-    return service.finding(java, project, settings, finding_id)
+    card = service.finding(java, project, settings, finding_id)
+    card.evidence.dynamic = service.dynamic_evidence(session, project, version, finding_id)
+    return card
 
 
 @router.get(

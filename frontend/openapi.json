@@ -1727,21 +1727,21 @@
         "operationId": "verify_finding",
         "parameters": [
           {
-            "name": "project_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Project Id"
-            }
-          },
-          {
             "name": "finding_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "title": "Finding Id"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
             }
           }
         ],

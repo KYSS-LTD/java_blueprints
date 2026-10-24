@@ -189,9 +189,8 @@ def test_unknown_op_is_rejected_with_bad_request(client):
 @pytest.mark.parametrize(
     ("method", "path", "body"),
     [
-        ("POST", "/api/projects/{p}/findings/PERF-01:Main.java%23Main.run()/for[0]/verify", None),
-        ("POST", "/api/projects/{p}/runs", {"kind": "verify"}),
-        ("POST", "/api/projects/{p}/scenarios/generate", None),
+        ("POST", "/api/projects/{p}/extract-method/preview", {"name": "extracted"}),
+        ("POST", "/api/projects/{p}/decompose/plan", {}),
     ],
 )
 def test_stubs_answer_501_in_error_format(client, method, path, body):

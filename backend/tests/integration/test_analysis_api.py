@@ -239,6 +239,6 @@ def test_graphs_carry_complexity_and_defect_badges(client, pairs):
     assert by_name["analyze(List<String>)"]["findings"]["high"] == 1
 
 
-def test_verify_is_still_a_stub(client, pairs):
+def test_verify_of_an_unknown_finding_is_404(client, pairs):
     response = client.post(url(pairs, "/findings/PERF-01:x/verify"))
-    assert response.status_code == 501
+    assert response.status_code == 404

@@ -4201,8 +4201,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
                 finding_id: string;
+                project_id: number;
             };
             cookie?: never;
         };

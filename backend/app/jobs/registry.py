@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from app.jobs.benchmark_handler import benchmark_handlers
 from app.jobs.generate_handler import generate_handlers
 from app.jobs.handlers import default_handlers
 from app.jobs.optimize_handler import optimize_handlers
@@ -17,4 +18,5 @@ def all_handlers() -> dict[str, Handler]:
         **trace_handlers(),
         **optimize_handlers(),
         **generate_handlers(),
+        **benchmark_handlers(),
     }

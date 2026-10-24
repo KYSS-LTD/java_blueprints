@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import random
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from engine.verify.generator.input_schema import InputHints, SchemaNode
@@ -126,8 +126,12 @@ def _from_schema(
     size: int,
     counts: dict[str, int],
     delimiter: str,
+    typed: Callable[[str | None, Pools, random.Random], str] | None = None,
 ) -> list[str]:
-    """Строки ввода по схеме; ``size`` — сколько раз повторять циклы чтения."""
+    """Строки ввода по схеме; ``size`` — сколько раз повторять циклы чтения.
+
+    ``typed`` подменяет выбор значения токена по типу (бенчмарку нужны разные значения)."""
+    pick = typed or _typed
     lines: list[str] = []
     pending: list[str] = []  # токены одной строки, прочитанные ``next*`` подряд
 
@@ -141,11 +145,11 @@ def _from_schema(
             if node.var and node.var in counts:
                 pending.append(str(size))
             else:
-                pending.append(_typed(node.type, pools, rng))
+                pending.append(pick(node.type, pools, rng))
         elif node.kind == "line":
             flush()
             lines.append(
-                str(size) if node.var and node.var in counts else _typed(node.type, pools, rng)
+                str(size) if node.var and node.var in counts else pick(node.type, pools, rng)
             )
         elif node.kind == "repeat":
             flush()
@@ -155,7 +159,9 @@ def _from_schema(
                 else _count(node)
             )
             for _ in range(times):
-                lines.extend(_from_schema(node.children, pools, rng, size, counts, delimiter))
+                lines.extend(
+                    _from_schema(node.children, pools, rng, size, counts, delimiter, typed)
+                )
         elif node.kind == "command_loop":
             flush()
             for _ in range(max(size, 1)):

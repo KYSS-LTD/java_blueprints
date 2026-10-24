@@ -7,8 +7,10 @@ import logging
 from collections import Counter
 from typing import Any
 
+from sqlmodel import Session, col, select
+
 from app.config import Settings
-from app.db.models import Project, Version
+from app.db.models import Project, Run, Version
 from app.errors import bad_request, not_found
 from app.schemas import analysis as schemas
 from app.schemas.common import SourceRange
@@ -73,6 +75,35 @@ def finding(
         if item.id == finding_id:
             return schemas.Finding.model_validate(_dump(item))
     raise not_found(f"находка {finding_id} не найдена", finding_id=finding_id)
+
+
+def dynamic_evidence(
+    session: Session, project: Project, version: Version, finding_id: str
+) -> schemas.DynamicEvidence | None:
+    """Результат последней завершённой проверки находки на этой версии (``kind=verify``)."""
+    query = (
+        select(Run)
+        .where(
+            Run.project_id == project.id,
+            Run.version_id == version.id,
+            Run.kind == "verify",
+            Run.status == "done",
+        )
+        .order_by(col(Run.id).desc())
+        .limit(30)
+    )
+    for run in session.exec(query).all():
+        data = (run.summary or {}).get("data") or {}
+        if data.get("finding_id") == finding_id and data.get("samples"):
+            return schemas.DynamicEvidence.model_validate(
+                {
+                    "run_id": run.id,
+                    "samples": data["samples"],
+                    "growth_k": data.get("growth_k"),
+                    "verdict": data.get("verdict"),
+                }
+            )
+    return None
 
 
 def metrics(java: JavaProject, project: Project, settings: Settings) -> schemas.Metrics:
