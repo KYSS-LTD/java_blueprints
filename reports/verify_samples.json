@@ -13,7 +13,7 @@
     "passed": 11,
     "total": 11,
     "coverage": 0.9042,
-    "complexity": "O(n⁴)",
+    "complexity": "O(n³)",
     "optimized": "O(n²)",
     "findings": 37,
     "by_severity": {
@@ -22,7 +22,7 @@
       "low": 17
     },
     "fixable": 23,
-    "seconds": 5.6
+    "seconds": 7.3
   },
   {
     "sample": "analyzer-pairs",
@@ -46,7 +46,7 @@
       "low": 3
     },
     "fixable": 1,
-    "seconds": 2.8
+    "seconds": 3.7
   },
   {
     "sample": "expression-calculator",
@@ -62,8 +62,8 @@
     "passed": 10,
     "total": 10,
     "coverage": 0.9151,
-    "complexity": "O(n^8)",
-    "optimized": "O(n^7)",
+    "complexity": "O(n⁴)",
+    "optimized": "O(n³)",
     "findings": 48,
     "by_severity": {
       "high": 11,
@@ -71,7 +71,7 @@
       "low": 25
     },
     "fixable": 18,
-    "seconds": 4.6
+    "seconds": 7.5
   },
   {
     "sample": "graph-paths",
@@ -87,7 +87,7 @@
     "passed": 10,
     "total": 10,
     "coverage": 0.9413,
-    "complexity": "O(n⁵)",
+    "complexity": "O(n⁴)",
     "optimized": "O(n³)",
     "findings": 39,
     "by_severity": {
@@ -96,7 +96,7 @@
       "low": 13
     },
     "fixable": 17,
-    "seconds": 5.0
+    "seconds": 6.8
   },
   {
     "sample": "inventory",
@@ -112,8 +112,8 @@
     "passed": 9,
     "total": 9,
     "coverage": 0.9279,
-    "complexity": "O(n³ log n)",
-    "optimized": "O(n² log n)",
+    "complexity": "O(n³)",
+    "optimized": "O(n²)",
     "findings": 28,
     "by_severity": {
       "high": 5,
@@ -121,7 +121,32 @@
       "low": 13
     },
     "fixable": 18,
-    "seconds": 4.8
+    "seconds": 6.8
+  },
+  {
+    "sample": "library",
+    "lines": 997,
+    "files": 1,
+    "syntax_errors": 0,
+    "main_class": "Main",
+    "scenarios": 9,
+    "baseline": "Эталон записан: 9 из 9",
+    "warnings": [],
+    "gate": "passed",
+    "gate_message": "Все тесты пройдены — 9 из 9",
+    "passed": 9,
+    "total": 9,
+    "coverage": 0.9002,
+    "complexity": "O(n³)",
+    "optimized": "O(n²)",
+    "findings": 31,
+    "by_severity": {
+      "high": 6,
+      "medium": 9,
+      "low": 16
+    },
+    "fixable": 17,
+    "seconds": 6.6
   },
   {
     "sample": "text-analyzer",
@@ -137,8 +162,8 @@
     "passed": 9,
     "total": 9,
     "coverage": 0.9304,
-    "complexity": "O(n^7)",
-    "optimized": "O(n^6)",
+    "complexity": "O(n⁴ log n)",
+    "optimized": "O(n³)",
     "findings": 23,
     "by_severity": {
       "high": 8,
@@ -146,6 +171,6 @@
       "low": 9
     },
     "fixable": 12,
-    "seconds": 4.5
+    "seconds": 6.4
   }
 ]
