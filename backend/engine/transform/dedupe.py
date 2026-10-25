@@ -573,7 +573,11 @@ def _build(
     for k, o in enumerate(group):
         args = ", ".join(p.values[k] for p in params)
         if flow.tail_return:
-            call = f"return {method_name}({args});"
+            call = (
+                f"{method_name}({args});\n{line_indent(project.files[o.place.file].encode('utf-8'), o.start)}return;"
+                if flow.tail_void
+                else f"return {method_name}({args});"
+            )
         elif out is not None:
             variable = o.flow.outputs[0]
             prefix = f"{variable.type_text} " if declared_inside else ""

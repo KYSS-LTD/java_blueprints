@@ -83,7 +83,8 @@ class Flow:
     declared_inside: set[str] = field(default_factory=set)  # выходные, объявленные внутри фрагмента
     throws: list[str] = field(default_factory=list)
     uses_this: bool = False
-    tail_return: bool = False  # последний оператор — ``return expr;``
+    tail_return: bool = False  # последний оператор — ``return expr;`` или ``return;``
+    tail_void: bool = False  # …и это ``return;`` без значения
     return_type: str | None = None
     problems: list[str] = field(default_factory=list)  # причины отказа
     warnings: list[str] = field(default_factory=list)
@@ -234,18 +235,17 @@ def _is_reference(node: Node) -> bool:
     )
 
 
-def _assigned_names(region: Node, source: bytes) -> set[str]:
-    names: set[str] = set()
+def _assigned_nodes(region: Node) -> list[Node]:
+    """Идентификаторы, которым присваивается значение (``x = …``, ``x += …``, ``x++``)."""
+    found: list[Node] = []
     for node in cst.walk(region):
         if node.type == "assignment_expression":
             left = node.child_by_field_name("left")
             if left is not None and left.type == "identifier":
-                names.add(_text(source, left))
+                found.append(left)
         elif node.type == "update_expression":
-            for child in node.children:
-                if child.type == "identifier":
-                    names.add(_text(source, child))
-    return names
+            found.extend(child for child in node.children if child.type == "identifier")
+    return found
 
 
 def _checked(project: JavaProject, ctx: Context, name: str) -> bool:
@@ -282,9 +282,25 @@ def analyze(
     region_nodes = statements[first : last + 1]
     start, end = region_nodes[0].start_byte, region_nodes[-1].end_byte
     decls = declarations(source, method)
-    assigned = set()
+    # объявления, которым присваивается значение внутри фрагмента (по месту объявления, а не по имени)
+    assigned: dict[tuple[str, int], Declaration] = {}
     for node in region_nodes:
-        assigned |= _assigned_names(node, source)
+        for target in _assigned_nodes(node):
+            decl = _resolve(decls, _text(source, target), target.start_byte)
+            if decl is not None:
+                assigned[(decl.name, decl.start)] = decl
+    # циклы, внутри которых лежит фрагмент: переменная, объявленная до тела цикла, живёт между итерациями
+    loops: list[Node] = []
+    ancestor = region_nodes[0].parent
+    while ancestor is not None and ancestor.id != method.id:
+        if ancestor.type in _LOOPS:
+            loops.append(ancestor)
+        ancestor = ancestor.parent
+
+    def carried(decl: Declaration) -> bool:
+        return any(
+            decl.start < (loop.child_by_field_name("body") or loop).start_byte for loop in loops
+        )
 
     inputs: dict[str, Declaration] = {}
     outputs: dict[str, Declaration] = {}
@@ -300,14 +316,19 @@ def analyze(
         if inside and not declared_inside:
             inputs.setdefault(name, decl)
         if node.start_byte >= end and (
-            declared_inside and decl.scope_end > end or (not declared_inside and name in assigned)
+            declared_inside
+            and decl.scope_end > end
+            or (not declared_inside and (decl.name, decl.start) in assigned)
         ):
             outputs.setdefault(name, decl)
-    for name in assigned:
+    for (name, _), decl in assigned.items():
+        if start <= decl.start < end:
+            continue
         # переменная, объявленная снаружи и изменяемая внутри, должна прийти в метод значением
-        decl = _resolve(decls, name, start)
-        if decl is not None and not (start <= decl.start < end):
-            inputs.setdefault(name, decl)
+        inputs.setdefault(name, decl)
+        # и вернуться назад, если на следующей итерации охватывающего цикла она понадобится снова
+        if carried(decl):
+            outputs.setdefault(name, decl)
 
     def variable(decl: Declaration) -> Variable | None:
         if decl.type_text in {"", "var"}:
@@ -351,6 +372,7 @@ def analyze(
 def _control_flow(flow: Flow, region: list[Node], source: bytes) -> None:
     last = region[-1]
     flow.tail_return = last.type == "return_statement"
+    flow.tail_void = flow.tail_return and not cst.named_children(last)
     returns = 0
     for node in region:
         stack = [(node, 0, 0)]  # (узел, вложенность циклов, вложенность switch)

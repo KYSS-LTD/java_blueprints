@@ -75,7 +75,7 @@ backend/    FastAPI (app/) и ядро без веб-зависимостей (e
 frontend/   Next.js, shadcn/ui, граф и редактор
 samples/    корпус Java-примеров: демо-монолит, фикстуры scope, сломанные и вне рамок (см. samples/README.md)
 reports/    результаты проверки поведения для сдачи
-scripts/    служебные скрипты: doctor.py, verify_corpus.py, verify_samples.py, bug_bash.py, perf_budget.py, jdk_sweep.py, fix_differential.py, submit.py, gen_mock_fixtures.py (моки frontend)
+scripts/    служебные скрипты: doctor.py, verify_corpus.py, verify_samples.py, bug_bash.py, perf_budget.py, jdk_sweep.py, fix_differential.py, extract_differential.py, submit.py, gen_mock_fixtures.py (моки frontend)
 docs/       документация и план разработки
 ```
 
@@ -91,6 +91,7 @@ python scripts/bug_bash.py         # весь корпус (49 проектов)
 python scripts/perf_budget.py      # бюджеты docs/10 § 3.6 → reports/perf_budget.md
 python scripts/jdk_sweep.py        # прочность на исходниках JDK (нужен src.zip) → reports/jdk_sweep.md
 python scripts/fix_differential.py # каждое исправление отдельно: сборка и сценарии → reports/fix_differential.md
+python scripts/extract_differential.py # случайные выделения метода: сборка и сценарии → reports/extract_differential.md
 make submit                        # тесты + отчёты + архив dist/java-blueprints-submission.zip (reports/SUMMARY.md)
 ```
 

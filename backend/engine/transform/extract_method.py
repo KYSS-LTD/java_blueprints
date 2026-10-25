@@ -26,6 +26,7 @@ from engine.java.project import FLOWABLE, JavaProject
 from engine.java.symbols import Member
 from engine.transform.base import Check
 from engine.transform.dataflow import Flow, Variable, analyze
+from engine.transform.reach import cannot_complete
 
 NEWLINE = "\n"
 
@@ -235,6 +236,20 @@ def plan(
             Check("Нет выхода за границу (`break`/`continue`/`return`/`yield`)", True),
             Check("Типы параметров и результата известны", True),
         ]
+    if (
+        not flow.tail_return
+        and member.kind == "method"
+        and (member.type_text or "void") != "void"
+        and cannot_complete(region[-1])
+    ):
+        checks.append(
+            Check(
+                "Фрагмент не заканчивается броском исключения вместо выхода из метода",
+                False,
+                "фрагмент всегда завершается броском исключения: после вызова метода компилятор не поймёт, "
+                "что этот путь закрыт, и потребует `return`",
+            )
+        )
     wanted = name.strip() if name else suggest_name(project, member, region, flow)
     try:
         wanted = check_fragment("identifier", wanted, "name")
@@ -272,7 +287,13 @@ def plan(
     outputs = flow.outputs
     if flow.tail_return:
         returns = member.type_text or "void"
-        call = f"return {new_name}({', '.join(v.name for v in flow.parameters)});"
+        arguments = ", ".join(v.name for v in flow.parameters)
+        # ``return;`` в методе void: вызов, затем тот же выход (``return вызов();`` для void не собирается)
+        call = (
+            f"{new_name}({arguments});\n{body_indent}return;"
+            if flow.tail_void
+            else f"return {new_name}({arguments});"
+        )
     elif not outputs:
         returns, call = "void", f"{new_name}({', '.join(v.name for v in flow.parameters)});"
     elif len(outputs) == 1:

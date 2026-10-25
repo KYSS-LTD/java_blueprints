@@ -102,7 +102,8 @@ def summary(steps: dict[str, bool]) -> str:
         "- баг-баш: `reports/bug_bash.md`",
         "- бюджеты производительности: `reports/perf_budget.md`",
         "- прочность на чужом коде (исходники JDK): `reports/jdk_sweep.md`",
-        "- дифференциальная проверка исправлений (I8): `reports/fix_differential.md`",
+        "- дифференциальная проверка исправлений и выделения метода (I8): `reports/fix_differential.md`, "
+        "`reports/extract_differential.md`",
         "",
         "Два теста backend требуют JDK 21+ и на более раннем JDK падают по замыслу (`test_jdk.py`, `/health`).",
     ]
@@ -171,6 +172,12 @@ def main() -> int:
     steps["fix_differential"] = run(
         "исправления не меняют поведение",
         [*uv, str(ROOT / "scripts" / "fix_differential.py"), *java_args],
+        ROOT / "backend",
+        env,
+    )
+    steps["extract_differential"] = run(
+        "выделение метода не меняет поведение",
+        [*uv, str(ROOT / "scripts" / "extract_differential.py"), *java_args],
         ROOT / "backend",
         env,
     )
