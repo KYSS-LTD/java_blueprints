@@ -18,14 +18,17 @@
 | verify_samples | ✓ |
 | bug_bash | ✓ |
 | perf_budget | ✓ |
+| fix_differential | ✓ |
+| extract_differential | ✓ |
 | jdk_sweep | ✓ |
 
-- pytest: 1421 из 1423 (`reports/pytest-report.xml`)
+- pytest: 1447 из 1449 (`reports/pytest-report.xml`)
 - vitest: 277 из 277 (`reports/vitest-report.xml`)
 - playwright: 15 из 15 (`reports/playwright-report.xml`; запуск: `cd frontend && pnpm e2e` при поднятом приложении)
 - корпус через API: `reports/verify_samples.md`, `reports/verify_samples.json`
 - баг-баш: `reports/bug_bash.md`
 - бюджеты производительности: `reports/perf_budget.md`
 - прочность на чужом коде (исходники JDK): `reports/jdk_sweep.md`
+- дифференциальная проверка исправлений и выделения метода (I8): `reports/fix_differential.md`, `reports/extract_differential.md`
 
 Два теста backend требуют JDK 21+ и на более раннем JDK падают по замыслу (`test_jdk.py`, `/health`).

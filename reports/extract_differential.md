@@ -4,15 +4,15 @@
 
 | Пример | Фрагментов в выборке | Отказов (с причиной) | Выделено и проверено | Сценариев |
 |---|---|---|---|---|
-| demo-orders | 856 | 5 | 30 | 11 |
-| analyzer-pairs | 70 | 2 | 30 | 6 |
-| monoliths/expression-calculator | 980 | 10 | 30 | 10 |
-| monoliths/graph-paths | 875 | 4 | 30 | 10 |
-| monoliths/inventory | 785 | 19 | 30 | 9 |
-| monoliths/library | 772 | 6 | 30 | 9 |
-| monoliths/text-analyzer | 733 | 7 | 30 | 9 |
+| demo-orders | 856 | 5 | 25 | 11 |
+| analyzer-pairs | 70 | 2 | 25 | 6 |
+| monoliths/expression-calculator | 980 | 10 | 25 | 10 |
+| monoliths/graph-paths | 875 | 4 | 25 | 10 |
+| monoliths/inventory | 785 | 16 | 25 | 9 |
+| monoliths/library | 772 | 5 | 25 | 9 |
+| monoliths/text-analyzer | 733 | 6 | 25 | 9 |
 
-Проверено выделений: 210, вывод совпал у 210; время 319 с.
+Проверено выделений: 175, вывод совпал у 175; время 279 с.
 
 ## Итог
 

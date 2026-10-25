@@ -22,7 +22,7 @@
       "low": 17
     },
     "fixable": 23,
-    "seconds": 7.3
+    "seconds": 6.1
   },
   {
     "sample": "analyzer-pairs",
@@ -46,7 +46,7 @@
       "low": 3
     },
     "fixable": 1,
-    "seconds": 3.7
+    "seconds": 3.0
   },
   {
     "sample": "expression-calculator",
@@ -70,8 +70,8 @@
       "medium": 12,
       "low": 25
     },
-    "fixable": 18,
-    "seconds": 7.5
+    "fixable": 14,
+    "seconds": 6.0
   },
   {
     "sample": "graph-paths",
@@ -96,7 +96,7 @@
       "low": 13
     },
     "fixable": 17,
-    "seconds": 6.8
+    "seconds": 4.6
   },
   {
     "sample": "inventory",
@@ -120,8 +120,8 @@
       "medium": 10,
       "low": 13
     },
-    "fixable": 18,
-    "seconds": 6.8
+    "fixable": 17,
+    "seconds": 4.7
   },
   {
     "sample": "library",
@@ -145,8 +145,8 @@
       "medium": 9,
       "low": 16
     },
-    "fixable": 17,
-    "seconds": 6.6
+    "fixable": 16,
+    "seconds": 5.0
   },
   {
     "sample": "text-analyzer",
@@ -170,7 +170,7 @@
       "medium": 6,
       "low": 9
     },
-    "fixable": 12,
-    "seconds": 6.4
+    "fixable": 11,
+    "seconds": 5.0
   }
 ]
