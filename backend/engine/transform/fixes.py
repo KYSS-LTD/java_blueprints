@@ -30,6 +30,7 @@ from engine.transform.base import (
 from engine.transform.dedupe import build as build_dedupe
 from engine.transform.dedupe import checks_for, clone_places
 from engine.transform.fixes_clean import CLEAN_SPECS
+from engine.transform.fixes_guard import GUARD_SPECS
 from engine.transform.fixes_index import INDEX_SPECS
 from engine.transform.fixes_more import MORE_SPECS
 
@@ -735,6 +736,7 @@ SPECS: dict[str, tuple[str, str, str, bool, Builder | None]] = {
 SPECS.update(MORE_SPECS)
 SPECS.update(CLEAN_SPECS)
 SPECS.update(INDEX_SPECS)
+SPECS.update(GUARD_SPECS)
 
 
 def fix_id_for(rule_id: str) -> str | None:

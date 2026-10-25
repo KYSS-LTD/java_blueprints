@@ -399,3 +399,34 @@ def test_opt_13_keeps_output_and_the_gate_green(client, make_project):
     ]
     assert after == expected
     assert "OPT-13" not in available(client, project)
+
+
+# --- REF-03: ранний возврат ---------------------------------------------------------------------------------------
+
+
+def test_ref_03_flattens_process_orders_and_keeps_every_scenario_green(client, demo_orders):
+    assert run_kind(client, demo_orders, "baseline")["summary"]["passed"] == 11
+    offer = available(client, demo_orders)
+    assert "REF-03" in offer
+    plan = client.post(url(demo_orders, "/optimize/plan"), json={}).json()
+    assert "REF-03" not in {
+        s["fix_id"] for s in plan["steps"]
+    }  # рефакторинг — по одному, не в пакете
+    preview = client.post(
+        url(demo_orders, f"/fixes/{quote(offer['REF-03'], safe=chr(47))}/preview"), json={}
+    )
+    assert preview.status_code == 200, preview.text
+    assert "continue;" in preview.json()["diff"][0]["unified"]
+    versions = client.get(url(demo_orders, "/versions")).json()
+    response = client.post(
+        url(demo_orders, f"/fixes/{quote(offer['REF-03'], safe=chr(47))}/apply"),
+        json={"base_version_id": versions["head_version_id"]},
+    )
+    assert response.status_code == 202, response.text
+    info = wait_run(client, response.json()["run_id"], 240)
+    assert info["summary"]["version_status"] == "passed", info["summary"]
+    assert info["summary"]["data"]["candidate"] == "promoted"
+    gate = run_kind(client, demo_orders, "gate")
+    assert gate["summary"]["version_status"] == "passed" and gate["summary"]["passed"] == 11
+    rules = {f["rule_id"] for f in client.get(url(demo_orders, "/findings")).json()["findings"]}
+    assert "MAINT-03" not in rules or "REF-03" not in available(client, demo_orders)
