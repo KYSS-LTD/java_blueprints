@@ -32,6 +32,7 @@ import {
   type StructureNode,
   type StructureView,
 } from "@/lib/graph/structure-layout";
+import { useColorMode } from "@/lib/hooks/use-color-mode";
 import { ru } from "@/lib/i18n/ru";
 import { cn } from "@/lib/utils";
 import { useWorkspaceStore } from "@/stores/workspace-store";
@@ -156,6 +157,7 @@ type Props = {
 
 function StructureCanvasInner({ graph, view, onViewChange, onOpenMethod }: Props) {
   const reactFlow = useReactFlow();
+  const colorMode = useColorMode();
   const selectNode = useWorkspaceStore((s) => s.selectNode);
   const setActiveFile = useWorkspaceStore((s) => s.setActiveFile);
   const selection = useWorkspaceStore((s) => s.selection);
@@ -280,7 +282,7 @@ function StructureCanvasInner({ graph, view, onViewChange, onOpenMethod }: Props
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        colorMode="dark"
+        colorMode={colorMode}
         minZoom={0.05}
         maxZoom={2}
         nodesDraggable={false}

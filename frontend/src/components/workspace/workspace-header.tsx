@@ -20,6 +20,7 @@ import { useEffect, useState } from "react";
 
 import { OptimizeDialog } from "@/components/analysis/optimize-dialog";
 import { ImportDialog } from "@/components/projects/import-dialog";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { HistorySheet } from "@/components/workspace/history-sheet";
 import { RunDialog } from "@/components/workspace/run-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -147,6 +148,9 @@ function BehaviorBadge({ projectId }: { projectId: number }) {
   );
 }
 
+/** Подписи второстепенных кнопок шапки показываются, когда хватает ширины; иначе остаются значки. */
+const LABEL = "hidden min-[1366px]:inline";
+
 export function WorkspaceHeader({ projectId }: { projectId: number }) {
   const [importing, setImporting] = useState(false);
   const [running, setRunning] = useState(false);
@@ -176,7 +180,7 @@ export function WorkspaceHeader({ projectId }: { projectId: number }) {
         <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
           JB
         </span>
-        <span className="hidden lg:inline">{ru.app.title}</span>
+        <span className="hidden whitespace-nowrap 2xl:inline">{ru.app.title}</span>
         <span className="sr-only">: {ru.common.back}</span>
       </Link>
       <span className="text-muted-foreground">/</span>
@@ -203,14 +207,14 @@ export function WorkspaceHeader({ projectId }: { projectId: number }) {
       <div className="ml-auto flex items-center gap-2">
         <BehaviorBadge projectId={projectId} />
 
-        <Button variant="outline" size="sm" onClick={() => setImporting(true)}>
-          <Import /> {t.import}
+        <Button variant="outline" size="sm" onClick={() => setImporting(true)} aria-label={t.import} title={t.import}>
+          <Import /> <span className={LABEL}>{t.import}</span>
         </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Download /> {t.export}
+            <Button variant="outline" size="sm" aria-label={t.export} title={t.export}>
+              <Download /> <span className={LABEL}>{t.export}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -252,14 +256,16 @@ export function WorkspaceHeader({ projectId }: { projectId: number }) {
           onClick={() => setDebugging(true)}
           disabled={tracing}
           title={t.debugHint}
+          aria-label={t.debug}
           data-testid="debug-button"
         >
-          <Bug /> {t.debug}
+          <Bug /> <span className={LABEL}>{t.debug}</span>
         </Button>
 
         <SoonButton label={t.settings} hint={ru.common.soon} className="size-8 px-0">
           <Settings />
         </SoonButton>
+        <ThemeToggle />
       </div>
 
       <ImportDialog open={importing} onOpenChange={setImporting} />

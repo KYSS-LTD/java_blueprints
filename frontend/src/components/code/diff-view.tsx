@@ -3,7 +3,9 @@
 import { DiffEditor, type DiffOnMount } from "@monaco-editor/react";
 import { useEffect, useRef } from "react";
 
-import { defineEditorTheme, EDITOR_THEME } from "./monaco-setup";
+import { useColorMode } from "@/lib/hooks/use-color-mode";
+
+import { defineEditorTheme, editorThemeOf } from "./monaco-setup";
 
 export type DiffViewProps = {
   path: string;
@@ -16,6 +18,7 @@ export type DiffViewProps = {
 /** Сравнение двух текстов файла рядом (Monaco DiffEditor, только чтение). */
 export default function DiffView({ path, before, after, language = "java" }: DiffViewProps) {
   const editor = useRef<Parameters<DiffOnMount>[0] | null>(null);
+  const colorMode = useColorMode();
 
   // Обёртка при размонтировании сначала удаляет модели, а потом редактор, и Monaco бросает
   // «TextModel got disposed before DiffEditorWidget model got reset». Её очистка запускается после
@@ -38,7 +41,7 @@ export default function DiffView({ path, before, after, language = "java" }: Dif
       originalModelPath={`diff-before/${path}`}
       modifiedModelPath={`diff-after/${path}`}
       language={language}
-      theme={EDITOR_THEME}
+      theme={editorThemeOf(colorMode)}
       beforeMount={defineEditorTheme}
       loading={null}
       options={{

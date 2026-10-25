@@ -1,12 +1,12 @@
-<testsuites id="" name="" tests="15" failures="0" skipped="0" errors="0" time="186.46606">
-<testsuite name="accessibility.spec.ts" timestamp="2026-10-25T01:23:08.734Z" hostname="" tests="4" failures="0" skipped="0" time="40.752" errors="0">
-<testcase name="тема: light › a11y: экран проектов" classname="accessibility.spec.ts" time="1.261">
+<testsuites id="" name="" tests="20" failures="0" skipped="0" errors="0" time="256.216646">
+<testsuite name="accessibility.spec.ts" timestamp="2026-10-25T07:00:33.251Z" hostname="" tests="4" failures="0" skipped="0" time="72.764" errors="0">
+<testcase name="тема: light › a11y: экран проектов" classname="accessibility.spec.ts" time="2.177">
 <system-out>
 <![CDATA[a11y проекты, light: нарушений нет
 ]]>
 </system-out>
 </testcase>
-<testcase name="тема: light › a11y: рабочая область, находки, рекомендации и тесты" classname="accessibility.spec.ts" time="20.408">
+<testcase name="тема: light › a11y: рабочая область, находки, рекомендации и тесты" classname="accessibility.spec.ts" time="24.127">
 <system-out>
 <![CDATA[a11y рабочая область, light: нарушений нет
 a11y панель находок, light: нарушений нет
@@ -16,13 +16,13 @@ a11y декомпозиция, light: нарушений нет
 ]]>
 </system-out>
 </testcase>
-<testcase name="тема: dark › a11y: экран проектов" classname="accessibility.spec.ts" time="1.056">
+<testcase name="тема: dark › a11y: экран проектов" classname="accessibility.spec.ts" time="3.052">
 <system-out>
 <![CDATA[a11y проекты, dark: нарушений нет
 ]]>
 </system-out>
 </testcase>
-<testcase name="тема: dark › a11y: рабочая область, находки, рекомендации и тесты" classname="accessibility.spec.ts" time="18.027">
+<testcase name="тема: dark › a11y: рабочая область, находки, рекомендации и тесты" classname="accessibility.spec.ts" time="43.408">
 <system-out>
 <![CDATA[a11y рабочая область, dark: нарушений нет
 a11y панель находок, dark: нарушений нет
@@ -33,52 +33,64 @@ a11y декомпозиция, dark: нарушений нет
 </system-out>
 </testcase>
 </testsuite>
-<testsuite name="canvas-perf.spec.ts" timestamp="2026-10-25T01:23:08.734Z" hostname="" tests="1" failures="0" skipped="0" time="3.359" errors="0">
-<testcase name="canvas_perf: метод из ~160 блоков раскладывается и откликается быстрее 200 мс" classname="canvas-perf.spec.ts" time="3.359">
+<testsuite name="canvas-perf.spec.ts" timestamp="2026-10-25T07:00:33.251Z" hostname="" tests="1" failures="0" skipped="0" time="5.263" errors="0">
+<testcase name="canvas_perf: метод из ~160 блоков раскладывается и откликается быстрее 200 мс" classname="canvas-perf.spec.ts" time="5.263">
 <system-out>
-<![CDATA[canvas_perf: узлов в схеме 166, нарисовано 35, раскладка 1536 мс, событий 15, худшее 24 мс
+<![CDATA[canvas_perf: узлов в схеме 166, нарисовано 35, раскладка 2411 мс, событий 36, худшее 72 мс
 ]]>
 </system-out>
 </testcase>
 </testsuite>
-<testsuite name="code-to-graph.spec.ts" timestamp="2026-10-25T01:23:08.734Z" hostname="" tests="1" failures="0" skipped="0" time="4.213" errors="0">
-<testcase name="code_to_graph: новая строка в Monaco появляется блоком на схеме" classname="code-to-graph.spec.ts" time="4.213">
+<testsuite name="code-to-graph.spec.ts" timestamp="2026-10-25T07:00:33.251Z" hostname="" tests="1" failures="0" skipped="0" time="3.308" errors="0">
+<testcase name="code_to_graph: новая строка в Monaco появляется блоком на схеме" classname="code-to-graph.spec.ts" time="3.308">
 </testcase>
 </testsuite>
-<testsuite name="decompose.spec.ts" timestamp="2026-10-25T01:23:08.734Z" hostname="" tests="1" failures="0" skipped="0" time="13.456" errors="0">
-<testcase name="decompose: план на ≥ 3 класса и применение со стадиями gate" classname="decompose.spec.ts" time="13.456">
+<testsuite name="decompose.spec.ts" timestamp="2026-10-25T07:00:33.251Z" hostname="" tests="1" failures="0" skipped="0" time="17.699" errors="0">
+<testcase name="decompose: план на ≥ 3 класса и применение со стадиями gate" classname="decompose.spec.ts" time="17.699">
 </testcase>
 </testsuite>
-<testsuite name="demo-full-path.spec.ts" timestamp="2026-10-25T01:23:08.734Z" hostname="" tests="1" failures="0" skipped="0" time="14.194" errors="0">
-<testcase name="demo_full_path: схема, выделение, правка условия, запуск, тесты" classname="demo-full-path.spec.ts" time="14.194">
+<testsuite name="demo-full-path.spec.ts" timestamp="2026-10-25T07:00:33.251Z" hostname="" tests="1" failures="0" skipped="0" time="14.942" errors="0">
+<testcase name="demo_full_path: схема, выделение, правка условия, запуск, тесты" classname="demo-full-path.spec.ts" time="14.942">
 </testcase>
 </testsuite>
-<testsuite name="diagnostics.spec.ts" timestamp="2026-10-25T01:23:08.734Z" hostname="" tests="1" failures="0" skipped="0" time="15.782" errors="0">
-<testcase name="diagnostics: находка PERF-01, предпросмотр и применение исправления" classname="diagnostics.spec.ts" time="15.782">
+<testsuite name="diagnostics.spec.ts" timestamp="2026-10-25T07:00:33.251Z" hostname="" tests="1" failures="0" skipped="0" time="19.358" errors="0">
+<testcase name="diagnostics: находка PERF-01, предпросмотр и применение исправления" classname="diagnostics.spec.ts" time="19.358">
 </testcase>
 </testsuite>
-<testsuite name="export.spec.ts" timestamp="2026-10-25T01:23:08.734Z" hostname="" tests="1" failures="0" skipped="0" time="1.99" errors="0">
-<testcase name="export: архив исходников скачивается и содержит Main.java" classname="export.spec.ts" time="1.99">
+<testsuite name="export.spec.ts" timestamp="2026-10-25T07:00:33.251Z" hostname="" tests="1" failures="0" skipped="0" time="2.047" errors="0">
+<testcase name="export: архив исходников скачивается и содержит Main.java" classname="export.spec.ts" time="2.047">
 </testcase>
 </testsuite>
-<testsuite name="negative-control.spec.ts" timestamp="2026-10-25T01:23:08.734Z" hostname="" tests="1" failures="0" skipped="0" time="14.475" errors="0">
-<testcase name="negative_control: `+` → `-` краснит тесты, undo возвращает зелёный" classname="negative-control.spec.ts" time="14.475">
+<testsuite name="layout-theme.spec.ts" timestamp="2026-10-25T07:00:33.251Z" hostname="" tests="5" failures="0" skipped="0" time="10.094" errors="0">
+<testcase name="«Код Java», «Консоль» и «Результат тестов» стоят рядом на экране 1440 пикселей" classname="layout-theme.spec.ts" time="1.126">
+</testcase>
+<testcase name="на узком экране нижние панели остаются вкладками" classname="layout-theme.spec.ts" time="1.081">
+</testcase>
+<testcase name="переключатель темы меняет оформление, схему и редактор и помнится после перезагрузки" classname="layout-theme.spec.ts" time="3.417">
+</testcase>
+<testcase name="крупная схема открывается в читаемом масштабе с началом метода, «Вписать» показывает её целиком" classname="layout-theme.spec.ts" time="2.142">
+</testcase>
+<testcase name="небольшая схема по-прежнему вписывается целиком" classname="layout-theme.spec.ts" time="2.328">
 </testcase>
 </testsuite>
-<testsuite name="optimize-all.spec.ts" timestamp="2026-10-25T01:23:08.734Z" hostname="" tests="1" failures="0" skipped="0" time="64.352" errors="0">
-<testcase name="optimize_all: план, применение, отчёт" classname="optimize-all.spec.ts" time="64.352">
+<testsuite name="negative-control.spec.ts" timestamp="2026-10-25T07:00:33.251Z" hostname="" tests="1" failures="0" skipped="0" time="16.428" errors="0">
+<testcase name="negative_control: `+` → `-` краснит тесты, undo возвращает зелёный" classname="negative-control.spec.ts" time="16.428">
 </testcase>
 </testsuite>
-<testsuite name="rubber-band.spec.ts" timestamp="2026-10-25T01:23:08.734Z" hostname="" tests="1" failures="0" skipped="0" time="3.806" errors="0">
-<testcase name="rubber_band: рамка вокруг нескольких блоков выделяет их, панель показывает число" classname="rubber-band.spec.ts" time="3.806">
+<testsuite name="optimize-all.spec.ts" timestamp="2026-10-25T07:00:33.251Z" hostname="" tests="1" failures="0" skipped="0" time="77.887" errors="0">
+<testcase name="optimize_all: план, применение, отчёт" classname="optimize-all.spec.ts" time="77.887">
 </testcase>
 </testsuite>
-<testsuite name="switch-insert.spec.ts" timestamp="2026-10-25T01:23:08.734Z" hostname="" tests="1" failures="0" skipped="0" time="3.281" errors="0">
-<testcase name="switch_insert: выбранная ветка case принимает блок из палитры перед break" classname="switch-insert.spec.ts" time="3.281">
+<testsuite name="rubber-band.spec.ts" timestamp="2026-10-25T07:00:33.251Z" hostname="" tests="1" failures="0" skipped="0" time="2.58" errors="0">
+<testcase name="rubber_band: рамка вокруг нескольких блоков выделяет их, панель показывает число" classname="rubber-band.spec.ts" time="2.58">
 </testcase>
 </testsuite>
-<testsuite name="undo-redo.spec.ts" timestamp="2026-10-25T01:23:08.734Z" hostname="" tests="1" failures="0" skipped="0" time="5.082" errors="0">
-<testcase name="undo_redo: Ctrl+D на блоке, отмена и повтор" classname="undo-redo.spec.ts" time="5.082">
+<testsuite name="switch-insert.spec.ts" timestamp="2026-10-25T07:00:33.251Z" hostname="" tests="1" failures="0" skipped="0" time="7.617" errors="0">
+<testcase name="switch_insert: выбранная ветка case принимает блок из палитры перед break" classname="switch-insert.spec.ts" time="7.617">
+</testcase>
+</testsuite>
+<testsuite name="undo-redo.spec.ts" timestamp="2026-10-25T07:00:33.251Z" hostname="" tests="1" failures="0" skipped="0" time="3.589" errors="0">
+<testcase name="undo_redo: Ctrl+D на блоке, отмена и повтор" classname="undo-redo.spec.ts" time="3.589">
 </testcase>
 </testsuite>
 </testsuites>

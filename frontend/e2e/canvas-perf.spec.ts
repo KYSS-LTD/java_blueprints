@@ -64,6 +64,9 @@ test("canvas_perf: метод из ~160 блоков раскладываетс�
   // при > 120 узлов React Flow рисует только видимые блоки (onlyRenderVisibleElements)
   const started = Date.now();
   await openWorkspace(page, project.id, "Main.java#Main.big(int)");
+  // крупная схема открывается на начале метода в читаемом масштабе; худший случай для отрисовки — вся схема сразу
+  await expect(page.getByTestId("partial-view")).toBeVisible({ timeout: 60_000 });
+  await page.getByRole("button", { name: "Вписать в окно" }).click();
   await expect.poll(() => blocks(page).count(), { timeout: 60_000 }).toBeGreaterThan(20);
   const layoutMs = Date.now() - started;
 

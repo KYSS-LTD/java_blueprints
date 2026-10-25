@@ -89,10 +89,14 @@ export function ZoomPanel({ showMiniMap, onToggleMiniMap, onFit }: ZoomProps) {
   );
 }
 
-type Props = ZoomProps & { blocks: number };
+type Props = ZoomProps & {
+  blocks: number;
+  /** Камера стоит на начале крупной схемы в читаемом масштабе. */
+  partial?: boolean;
+};
 
 /** Панель управления холстом схемы: оверлеи, масштаб, счётчик блоков (docs/09 § 3.3). */
-export function CanvasToolbar({ blocks, showMiniMap, onToggleMiniMap, onFit }: Props) {
+export function CanvasToolbar({ blocks, partial = false, showMiniMap, onToggleMiniMap, onFit }: Props) {
   const overlays = useWorkspaceStore((s) => s.overlays);
   const setOverlay = useWorkspaceStore((s) => s.setOverlay);
   const trace = useDebugStore((s) => s.trace);
@@ -149,9 +153,11 @@ export function CanvasToolbar({ blocks, showMiniMap, onToggleMiniMap, onFit }: P
 
       <ZoomPanel showMiniMap={showMiniMap} onToggleMiniMap={onToggleMiniMap} onFit={onFit} />
 
-      <Panel position="bottom-left" className="!m-2">
+      {/* подпись не перехватывает щелчки: под ней могут лежать блоки схемы */}
+      <Panel position="bottom-left" className="pointer-events-none !m-2">
         <span className="rounded-md border bg-card/90 px-2 py-1 text-xs text-muted-foreground">
           {blocks} {t.blocks}
+          {partial && <span data-testid="partial-view"> · {t.partialView}</span>}
         </span>
       </Panel>
     </>

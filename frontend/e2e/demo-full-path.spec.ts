@@ -11,6 +11,9 @@ test("demo_full_path: схема, выделение, правка услови�
 
   await openWorkspace(page, project.id, "Main.java#Main.discountFor(Order)");
   await expect.poll(() => blocks(page).count()).toBeGreaterThanOrEqual(5);
+  // схема метода не помещается в окно в читаемом масштабе: она открывается на начале метода, а «Вписать в окно» показывает её целиком
+  await expect(page.getByTestId("partial-view")).toBeVisible();
+  await page.getByRole("button", { name: "Вписать в окно" }).click();
 
   // клик по блоку выделяет его: адрес получает node=, редактор показывает строки
   const condition = page.locator('[data-testid^="block-condition"]').first();

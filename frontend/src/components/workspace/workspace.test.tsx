@@ -61,6 +61,36 @@ describe("Workspace на моках", () => {
     expect(screen.getByText(ru.workspace.emptyCenter)).toBeInTheDocument();
   });
 
+  it("«Код Java», «Консоль» и «Результат тестов» стоят вкладками, пока области не хватает ширины", async () => {
+    await renderWorkspace();
+    // в jsdom ширина областей нулевая
+    expect(await screen.findByRole("tab", { name: ru.console.title })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: ru.console.title })).not.toBeInTheDocument();
+  });
+
+  it("и рядом, как в макете, когда ширины хватает", async () => {
+    const measure = vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 900,
+      bottom: 300,
+      width: 900,
+      height: 300,
+      toJSON: () => ({}),
+    });
+    try {
+      await renderWorkspace();
+      for (const title of [ru.code.title, ru.console.title, ru.tests.title]) {
+        expect(await screen.findByRole("region", { name: title })).toBeInTheDocument();
+      }
+      expect(screen.queryByRole("tab", { name: ru.console.title })).not.toBeInTheDocument();
+    } finally {
+      measure.mockRestore();
+    }
+  });
+
   it("клик по методу открывает вкладку, схему и файл в редакторе", async () => {
     const user = userEvent.setup();
     const { store } = await renderWorkspace();

@@ -33,6 +33,10 @@ export const ru = {
     backendHint:
       "Запустите backend (uv run uvicorn app.main:app) или frontend в режиме моков (pnpm dev:mock).",
   },
+  theme: {
+    toLight: "Включить светлую тему",
+    toDark: "Включить тёмную тему",
+  },
   home: {
     projects: "Проекты",
     empty: "Проектов пока нет",
@@ -155,6 +159,7 @@ export const ru = {
     zoomCurrent: "Масштаб",
     zoomResetHint: "сбросить до 100%",
     fit: "Вписать в окно",
+    partialView: "показано начало схемы, «Вписать в окно» покажет её целиком",
     minimap: "Мини-карта",
     overlays: "Оверлеи",
     overlayFindings: "Находки",

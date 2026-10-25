@@ -15,8 +15,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }),
   );
 
+  // Как в макете, по умолчанию тёмная тема; выбор переключателя запоминается в localStorage (ключ `theme`).
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
         <Toaster richColors position="bottom-right" />

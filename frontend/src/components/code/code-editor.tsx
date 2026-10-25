@@ -6,9 +6,10 @@ import { useEffect, useRef } from "react";
 
 import { minimalChange } from "@/lib/edit/text-edit";
 import type { SourceRange } from "@/lib/graph/flow-model";
+import { useColorMode } from "@/lib/hooks/use-color-mode";
 import { ru } from "@/lib/i18n/ru";
 
-import { defineEditorTheme, EDITOR_THEME } from "./monaco-setup";
+import { defineEditorTheme, editorThemeOf } from "./monaco-setup";
 
 export type EditorMarker = {
   severity: "error" | "warning" | "info";
@@ -63,6 +64,7 @@ export default function CodeEditor({
   onSave,
   onExtract,
 }: CodeEditorProps) {
+  const colorMode = useColorMode();
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const decorations = useRef<MonacoEditor.IEditorDecorationsCollection | null>(null);
@@ -224,7 +226,7 @@ export default function CodeEditor({
       path={path}
       language="java"
       defaultValue={value}
-      theme={EDITOR_THEME}
+      theme={editorThemeOf(colorMode)}
       beforeMount={defineEditorTheme}
       onMount={onMount}
       onChange={handleChange}

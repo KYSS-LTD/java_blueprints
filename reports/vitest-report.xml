@@ -1,187 +1,199 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="277" failures="0" errors="0" time="94.1611661">
-    <testsuite name="src/components/analysis/optimize-dialog.test.tsx" timestamp="2026-10-25T02:27:32.392Z" hostname="DESKTOP-RPKBBBR" tests="6" failures="0" errors="0" skipped="0" time="3.2032967">
-        <testcase classname="src/components/analysis/optimize-dialog.test.tsx" name="OptimizeDialog на моках &gt; показывает план: безопасные шаги с галочками и итоговую сложность" time="1.3126748">
+<testsuites name="vitest tests" tests="288" failures="0" errors="0" time="126.5263229">
+    <testsuite name="src/components/analysis/optimize-dialog.test.tsx" timestamp="2026-10-25T07:05:40.332Z" hostname="DESKTOP-RPKBBBR" tests="6" failures="0" errors="0" skipped="0" time="4.5764182">
+        <testcase classname="src/components/analysis/optimize-dialog.test.tsx" name="OptimizeDialog на моках &gt; показывает план: безопасные шаги с галочками и итоговую сложность" time="1.6405093">
         </testcase>
-        <testcase classname="src/components/analysis/optimize-dialog.test.tsx" name="OptimizeDialog на моках &gt; без безопасных шагов объясняет, что делать дальше" time="0.1957453">
+        <testcase classname="src/components/analysis/optimize-dialog.test.tsx" name="OptimizeDialog на моках &gt; без безопасных шагов объясняет, что делать дальше" time="0.2791338">
         </testcase>
-        <testcase classname="src/components/analysis/optimize-dialog.test.tsx" name="OptimizeDialog на моках &gt; запуск отправляет только отмеченные шаги и ведёт по их статусам" time="0.5501927">
+        <testcase classname="src/components/analysis/optimize-dialog.test.tsx" name="OptimizeDialog на моках &gt; запуск отправляет только отмеченные шаги и ведёт по их статусам" time="0.939303">
         </testcase>
-        <testcase classname="src/components/analysis/optimize-dialog.test.tsx" name="OptimizeDialog на моках &gt; итог: применённые шаги, измеренное ускорение, график и откат всей пачки" time="0.4860637">
+        <testcase classname="src/components/analysis/optimize-dialog.test.tsx" name="OptimizeDialog на моках &gt; итог: применённые шаги, измеренное ускорение, график и откат всей пачки" time="0.8609874">
         </testcase>
-        <testcase classname="src/components/analysis/optimize-dialog.test.tsx" name="OptimizeDialog на моках &gt; если ничего не применено, отката нет, а ускорение «не измерено» с причиной" time="0.3319232">
+        <testcase classname="src/components/analysis/optimize-dialog.test.tsx" name="OptimizeDialog на моках &gt; если ничего не применено, отката нет, а ускорение «не измерено» с причиной" time="0.4172543">
         </testcase>
-        <testcase classname="src/components/analysis/optimize-dialog.test.tsx" name="OptimizeDialog на моках &gt; пока идёт оптимизация, код в редакторе закрыт для правок" time="0.3209324">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/components/analysis/precondition-list.test.tsx" timestamp="2026-10-25T02:27:32.398Z" hostname="DESKTOP-RPKBBBR" tests="2" failures="0" errors="0" skipped="0" time="0.3906159">
-        <testcase classname="src/components/analysis/precondition-list.test.tsx" name="PreconditionList &gt; причина показывается после названия, но не повторяет его" time="0.3778575">
-        </testcase>
-        <testcase classname="src/components/analysis/precondition-list.test.tsx" name="PreconditionList &gt; пустой список ничего не рисует" time="0.0075072">
+        <testcase classname="src/components/analysis/optimize-dialog.test.tsx" name="OptimizeDialog на моках &gt; пока идёт оптимизация, код в редакторе закрыт для правок" time="0.43293">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/decompose/decompose-view.test.tsx" timestamp="2026-10-25T02:27:32.399Z" hostname="DESKTOP-RPKBBBR" tests="14" failures="0" errors="0" skipped="0" time="18.6428846">
-        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; слева «До» с метриками монолита, справа «После» с карточками классов" time="1.7459885">
+    <testsuite name="src/components/analysis/precondition-list.test.tsx" timestamp="2026-10-25T07:05:40.349Z" hostname="DESKTOP-RPKBBBR" tests="2" failures="0" errors="0" skipped="0" time="0.5839311">
+        <testcase classname="src/components/analysis/precondition-list.test.tsx" name="PreconditionList &gt; причина показывается после названия, но не повторяет его" time="0.5727504">
         </testcase>
-        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; закреплённые члены ядра заперты: их не перетащить и не перенести" time="0.9203904">
-        </testcase>
-        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; перенос мышью: метод уходит в другую карточку, сервер пересчитывает план" time="1.4663586">
-        </testcase>
-        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; перенос из меню «Перенести в…» работает без мыши" time="1.606138">
-        </testcase>
-        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; метод, брошенный на «Новый класс», создаёт класс Helper" time="1.1769341">
-        </testcase>
-        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; класс, оставшийся без методов, убирается из плана" time="2.8995467">
-        </testcase>
-        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; отказ сервера возвращает прежний план" time="1.6322024">
-        </testcase>
-        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; переименование: имя и файл меняются, неверное и занятое имена не уходят на сервер" time="2.5127949">
-        </testcase>
-        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; ядро и вынесенные типы не переименовываются" time="0.5704595">
-        </testcase>
-        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; «Сбросить правки» возвращает автоматический план" time="1.974579">
-        </testcase>
-        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; число классов меняет параметры и строит план заново" time="0.736546">
-        </testcase>
-        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; «Применить»: предпросмотр с файлами, затем применение плана и итог проверки" time="0.6748666">
-        </testcase>
-        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; правка плана попадает в применяемый план" time="0.474519">
-        </testcase>
-        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; предупреждения плана показываются списком" time="0.2467453">
+        <testcase classname="src/components/analysis/precondition-list.test.tsx" name="PreconditionList &gt; пустой список ничего не рисует" time="0.0052168">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/health-status.test.tsx" timestamp="2026-10-25T02:27:32.403Z" hostname="DESKTOP-RPKBBBR" tests="4" failures="0" errors="0" skipped="0" time="0.1481256">
-        <testcase classname="src/components/health-status.test.tsx" name="HealthStatus &gt; показывает версии и статус при успехе" time="0.100055">
+    <testsuite name="src/components/decompose/decompose-view.test.tsx" timestamp="2026-10-25T07:05:40.350Z" hostname="DESKTOP-RPKBBBR" tests="14" failures="0" errors="0" skipped="0" time="24.9543725">
+        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; слева «До» с метриками монолита, справа «После» с карточками классов" time="2.1702053">
         </testcase>
-        <testcase classname="src/components/health-status.test.tsx" name="HealthStatus &gt; перечисляет проблемы, если backend сообщает degraded" time="0.0252889">
+        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; закреплённые члены ядра заперты: их не перетащить и не перенести" time="1.1812566">
         </testcase>
-        <testcase classname="src/components/health-status.test.tsx" name="HealthStatus &gt; показывает состояние загрузки" time="0.0067223">
+        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; перенос мышью: метод уходит в другую карточку, сервер пересчитывает план" time="1.8169121">
         </testcase>
-        <testcase classname="src/components/health-status.test.tsx" name="HealthStatus &gt; показывает подсказку, когда backend недоступен" time="0.0107886">
+        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; перенос из меню «Перенести в…» работает без мыши" time="2.2762191">
         </testcase>
-    </testsuite>
-    <testsuite name="src/components/preview/preview-screen.test.tsx" timestamp="2026-10-25T02:27:32.404Z" hostname="DESKTOP-RPKBBBR" tests="5" failures="0" errors="0" skipped="0" time="5.6328327">
-        <testcase classname="src/components/preview/preview-screen.test.tsx" name="PreviewScreen на моках &gt; показывает список методов и блок-схему выбранного по умолчанию метода" time="2.9321958">
+        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; метод, брошенный на «Новый класс», создаёт класс Helper" time="1.7721327">
         </testcase>
-        <testcase classname="src/components/preview/preview-screen.test.tsx" name="PreviewScreen на моках &gt; переключает схему при выборе другого метода" time="0.8577841">
+        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; класс, оставшийся без методов, убирается из плана" time="3.3640762">
         </testcase>
-        <testcase classname="src/components/preview/preview-screen.test.tsx" name="PreviewScreen на моках &gt; показывает схему и для длинного метода: у каждого метода демо есть блок-схема" time="0.5521102">
+        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; отказ сервера возвращает прежний план" time="1.8712086">
         </testcase>
-        <testcase classname="src/components/preview/preview-screen.test.tsx" name="PreviewScreen на моках &gt; фильтр сокращает список методов" time="1.2185221">
+        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; переименование: имя и файл меняются, неверное и занятое имена не уходят на сервер" time="3.1209875">
         </testcase>
-        <testcase classname="src/components/preview/preview-screen.test.tsx" name="PreviewScreen без моков и без backend &gt; показывает подсказку, если API недоступен" time="0.0667895">
+        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; ядро и вынесенные типы не переименовываются" time="0.7747717">
         </testcase>
-    </testsuite>
-    <testsuite name="src/components/projects/import-dialog.test.tsx" timestamp="2026-10-25T02:27:32.404Z" hostname="DESKTOP-RPKBBBR" tests="5" failures="0" errors="0" skipped="0" time="1.7625077">
-        <testcase classname="src/components/projects/import-dialog.test.tsx" name="splitUploads &gt; делит файлы на .java, один архив и отклонённые" time="0.0057777">
+        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; «Сбросить правки» возвращает автоматический план" time="2.1881858">
         </testcase>
-        <testcase classname="src/components/projects/import-dialog.test.tsx" name="ImportDialog &gt; открывает встроенный пример и переходит в проект" time="0.7353004">
+        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; число классов меняет параметры и строит план заново" time="1.5049896">
         </testcase>
-        <testcase classname="src/components/projects/import-dialog.test.tsx" name="ImportDialog &gt; создаёт проект из вставленного текста: имя файла по умолчанию Main.java" time="0.5409608">
+        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; «Применить»: предпросмотр с файлами, затем применение плана и итог проверки" time="0.967662">
         </testcase>
-        <testcase classname="src/components/projects/import-dialog.test.tsx" name="ImportDialog &gt; загружает выбранные файлы и показывает их список" time="0.3745569">
+        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; правка плана попадает в применяемый план" time="1.3846913">
         </testcase>
-        <testcase classname="src/components/projects/import-dialog.test.tsx" name="ImportDialog &gt; не даёт создать проект без файлов" time="0.1004455">
+        <testcase classname="src/components/decompose/decompose-view.test.tsx" name="DecomposeView на моках &gt; предупреждения плана показываются списком" time="0.5552233">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/projects/projects-screen.test.tsx" timestamp="2026-10-25T02:27:32.405Z" hostname="DESKTOP-RPKBBBR" tests="4" failures="0" errors="0" skipped="0" time="3.236052">
-        <testcase classname="src/components/projects/projects-screen.test.tsx" name="ProjectsScreen на моках &gt; показывает проекты со ссылкой в рабочую область" time="2.6564186">
+    <testsuite name="src/components/health-status.test.tsx" timestamp="2026-10-25T07:05:40.354Z" hostname="DESKTOP-RPKBBBR" tests="4" failures="0" errors="0" skipped="0" time="0.3118912">
+        <testcase classname="src/components/health-status.test.tsx" name="HealthStatus &gt; показывает версии и статус при успехе" time="0.2301663">
         </testcase>
-        <testcase classname="src/components/projects/projects-screen.test.tsx" name="ProjectsScreen на моках &gt; «Новый проект» открывает диалог импорта со вкладками" time="0.3408218">
+        <testcase classname="src/components/health-status.test.tsx" name="HealthStatus &gt; перечисляет проблемы, если backend сообщает degraded" time="0.0276133">
         </testcase>
-        <testcase classname="src/components/projects/projects-screen.test.tsx" name="ProjectsScreen без backend &gt; пустой список подсказывает, как начать" time="0.0978329">
+        <testcase classname="src/components/health-status.test.tsx" name="HealthStatus &gt; показывает состояние загрузки" time="0.0188111">
         </testcase>
-        <testcase classname="src/components/projects/projects-screen.test.tsx" name="ProjectsScreen без backend &gt; ошибка API показывается с подсказкой" time="0.135177">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/components/workspace/analysis-panel.test.tsx" timestamp="2026-10-25T02:27:32.406Z" hostname="DESKTOP-RPKBBBR" tests="17" failures="0" errors="0" skipped="0" time="8.1365332">
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; показывает находки, число рекомендаций и сложность программы" time="1.3019948">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; фильтры по важности и категории сужают список и счётчики вкладок" time="0.6664878">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; «Почему» раскрывает дефект, риск, рекомендацию и «Проверить»" time="0.303153">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; клик по находке выбирает её узел и открывает метод" time="0.2310134">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; «Проверить» запускает проверку и показывает показатель роста" time="0.3749354">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; у находки BUG «Проверить» сообщает, выполняется ли место в сценариях" time="0.3159271">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; недоступное исправление объясняет, какое предусловие не выполнено" time="0.1677713">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; длинный метод предлагает выделить фрагмент, а монолит — декомпозицию" time="0.3272177">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; вкладка «Рекомендации» показывает только исправимые находки с предусловиями" time="0.3681305">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; вкладка «Метрики» показывает таблицу и самые сложные методы" time="0.3453565">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="исправление из панели «Анализ» &gt; предпросмотр показывает эффект, предусловия и diff" time="0.4749791">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="исправление из панели «Анализ» &gt; «Применить» запускает проверку; зелёная — исправление стало текущей версией" time="0.5939123">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="исправление из панели «Анализ» &gt; красная проверка отклоняет версию и называет изменившиеся сценарии" time="0.5597007">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="исправление из панели «Анализ» &gt; исправление, меняющее поведение, ждёт решения: принять или отклонить" time="0.4131441">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="исправление из панели «Анализ» &gt; принятое исправление показывает решение и предлагает записать эталон заново" time="0.7055148">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="исправление из панели «Анализ» &gt; отклонённое исправление оставляет код прежним" time="0.5045312">
-        </testcase>
-        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="исправление из панели «Анализ» &gt; пока идёт проверка, редактор кода закрыт для правок" time="0.476787">
+        <testcase classname="src/components/health-status.test.tsx" name="HealthStatus &gt; показывает подсказку, когда backend недоступен" time="0.0301535">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/workspace/console-panel.test.tsx" timestamp="2026-10-25T02:27:32.410Z" hostname="DESKTOP-RPKBBBR" tests="5" failures="0" errors="0" skipped="0" time="0.6333252">
-        <testcase classname="src/components/workspace/console-panel.test.tsx" name="ConsolePanel &gt; без запусков показывает подсказку" time="0.1147092">
+    <testsuite name="src/components/preview/preview-screen.test.tsx" timestamp="2026-10-25T07:05:40.355Z" hostname="DESKTOP-RPKBBBR" tests="5" failures="0" errors="0" skipped="0" time="7.302323">
+        <testcase classname="src/components/preview/preview-screen.test.tsx" name="PreviewScreen на моках &gt; показывает список методов и блок-схему выбранного по умолчанию метода" time="3.6932997">
         </testcase>
-        <testcase classname="src/components/workspace/console-panel.test.tsx" name="ConsolePanel &gt; разделяет stdout и stderr, показывает код выхода и время" time="0.0290396">
+        <testcase classname="src/components/preview/preview-screen.test.tsx" name="PreviewScreen на моках &gt; переключает схему при выборе другого метода" time="1.1306605">
         </testcase>
-        <testcase classname="src/components/workspace/console-panel.test.tsx" name="ConsolePanel &gt; у выполняющегося запуска есть кнопка остановки" time="0.2859009">
+        <testcase classname="src/components/preview/preview-screen.test.tsx" name="PreviewScreen на моках &gt; показывает схему и для длинного метода: у каждого метода демо есть блок-схема" time="0.7537479">
         </testcase>
-        <testcase classname="src/components/workspace/console-panel.test.tsx" name="ConsolePanel &gt; диагностики компиляции кликабельны и выбирают файл в коде" time="0.1086215">
+        <testcase classname="src/components/preview/preview-screen.test.tsx" name="PreviewScreen на моках &gt; фильтр сокращает список методов" time="1.5652239">
         </testcase>
-        <testcase classname="src/components/workspace/console-panel.test.tsx" name="ConsolePanel &gt; «Очистить» убирает журнал" time="0.090049">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/components/workspace/extract-dialog.test.tsx" timestamp="2026-10-25T02:27:32.411Z" hostname="DESKTOP-RPKBBBR" tests="7" failures="0" errors="0" skipped="0" time="4.4615182">
-        <testcase classname="src/components/workspace/extract-dialog.test.tsx" name="ExtractDialog на моках &gt; показывает имя, сигнатуру, предусловия и diff для выбранных блоков" time="1.4586446">
-        </testcase>
-        <testcase classname="src/components/workspace/extract-dialog.test.tsx" name="ExtractDialog на моках &gt; диапазон из кода уходит в запрос как range" time="0.2625955">
-        </testcase>
-        <testcase classname="src/components/workspace/extract-dialog.test.tsx" name="ExtractDialog на моках &gt; набранное имя уходит в предпросмотр после паузы; подсказка, если имя занято" time="0.895812">
-        </testcase>
-        <testcase classname="src/components/workspace/extract-dialog.test.tsx" name="ExtractDialog на моках &gt; пока имя не ушло в предпросмотр, «Выделить» закрыто" time="0.7521949">
-        </testcase>
-        <testcase classname="src/components/workspace/extract-dialog.test.tsx" name="ExtractDialog на моках &gt; если выделить нельзя, объясняет почему и не даёт применить" time="0.1819877">
-        </testcase>
-        <testcase classname="src/components/workspace/extract-dialog.test.tsx" name="ExtractDialog на моках &gt; применение: имя и блоки уходят на сервер, итог проверки показан, выбор сбрасывается" time="0.4501006">
-        </testcase>
-        <testcase classname="src/components/workspace/extract-dialog.test.tsx" name="ExtractDialog на моках &gt; красный gate: версия ждёт решения, «Отклонить» оставляет код прежним" time="0.4552154">
+        <testcase classname="src/components/preview/preview-screen.test.tsx" name="PreviewScreen без моков и без backend &gt; показывает подсказку, если API недоступен" time="0.1478698">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/workspace/node-inspector.test.tsx" timestamp="2026-10-25T02:27:32.412Z" hostname="DESKTOP-RPKBBBR" tests="7" failures="0" errors="0" skipped="0" time="2.8165239">
-        <testcase classname="src/components/workspace/node-inspector.test.tsx" name="NodeInspector &gt; ничего не показывает, пока инспектор не открыт" time="0.0432915">
+    <testsuite name="src/components/projects/import-dialog.test.tsx" timestamp="2026-10-25T07:05:40.357Z" hostname="DESKTOP-RPKBBBR" tests="5" failures="0" errors="0" skipped="0" time="2.1984242">
+        <testcase classname="src/components/projects/import-dialog.test.tsx" name="splitUploads &gt; делит файлы на .java, один архив и отклонённые" time="0.0060459">
         </testcase>
-        <testcase classname="src/components/workspace/node-inspector.test.tsx" name="NodeInspector &gt; вставка: проверяет поле у backend, показывает diff и отправляет insert_node" time="1.1032962">
+        <testcase classname="src/components/projects/import-dialog.test.tsx" name="ImportDialog &gt; открывает встроенный пример и переходит в проект" time="0.8943089">
         </testcase>
-        <testcase classname="src/components/workspace/node-inspector.test.tsx" name="NodeInspector &gt; неверное выражение блокирует кнопку и показывает причину у поля" time="0.4653004">
+        <testcase classname="src/components/projects/import-dialog.test.tsx" name="ImportDialog &gt; создаёт проект из вставленного текста: имя файла по умолчанию Main.java" time="0.8175541">
         </testcase>
-        <testcase classname="src/components/workspace/node-inspector.test.tsx" name="NodeInspector &gt; ошибка backend по полю показывается у этого поля, инспектор остаётся открытым" time="0.3126421">
+        <testcase classname="src/components/projects/import-dialog.test.tsx" name="ImportDialog &gt; загружает выбранные файлы и показывает их список" time="0.3447574">
         </testcase>
-        <testcase classname="src/components/workspace/node-inspector.test.tsx" name="NodeInspector &gt; правка блока: поля заполнены данными блока, на backend уходят только изменённые" time="0.3979146">
-        </testcase>
-        <testcase classname="src/components/workspace/node-inspector.test.tsx" name="NodeInspector &gt; действие «обернуть в if» отправляет wrap_node с условием из формы" time="0.4604579">
-        </testcase>
-        <testcase classname="src/components/workspace/node-inspector.test.tsx" name="NodeInspector &gt; блок без формы (try) объясняет, что он правится текстом" time="0.0279406">
+        <testcase classname="src/components/projects/import-dialog.test.tsx" name="ImportDialog &gt; не даёт создать проект без файлов" time="0.1299803">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/workspace/run-dialog.test.ts" timestamp="2026-10-25T02:27:32.413Z" hostname="DESKTOP-RPKBBBR" tests="1" failures="0" errors="0" skipped="0" time="0.0071107">
-        <testcase classname="src/components/workspace/run-dialog.test.ts" name="parseArgs &gt; разделяет по пробелам и учитывает кавычки" time="0.0038639">
+    <testsuite name="src/components/projects/projects-screen.test.tsx" timestamp="2026-10-25T07:05:40.358Z" hostname="DESKTOP-RPKBBBR" tests="4" failures="0" errors="0" skipped="0" time="4.2903402">
+        <testcase classname="src/components/projects/projects-screen.test.tsx" name="ProjectsScreen на моках &gt; показывает проекты со ссылкой в рабочую область" time="3.5470301">
+        </testcase>
+        <testcase classname="src/components/projects/projects-screen.test.tsx" name="ProjectsScreen на моках &gt; «Новый проект» открывает диалог импорта со вкладками" time="0.472179">
+        </testcase>
+        <testcase classname="src/components/projects/projects-screen.test.tsx" name="ProjectsScreen без backend &gt; пустой список подсказывает, как начать" time="0.1574308">
+        </testcase>
+        <testcase classname="src/components/projects/projects-screen.test.tsx" name="ProjectsScreen без backend &gt; ошибка API показывается с подсказкой" time="0.1077975">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/workspace/tests-panel.test.tsx" timestamp="2026-10-25T02:27:32.414Z" hostname="DESKTOP-RPKBBBR" tests="4" failures="0" errors="0" skipped="0" time="3.1865561">
-        <testcase classname="src/components/workspace/tests-panel.test.tsx" name="TestsPanel на моках &gt; показывает сценарии проекта и состояние эталона" time="1.2389055">
+    <testsuite name="src/components/theme-toggle.test.tsx" timestamp="2026-10-25T07:05:40.359Z" hostname="DESKTOP-RPKBBBR" tests="3" failures="0" errors="0" skipped="0" time="0.7826254">
+        <testcase classname="src/components/theme-toggle.test.tsx" name="ThemeToggle &gt; по умолчанию тема тёмная, кнопка предлагает светлую" time="0.4740449">
+            <system-err>
+Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client. Consider using template tag instead (https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template).
+
+            </system-err>
         </testcase>
-        <testcase classname="src/components/workspace/tests-panel.test.tsx" name="TestsPanel на моках &gt; результат прогона раскрашивает строки, а расхождение раскрывается в сравнение" time="0.7751892">
+        <testcase classname="src/components/theme-toggle.test.tsx" name="ThemeToggle &gt; переключает класс на &lt;html&gt;, подпись кнопки и запоминает выбор" time="0.2311596">
+        </testcase>
+        <testcase classname="src/components/theme-toggle.test.tsx" name="ThemeToggle &gt; берёт сохранённую светлую тему" time="0.0573544">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/workspace/analysis-panel.test.tsx" timestamp="2026-10-25T07:05:40.360Z" hostname="DESKTOP-RPKBBBR" tests="17" failures="0" errors="0" skipped="0" time="10.6582475">
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; показывает находки, число рекомендаций и сложность программы" time="1.698484">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; фильтры по важности и категории сужают список и счётчики вкладок" time="0.8696856">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; «Почему» раскрывает дефект, риск, рекомендацию и «Проверить»" time="0.4681406">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; клик по находке выбирает её узел и открывает метод" time="0.3583452">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; «Проверить» запускает проверку и показывает показатель роста" time="0.4849273">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; у находки BUG «Проверить» сообщает, выполняется ли место в сценариях" time="0.3721786">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; недоступное исправление объясняет, какое предусловие не выполнено" time="0.2410325">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; длинный метод предлагает выделить фрагмент, а монолит — декомпозицию" time="0.3762517">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; вкладка «Рекомендации» показывает только исправимые находки с предусловиями" time="0.5267139">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="AnalysisPanel на моках &gt; вкладка «Метрики» показывает таблицу и самые сложные методы" time="0.5487314">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="исправление из панели «Анализ» &gt; предпросмотр показывает эффект, предусловия и diff" time="0.5294546">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="исправление из панели «Анализ» &gt; «Применить» запускает проверку; зелёная — исправление стало текущей версией" time="0.6856596">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="исправление из панели «Анализ» &gt; красная проверка отклоняет версию и называет изменившиеся сценарии" time="0.8415722">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="исправление из панели «Анализ» &gt; исправление, меняющее поведение, ждёт решения: принять или отклонить" time="0.6366595">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="исправление из панели «Анализ» &gt; принятое исправление показывает решение и предлагает записать эталон заново" time="0.8145114">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="исправление из панели «Анализ» &gt; отклонённое исправление оставляет код прежним" time="0.596979">
+        </testcase>
+        <testcase classname="src/components/workspace/analysis-panel.test.tsx" name="исправление из панели «Анализ» &gt; пока идёт проверка, редактор кода закрыт для правок" time="0.6006324">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/workspace/console-panel.test.tsx" timestamp="2026-10-25T07:05:40.364Z" hostname="DESKTOP-RPKBBBR" tests="5" failures="0" errors="0" skipped="0" time="0.902052">
+        <testcase classname="src/components/workspace/console-panel.test.tsx" name="ConsolePanel &gt; без запусков показывает подсказку" time="0.1272137">
+        </testcase>
+        <testcase classname="src/components/workspace/console-panel.test.tsx" name="ConsolePanel &gt; разделяет stdout и stderr, показывает код выхода и время" time="0.0827041">
+        </testcase>
+        <testcase classname="src/components/workspace/console-panel.test.tsx" name="ConsolePanel &gt; у выполняющегося запуска есть кнопка остановки" time="0.4257503">
+        </testcase>
+        <testcase classname="src/components/workspace/console-panel.test.tsx" name="ConsolePanel &gt; диагностики компиляции кликабельны и выбирают файл в коде" time="0.1508671">
+        </testcase>
+        <testcase classname="src/components/workspace/console-panel.test.tsx" name="ConsolePanel &gt; «Очистить» убирает журнал" time="0.1087762">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/workspace/extract-dialog.test.tsx" timestamp="2026-10-25T07:05:40.365Z" hostname="DESKTOP-RPKBBBR" tests="7" failures="0" errors="0" skipped="0" time="5.7844164">
+        <testcase classname="src/components/workspace/extract-dialog.test.tsx" name="ExtractDialog на моках &gt; показывает имя, сигнатуру, предусловия и diff для выбранных блоков" time="1.7740168">
+        </testcase>
+        <testcase classname="src/components/workspace/extract-dialog.test.tsx" name="ExtractDialog на моках &gt; диапазон из кода уходит в запрос как range" time="0.3005406">
+        </testcase>
+        <testcase classname="src/components/workspace/extract-dialog.test.tsx" name="ExtractDialog на моках &gt; набранное имя уходит в предпросмотр после паузы; подсказка, если имя занято" time="1.4105856">
+        </testcase>
+        <testcase classname="src/components/workspace/extract-dialog.test.tsx" name="ExtractDialog на моках &gt; пока имя не ушло в предпросмотр, «Выделить» закрыто" time="0.9303136">
+        </testcase>
+        <testcase classname="src/components/workspace/extract-dialog.test.tsx" name="ExtractDialog на моках &gt; если выделить нельзя, объясняет почему и не даёт применить" time="0.2367425">
+        </testcase>
+        <testcase classname="src/components/workspace/extract-dialog.test.tsx" name="ExtractDialog на моках &gt; применение: имя и блоки уходят на сервер, итог проверки показан, выбор сбрасывается" time="0.5830536">
+        </testcase>
+        <testcase classname="src/components/workspace/extract-dialog.test.tsx" name="ExtractDialog на моках &gt; красный gate: версия ждёт решения, «Отклонить» оставляет код прежним" time="0.5419396">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/workspace/node-inspector.test.tsx" timestamp="2026-10-25T07:05:40.367Z" hostname="DESKTOP-RPKBBBR" tests="7" failures="0" errors="0" skipped="0" time="4.0979518">
+        <testcase classname="src/components/workspace/node-inspector.test.tsx" name="NodeInspector &gt; ничего не показывает, пока инспектор не открыт" time="0.0356019">
+        </testcase>
+        <testcase classname="src/components/workspace/node-inspector.test.tsx" name="NodeInspector &gt; вставка: проверяет поле у backend, показывает diff и отправляет insert_node" time="1.4133888">
+        </testcase>
+        <testcase classname="src/components/workspace/node-inspector.test.tsx" name="NodeInspector &gt; неверное выражение блокирует кнопку и показывает причину у поля" time="0.5894615">
+        </testcase>
+        <testcase classname="src/components/workspace/node-inspector.test.tsx" name="NodeInspector &gt; ошибка backend по полю показывается у этого поля, инспектор остаётся открытым" time="0.5636701">
+        </testcase>
+        <testcase classname="src/components/workspace/node-inspector.test.tsx" name="NodeInspector &gt; правка блока: поля заполнены данными блока, на backend уходят только изменённые" time="0.6864788">
+        </testcase>
+        <testcase classname="src/components/workspace/node-inspector.test.tsx" name="NodeInspector &gt; действие «обернуть в if» отправляет wrap_node с условием из формы" time="0.6544957">
+        </testcase>
+        <testcase classname="src/components/workspace/node-inspector.test.tsx" name="NodeInspector &gt; блок без формы (try) объясняет, что он правится текстом" time="0.1493071">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/workspace/run-dialog.test.ts" timestamp="2026-10-25T07:05:40.369Z" hostname="DESKTOP-RPKBBBR" tests="1" failures="0" errors="0" skipped="0" time="0.0072858">
+        <testcase classname="src/components/workspace/run-dialog.test.ts" name="parseArgs &gt; разделяет по пробелам и учитывает кавычки" time="0.0028905">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/workspace/tests-panel.test.tsx" timestamp="2026-10-25T07:05:40.369Z" hostname="DESKTOP-RPKBBBR" tests="4" failures="0" errors="0" skipped="0" time="4.0201665">
+        <testcase classname="src/components/workspace/tests-panel.test.tsx" name="TestsPanel на моках &gt; показывает сценарии проекта и состояние эталона" time="1.5239398">
+        </testcase>
+        <testcase classname="src/components/workspace/tests-panel.test.tsx" name="TestsPanel на моках &gt; результат прогона раскрашивает строки, а расхождение раскрывается в сравнение" time="1.0391359">
             <system-err>
 An update to TestsPanel inside a test was not wrapped in act(...).
 
@@ -196,29 +208,29 @@ This ensures that you&apos;re testing the behavior the user would see in the bro
 
             </system-err>
         </testcase>
-        <testcase classname="src/components/workspace/tests-panel.test.tsx" name="TestsPanel на моках &gt; «Запустить тесты» создаёт запуск типа test" time="0.5364501">
+        <testcase classname="src/components/workspace/tests-panel.test.tsx" name="TestsPanel на моках &gt; «Запустить тесты» создаёт запуск типа test" time="0.6378491">
         </testcase>
-        <testcase classname="src/components/workspace/tests-panel.test.tsx" name="TestsPanel на моках &gt; форма сценария требует название" time="0.630015">
+        <testcase classname="src/components/workspace/tests-panel.test.tsx" name="TestsPanel на моках &gt; форма сценария требует название" time="0.8131956">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/workspace/workspace-editing.test.tsx" timestamp="2026-10-25T02:27:32.415Z" hostname="DESKTOP-RPKBBBR" tests="9" failures="0" errors="0" skipped="0" time="21.0171796">
-        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; отмена и повтор доступны по истории версий; отмена вызывает API" time="6.4434648">
+    <testsuite name="src/components/workspace/workspace-editing.test.tsx" timestamp="2026-10-25T07:05:40.370Z" hostname="DESKTOP-RPKBBBR" tests="9" failures="0" errors="0" skipped="0" time="28.3906465">
+        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; отмена и повтор доступны по истории версий; отмена вызывает API" time="8.2964552">
         </testcase>
-        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; история версий показывает происхождение и восстанавливает выбранную" time="2.269456">
+        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; история версий показывает происхождение и восстанавливает выбранную" time="2.7571443">
         </testcase>
-        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; клик по блоку палитры без полей вставляет его сразу после выбранного" time="2.9465783">
+        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; клик по блоку палитры без полей вставляет его сразу после выбранного" time="3.4576582">
         </testcase>
-        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; Delete удаляет выбранный блок, Ctrl+D дублирует его" time="4.1922935">
+        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; Delete удаляет выбранный блок, Ctrl+D дублирует его" time="4.8273044">
         </testcase>
-        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; Shift+клик выбирает подряд идущие блоки, панель открывает диалог «Выделить в метод»" time="2.3067085">
+        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; Shift+клик выбирает подряд идущие блоки, панель открывает диалог «Выделить в метод»" time="3.8933797">
         </testcase>
-        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; Shift+клик по блоку из другого слота набор не расширяет; Ctrl+клик добавляет и убирает блок" time="1.1411264">
+        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; Shift+клик по блоку из другого слота набор не расширяет; Ctrl+клик добавляет и убирает блок" time="2.1834787">
         </testcase>
-        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; контекстное меню блока предлагает «Выделить в метод» для этого блока" time="0.6054693">
+        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; контекстное меню блока предлагает «Выделить в метод» для этого блока" time="1.2393194">
         </testcase>
-        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; удаление контейнера спрашивает, что делать с телом" time="0.7695477">
+        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; удаление контейнера спрашивает, что делать с телом" time="1.3225622">
         </testcase>
-        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; ввод в редакторе создаёт черновик, живой разбор и сохранение; редактор блокируется на время операции" time="0.3381388">
+        <testcase classname="src/components/workspace/workspace-editing.test.tsx" name="правка в рабочей области (моки + подменённые операции) &gt; ввод в редакторе создаёт черновик, живой разбор и сохранение; редактор блокируется на время операции" time="0.4078307">
             <system-err>
 An update to SaveIndicator inside a test was not wrapped in act(...).
 
@@ -241,7 +253,7 @@ act(() =&gt; {
 
 This ensures that you&apos;re testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
 
-An update to CodePanel inside a test was not wrapped in act(...).
+An update to MethodView inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
 
@@ -251,7 +263,7 @@ act(() =&gt; {
 /* assert on the output */
 
 This ensures that you&apos;re testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
-An update to MethodView inside a test was not wrapped in act(...).
+An update to CodePanel inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
 
@@ -283,27 +295,27 @@ act(() =&gt; {
 /* assert on the output */
 
 This ensures that you&apos;re testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
-An update to CodePanel inside a test was not wrapped in act(...).
-
-When testing, code that causes React state updates should be wrapped into act(...):
-
-act(() =&gt; {
-  /* fire events that update state */
-});
-/* assert on the output */
-
-This ensures that you&apos;re testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
-An update to CodePanel inside a test was not wrapped in act(...).
-
-When testing, code that causes React state updates should be wrapped into act(...):
-
-act(() =&gt; {
-  /* fire events that update state */
-});
-/* assert on the output */
-
-This ensures that you&apos;re testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
 An update to MethodView inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() =&gt; {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you&apos;re testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to CodePanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() =&gt; {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you&apos;re testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to CodePanel inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
 
@@ -459,10 +471,14 @@ This ensures that you&apos;re testing the behavior the user would see in the bro
             </system-err>
         </testcase>
     </testsuite>
-    <testsuite name="src/components/workspace/workspace.test.tsx" timestamp="2026-10-25T02:27:32.417Z" hostname="DESKTOP-RPKBBBR" tests="5" failures="0" errors="0" skipped="0" time="15.4426402">
-        <testcase classname="src/components/workspace/workspace.test.tsx" name="Workspace на моках &gt; показывает шапку, дерево проекта, палитру и панель анализа" time="4.7628897">
+    <testsuite name="src/components/workspace/workspace.test.tsx" timestamp="2026-10-25T07:05:40.373Z" hostname="DESKTOP-RPKBBBR" tests="7" failures="0" errors="0" skipped="0" time="20.5589222">
+        <testcase classname="src/components/workspace/workspace.test.tsx" name="Workspace на моках &gt; показывает шапку, дерево проекта, палитру и панель анализа" time="5.8908994">
         </testcase>
-        <testcase classname="src/components/workspace/workspace.test.tsx" name="Workspace на моках &gt; клик по методу открывает вкладку, схему и файл в редакторе" time="3.6221492">
+        <testcase classname="src/components/workspace/workspace.test.tsx" name="Workspace на моках &gt; «Код Java», «Консоль» и «Результат тестов» стоят вкладками, пока области не хватает ширины" time="0.7265534">
+        </testcase>
+        <testcase classname="src/components/workspace/workspace.test.tsx" name="Workspace на моках &gt; и рядом, как в макете, когда ширины хватает" time="1.4266165">
+        </testcase>
+        <testcase classname="src/components/workspace/workspace.test.tsx" name="Workspace на моках &gt; клик по методу открывает вкладку, схему и файл в редакторе" time="4.078952">
             <system-err>
 Received NaN for the `cx` attribute. If this is expected, cast the value to a string.
 Received NaN for the `cy` attribute. If this is expected, cast the value to a string.
@@ -472,419 +488,433 @@ Received NaN for the `y` attribute. If this is expected, cast the value to a str
 
             </system-err>
         </testcase>
-        <testcase classname="src/components/workspace/workspace.test.tsx" name="Workspace на моках &gt; открывается сразу на нужном методе по параметрам URL" time="2.2622576">
+        <testcase classname="src/components/workspace/workspace.test.tsx" name="Workspace на моках &gt; открывается сразу на нужном методе по параметрам URL" time="2.5716969">
         </testcase>
-        <testcase classname="src/components/workspace/workspace.test.tsx" name="Workspace на моках &gt; вкладку можно закрыть, схема пропадает" time="1.5097936">
+        <testcase classname="src/components/workspace/workspace.test.tsx" name="Workspace на моках &gt; вкладку можно закрыть, схема пропадает" time="1.9361303">
         </testcase>
-        <testcase classname="src/components/workspace/workspace.test.tsx" name="Workspace на моках &gt; курсор в коде выбирает блок схемы, а клик по блоку подсвечивает код" time="3.2776047">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/lib/analysis/metrics.test.ts" timestamp="2026-10-25T02:27:32.419Z" hostname="DESKTOP-RPKBBBR" tests="11" failures="0" errors="0" skipped="0" time="0.032869">
-        <testcase classname="src/lib/analysis/metrics.test.ts" name="metricRows &gt; без версии сравнения «до» пусто, оценки нет" time="0.0037944">
-        </testcase>
-        <testcase classname="src/lib/analysis/metrics.test.ts" name="metricRows &gt; считает вложенность как максимум по методам" time="0.0011717">
-        </testcase>
-        <testcase classname="src/lib/analysis/metrics.test.ts" name="metricRows &gt; оценивает изменение: меньше цикломатики и дублей — лучше, размер не оценивается" time="0.001959">
-        </testcase>
-        <testcase classname="src/lib/analysis/metrics.test.ts" name="metricRows &gt; одинаковые значения не считаются изменением" time="0.000516">
-        </testcase>
-        <testcase classname="src/lib/analysis/metrics.test.ts" name="hardestMethods &gt; сортирует по цикломатике, затем по длине, и обрезает список" time="0.0180636">
-        </testcase>
-        <testcase classname="src/lib/analysis/metrics.test.ts" name="hardestMethods &gt; не меняет исходный порядок методов" time="0.0007639">
-        </testcase>
-        <testcase classname="src/lib/analysis/metrics.test.ts" name="formatMetric &gt; 22 → 22" time="0.0003821">
-        </testcase>
-        <testcase classname="src/lib/analysis/metrics.test.ts" name="formatMetric &gt; 2.81 → 2.81" time="0.0002884">
-        </testcase>
-        <testcase classname="src/lib/analysis/metrics.test.ts" name="formatMetric &gt; 6.5 → 6.5" time="0.0003207">
-        </testcase>
-        <testcase classname="src/lib/analysis/metrics.test.ts" name="formatMetric &gt; 1.5 → 1.5" time="0.0003014">
-        </testcase>
-        <testcase classname="src/lib/analysis/metrics.test.ts" name="formatMetric &gt; 0 → 0" time="0.0001683">
+        <testcase classname="src/components/workspace/workspace.test.tsx" name="Workspace на моках &gt; курсор в коде выбирает блок схемы, а клик по блоку подсвечивает код" time="3.9023711">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/analysis/view.test.ts" timestamp="2026-10-25T02:27:32.420Z" hostname="DESKTOP-RPKBBBR" tests="27" failures="0" errors="0" skipped="0" time="0.0270584">
-        <testcase classname="src/lib/analysis/view.test.ts" name="фильтры находок &gt; без ограничений возвращают все находки" time="0.0041929">
+    <testsuite name="src/lib/analysis/metrics.test.ts" timestamp="2026-10-25T07:05:40.375Z" hostname="DESKTOP-RPKBBBR" tests="11" failures="0" errors="0" skipped="0" time="0.0339757">
+        <testcase classname="src/lib/analysis/metrics.test.ts" name="metricRows &gt; без версии сравнения «до» пусто, оценки нет" time="0.0038337">
         </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="фильтры находок &gt; отбирают по важности, категории и файлу вместе" time="0.0019087">
+        <testcase classname="src/lib/analysis/metrics.test.ts" name="metricRows &gt; считает вложенность как максимум по методам" time="0.0006542">
         </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="фильтры находок &gt; пустой набор важности скрывает всё" time="0.0004894">
+        <testcase classname="src/lib/analysis/metrics.test.ts" name="metricRows &gt; оценивает изменение: меньше цикломатики и дублей — лучше, размер не оценивается" time="0.0020106">
         </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="фильтры находок &gt; файлы перечисляются без повторов по алфавиту" time="0.0007325">
+        <testcase classname="src/lib/analysis/metrics.test.ts" name="metricRows &gt; одинаковые значения не считаются изменением" time="0.0005101">
         </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="фильтры находок &gt; toggled не меняет исходный набор" time="0.0005341">
+        <testcase classname="src/lib/analysis/metrics.test.ts" name="hardestMethods &gt; сортирует по цикломатике, затем по длине, и обрезает список" time="0.0164316">
         </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="фильтры находок &gt; рекомендации — находки с доступным исправлением" time="0.0003919">
+        <testcase classname="src/lib/analysis/metrics.test.ts" name="hardestMethods &gt; не меняет исходный порядок методов" time="0.002097">
         </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="итог «Проверить» &gt; разбирает рост, оценку и предупреждения запуска verify" time="0.0032023">
+        <testcase classname="src/lib/analysis/metrics.test.ts" name="formatMetric &gt; 22 → 22" time="0.000727">
         </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="итог «Проверить» &gt; у BUG/MAINT берёт достижимость места сценариями" time="0.0005558">
+        <testcase classname="src/lib/analysis/metrics.test.ts" name="formatMetric &gt; 2.81 → 2.81" time="0.0004823">
         </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="итог «Проверить» &gt; без итога результата нет, а сохранённые доказательства читаются так же" time="0.0022827">
+        <testcase classname="src/lib/analysis/metrics.test.ts" name="formatMetric &gt; 6.5 → 6.5" time="0.0005757">
         </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="итог «Проверить» &gt; показатель роста и ускорение форматируются коротко" time="0.0006894">
+        <testcase classname="src/lib/analysis/metrics.test.ts" name="formatMetric &gt; 1.5 → 1.5" time="0.0006032">
         </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="итог оптимизации &gt; разбирает измеренное ускорение и точки до/после" time="0.0011362">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="итог оптимизации &gt; число выполненных блоков до/после читается отдельно от времени" time="0.0005198">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="итог оптимизации &gt; если измерить нельзя, причина сохраняется" time="0.0005717">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="судьба кандидата &gt; распознаёт promoted" time="0.0004587">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="судьба кандидата &gt; распознаёт rejected" time="0.0001598">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="судьба кандидата &gt; распознаёт candidate" time="0.0001134">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="судьба кандидата &gt; распознаёт stale" time="0.0000982">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="судьба кандидата &gt; неизвестное значение и отсутствие итога дают null" time="0.0001828">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="маркеры находок в редакторе &gt; ставятся на первую строку находок открытого файла" time="0.0007966">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="маркеры находок в редакторе &gt; оценку сложности добавляет, только если заголовок её не содержит" time="0.0005078">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="маркеры находок в редакторе &gt; низкая важность — подсказка, остальное — предупреждение" time="0.0003129">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="маркеры находок в редакторе &gt; для другого файла и без файла маркеров нет" time="0.0003186">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="место находки по id &gt; PERF-03:Main.java#Main.buildCsv()/foreach[0] → buildCsv()" time="0.0005176">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="место находки по id &gt; PERF-02:Main.java#Main.repeat(char, int)/for[1]/if[0] → repeat(char, int)" time="0.0001694">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="место находки по id &gt; BUG-01:Main.java#Main.discountFor(Order):615 → discountFor(Order)" time="0.0000996">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="место находки по id &gt; MAINT-05:Main.java#Main → Main" time="0.0000925">
-        </testcase>
-        <testcase classname="src/lib/analysis/view.test.ts" name="место находки по id &gt; без пути к члену места нет" time="0.0004384">
+        <testcase classname="src/lib/analysis/metrics.test.ts" name="formatMetric &gt; 0 → 0" time="0.0003248">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/api/sse.test.ts" timestamp="2026-10-25T02:27:32.425Z" hostname="DESKTOP-RPKBBBR" tests="3" failures="0" errors="0" skipped="0" time="0.0286096">
-        <testcase classname="src/lib/api/sse.test.ts" name="openRunEvents &gt; подписывается на все события контракта и закрывается на done" time="0.0057766">
+    <testsuite name="src/lib/analysis/view.test.ts" timestamp="2026-10-25T07:05:40.378Z" hostname="DESKTOP-RPKBBBR" tests="27" failures="0" errors="0" skipped="0" time="0.036638">
+        <testcase classname="src/lib/analysis/view.test.ts" name="фильтры находок &gt; без ограничений возвращают все находки" time="0.0104182">
         </testcase>
-        <testcase classname="src/lib/api/sse.test.ts" name="openRunEvents &gt; отписка закрывает источник" time="0.0015706">
+        <testcase classname="src/lib/analysis/view.test.ts" name="фильтры находок &gt; отбирают по важности, категории и файлу вместе" time="0.0020998">
         </testcase>
-        <testcase classname="src/lib/api/sse.test.ts" name="openRunEvents &gt; в режиме моков проигрывает фикстуру по таймеру и умеет отменяться" time="0.0166136">
+        <testcase classname="src/lib/analysis/view.test.ts" name="фильтры находок &gt; пустой набор важности скрывает всё" time="0.001122">
         </testcase>
-    </testsuite>
-    <testsuite name="src/lib/debug/trace.test.ts" timestamp="2026-10-25T02:27:32.426Z" hostname="DESKTOP-RPKBBBR" tests="7" failures="0" errors="0" skipped="0" time="0.0164493">
-        <testcase classname="src/lib/debug/trace.test.ts" name="buildTrace &gt; складывает счётчики сценариев и берёт покрытие из итога" time="0.0046273">
+        <testcase classname="src/lib/analysis/view.test.ts" name="фильтры находок &gt; файлы перечисляются без повторов по алфавиту" time="0.0011649">
         </testcase>
-        <testcase classname="src/lib/debug/trace.test.ts" name="buildTrace &gt; суммирует входы в циклы и исходы условий по сценариям" time="0.0021202">
+        <testcase classname="src/lib/analysis/view.test.ts" name="фильтры находок &gt; toggled не меняет исходный набор" time="0.0006044">
         </testcase>
-        <testcase classname="src/lib/debug/trace.test.ts" name="buildTrace &gt; без счётчиков трассировки нет" time="0.0008847">
+        <testcase classname="src/lib/analysis/view.test.ts" name="фильтры находок &gt; рекомендации — находки с доступным исправлением" time="0.0003746">
         </testcase>
-        <testcase classname="src/lib/debug/trace.test.ts" name="blockHeat &gt; различает выполненные, невыполненные и неинструментированные блоки" time="0.0012701">
+        <testcase classname="src/lib/analysis/view.test.ts" name="итог «Проверить» &gt; разбирает рост, оценку и предупреждения запуска verify" time="0.0034215">
         </testcase>
-        <testcase classname="src/lib/debug/trace.test.ts" name="blockHeat &gt; цикл, в который вошли, но тело не выполнилось, считается достигнутым" time="0.0006015">
+        <testcase classname="src/lib/analysis/view.test.ts" name="итог «Проверить» &gt; у BUG/MAINT берёт достижимость места сценариями" time="0.0008443">
         </testcase>
-        <testcase classname="src/lib/debug/trace.test.ts" name="heat и formatCount &gt; шкала логарифмическая и ограничена единицей" time="0.0007568">
+        <testcase classname="src/lib/analysis/view.test.ts" name="итог «Проверить» &gt; без итога результата нет, а сохранённые доказательства читаются так же" time="0.0010711">
         </testcase>
-        <testcase classname="src/lib/debug/trace.test.ts" name="heat и formatCount &gt; сокращает большие числа" time="0.0006926">
+        <testcase classname="src/lib/analysis/view.test.ts" name="итог «Проверить» &gt; показатель роста и ускорение форматируются коротко" time="0.0007741">
         </testcase>
-    </testsuite>
-    <testsuite name="src/lib/decompose/plan-edit.test.ts" timestamp="2026-10-25T02:27:32.428Z" hostname="DESKTOP-RPKBBBR" tests="10" failures="0" errors="0" skipped="0" time="0.0176976">
-        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="перенос методов между классами плана &gt; метод переходит в другой класс, остальной состав не меняется" time="0.0064675">
+        <testcase classname="src/lib/analysis/view.test.ts" name="итог оптимизации &gt; разбирает измеренное ускорение и точки до/после" time="0.001247">
         </testcase>
-        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="перенос методов между классами плана &gt; опустевший класс убирается вместе со своими связями" time="0.0008962">
+        <testcase classname="src/lib/analysis/view.test.ts" name="итог оптимизации &gt; число выполненных блоков до/после читается отдельно от времени" time="0.0008779">
         </testcase>
-        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="перенос методов между классами плана &gt; «новый класс» получает уникальное имя, файл и роль util" time="0.0015091">
+        <testcase classname="src/lib/analysis/view.test.ts" name="итог оптимизации &gt; если измерить нельзя, причина сохраняется" time="0.0004518">
         </testcase>
-        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="перенос методов между классами плана &gt; закреплённые члены, вынесенные типы и тот же класс — отказ" time="0.0005329">
+        <testcase classname="src/lib/analysis/view.test.ts" name="судьба кандидата &gt; распознаёт promoted" time="0.00035">
         </testcase>
-        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="перенос методов между классами плана &gt; единственный метод класса в «новый класс» не переносится: получилось бы переименование" time="0.0004539">
+        <testcase classname="src/lib/analysis/view.test.ts" name="судьба кандидата &gt; распознаёт rejected" time="0.0001478">
         </testcase>
-        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="имена классов &gt; переименование меняет класс, файл и концы связей" time="0.0005282">
+        <testcase classname="src/lib/analysis/view.test.ts" name="судьба кандидата &gt; распознаёт candidate" time="0.0001341">
         </testcase>
-        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="имена классов &gt; проверка идентификатора и занятости" time="0.0007329">
+        <testcase classname="src/lib/analysis/view.test.ts" name="судьба кандидата &gt; распознаёт stale" time="0.0001272">
         </testcase>
-        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="вспомогательные расчёты &gt; подпись члена без файла и класса" time="0.0004258">
+        <testcase classname="src/lib/analysis/view.test.ts" name="судьба кандидата &gt; неизвестное значение и отсутствие итога дают null" time="0.0002396">
         </testcase>
-        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="вспомогательные расчёты &gt; изменение размера ядра в процентах" time="0.0003841">
+        <testcase classname="src/lib/analysis/view.test.ts" name="маркеры находок в редакторе &gt; ставятся на первую строку находок открытого файла" time="0.0009032">
         </testcase>
-        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="вспомогательные расчёты &gt; сравнение состава и сводка" time="0.0011741">
+        <testcase classname="src/lib/analysis/view.test.ts" name="маркеры находок в редакторе &gt; оценку сложности добавляет, только если заголовок её не содержит" time="0.0006518">
         </testcase>
-    </testsuite>
-    <testsuite name="src/lib/edit/block-fields.test.ts" timestamp="2026-10-25T02:27:32.430Z" hostname="DESKTOP-RPKBBBR" tests="9" failures="0" errors="0" skipped="0" time="0.0077178">
-        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; при вставке поля берутся из палитры backend" time="0.001942">
+        <testcase classname="src/lib/analysis/view.test.ts" name="маркеры находок в редакторе &gt; низкая важность — подсказка, остальное — предупреждение" time="0.00036">
         </testcase>
-        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; при правке флаги вставки (else у условия) не предлагаются" time="0.0003045">
+        <testcase classname="src/lib/analysis/view.test.ts" name="маркеры находок в редакторе &gt; для другого файла и без файла маркеров нет" time="0.0002682">
         </testcase>
-        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; switch и catch правятся по полям, хотя их нет в палитре; try, метод и лямбда — только текстом" time="0.0003804">
+        <testcase classname="src/lib/analysis/view.test.ts" name="место находки по id &gt; PERF-03:Main.java#Main.buildCsv()/foreach[0] → buildCsv()" time="0.0004117">
         </testcase>
-        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; форма нужна всем вставляемым блокам, кроме break и continue" time="0.0003807">
+        <testcase classname="src/lib/analysis/view.test.ts" name="место находки по id &gt; PERF-02:Main.java#Main.repeat(char, int)/for[1]/if[0] → repeat(char, int)" time="0.0002098">
         </testcase>
-        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; значения формы по данным существующих блоков" time="0.0009596">
+        <testcase classname="src/lib/analysis/view.test.ts" name="место находки по id &gt; BUG-01:Main.java#Main.discountFor(Order):615 → discountFor(Order)" time="0.0001142">
         </testcase>
-        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; значения по умолчанию: строки из палитры и выключенные флаги" time="0.0002287">
+        <testcase classname="src/lib/analysis/view.test.ts" name="место находки по id &gt; MAINT-05:Main.java#Main → Main" time="0.0001428">
         </testcase>
-        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; пустые необязательные поля не уходят на backend, строки обрезаются" time="0.0002357">
-        </testcase>
-        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; живая проверка только у выражений, типов и имён" time="0.0001997">
-        </testcase>
-        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; поля действий «обернуть» и «ветка»" time="0.0002849">
+        <testcase classname="src/lib/analysis/view.test.ts" name="место находки по id &gt; без пути к члену места нет" time="0.0001572">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/edit/session.test.ts" timestamp="2026-10-25T02:27:32.432Z" hostname="DESKTOP-RPKBBBR" tests="10" failures="0" errors="0" skipped="0" time="0.0544448">
-        <testcase classname="src/lib/edit/session.test.ts" name="runExclusive &gt; задачи проекта выполняются по очереди, даже если первая медленная или упала" time="0.0312892">
+    <testsuite name="src/lib/api/sse.test.ts" timestamp="2026-10-25T07:05:40.385Z" hostname="DESKTOP-RPKBBBR" tests="3" failures="0" errors="0" skipped="0" time="0.0297316">
+        <testcase classname="src/lib/api/sse.test.ts" name="openRunEvents &gt; подписывается на все события контракта и закрывается на done" time="0.0065269">
         </testcase>
-        <testcase classname="src/lib/edit/session.test.ts" name="applyOps &gt; отправляет пакет на актуальный HEAD и сразу переводит кеш на новую версию" time="0.0059108">
+        <testcase classname="src/lib/api/sse.test.ts" name="openRunEvents &gt; отписка закрывает источник" time="0.0019952">
         </testcase>
-        <testcase classname="src/lib/edit/session.test.ts" name="applyOps &gt; сначала сохраняет набранный код: операция идёт на версию, созданную сохранением" time="0.002614">
-        </testcase>
-        <testcase classname="src/lib/edit/session.test.ts" name="applyOps &gt; при 409 проект перечитывается, ошибка уходит вызывающему" time="0.0021713">
-        </testcase>
-        <testcase classname="src/lib/edit/session.test.ts" name="flushDrafts &gt; сохраняет файл, кладёт его текст и схему в кеш новой версии и снимает черновик" time="0.0022648">
-        </testcase>
-        <testcase classname="src/lib/edit/session.test.ts" name="flushDrafts &gt; код с синтаксической ошибкой: холст остаётся на последней корректной схеме" time="0.0016965">
-        </testcase>
-        <testcase classname="src/lib/edit/session.test.ts" name="flushDrafts &gt; ошибка сохранения отражается в состоянии редактора, черновик не теряется" time="0.0009764">
-        </testcase>
-        <testcase classname="src/lib/edit/session.test.ts" name="moveHead и adoptHead &gt; отмена переводит HEAD на версию из ответа и сбрасывает черновики" time="0.000982">
-        </testcase>
-        <testcase classname="src/lib/edit/session.test.ts" name="moveHead и adoptHead &gt; восстановление версии вызывает restore с её id" time="0.0007174">
-        </testcase>
-        <testcase classname="src/lib/edit/session.test.ts" name="moveHead и adoptHead &gt; adoptHead помечает данные версий устаревшими, кроме положенных в кеш самим клиентом" time="0.0007445">
+        <testcase classname="src/lib/api/sse.test.ts" name="openRunEvents &gt; в режиме моков проигрывает фикстуру по таймеру и умеет отменяться" time="0.0163118">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/edit/slots.test.ts" timestamp="2026-10-25T02:27:32.433Z" hostname="DESKTOP-RPKBBBR" tests="22" failures="0" errors="0" skipped="0" time="0.022105">
-        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; корень метода: слот body, return остаётся последним" time="0.0043817">
+    <testsuite name="src/lib/debug/trace.test.ts" timestamp="2026-10-25T07:05:40.386Z" hostname="DESKTOP-RPKBBBR" tests="7" failures="0" errors="0" skipped="0" time="0.013641">
+        <testcase classname="src/lib/debug/trace.test.ts" name="buildTrace &gt; складывает счётчики сценариев и берёт покрытие из итога" time="0.0042754">
         </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; после return вставляется перед ним: код после return недостижим" time="0.000636">
+        <testcase classname="src/lib/debug/trace.test.ts" name="buildTrace &gt; суммирует входы в циклы и исходы условий по сценариям" time="0.0013579">
         </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; тело цикла: слот body цикла; вложенное и ветки if не считаются его операторами" time="0.0011081">
+        <testcase classname="src/lib/debug/trace.test.ts" name="buildTrace &gt; без счётчиков трассировки нет" time="0.0005615">
         </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; ветка else принадлежит if, а не циклу, хотя в схеме её блоки лежат в цикле" time="0.0006077">
+        <testcase classname="src/lib/debug/trace.test.ts" name="blockHeat &gt; различает выполненные, невыполненные и неинструментированные блоки" time="0.0008297">
         </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; then: try — единственный оператор ветки" time="0.0004335">
+        <testcase classname="src/lib/debug/trace.test.ts" name="blockHeat &gt; цикл, в который вошли, но тело не выполнилось, считается достигнутым" time="0.0004472">
         </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; тело try и ветки catch" time="0.000703">
+        <testcase classname="src/lib/debug/trace.test.ts" name="heat и formatCount &gt; шкала логарифмическая и ограничена единицей" time="0.0005219">
         </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; клик в палитре: после выбранного блока, без выбора — в конец метода" time="0.0005855">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; бросок на блок: верх — перед, низ — после; на контейнер — в конец его тела" time="0.0007175">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; условие — обычный блок: бросок на него вставляет рядом, а не в ветку" time="0.0006431">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; catch и finally не операторы: рядом с ними не вставляют" time="0.0007718">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="ветки switch &gt; операторы ветки лежат в слоте body самого case; break остаётся последним" time="0.0008026">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="ветки switch &gt; бросок и клик на ветку кладут блок в конец её тела, перед завершающим break" time="0.0005494">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="ветки switch &gt; ветка без операторов принимает блок; сама ветка не оператор: рядом с ней не вставляют" time="0.0004132">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="ветки switch &gt; операторы ветки перемещаются, а диапазон не выходит за ветку" time="0.0006859">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="перемещение &gt; внутрь самого себя нельзя; id устроены как пути" time="0.0006044">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="перемещение &gt; в то же место — не перемещение" time="0.0004275">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="подряд идущие операторы одного слота &gt; диапазон между двумя блоками тела метода — в порядке кода, в любую сторону" time="0.0004092">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="подряд идущие операторы одного слота &gt; блоки из разных слотов (тело метода и тело цикла, then и else) диапазона не дают" time="0.0003244">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="подряд идущие операторы одного слота &gt; метод, ветки catch и неизвестные блоки не входят в диапазон" time="0.0002159">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="выделение рамкой &gt; из блоков в рамке берётся отрезок одного слота от первого оператора до последнего" time="0.0006457">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="выделение рамкой &gt; в рамке без операторов тела — пустое выделение" time="0.0002329">
-        </testcase>
-        <testcase classname="src/lib/edit/slots.test.ts" name="выделение рамкой &gt; внутри ветки switch выделяются только её операторы" time="0.0003541">
+        <testcase classname="src/lib/debug/trace.test.ts" name="heat и formatCount &gt; сокращает большие числа" time="0.0005456">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/edit/text-edit.test.ts" timestamp="2026-10-25T02:27:32.435Z" hostname="DESKTOP-RPKBBBR" tests="6" failures="0" errors="0" skipped="0" time="0.0067471">
-        <testcase classname="src/lib/edit/text-edit.test.ts" name="minimalChange &gt; одинаковые тексты — правки нет" time="0.0015278">
+    <testsuite name="src/lib/decompose/plan-edit.test.ts" timestamp="2026-10-25T07:05:40.387Z" hostname="DESKTOP-RPKBBBR" tests="10" failures="0" errors="0" skipped="0" time="0.0195342">
+        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="перенос методов между классами плана &gt; метод переходит в другой класс, остальной состав не меняется" time="0.0060605">
         </testcase>
-        <testcase classname="src/lib/edit/text-edit.test.ts" name="minimalChange &gt; вставка строки в середину меняет только её" time="0.0011365">
+        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="перенос методов между классами плана &gt; опустевший класс убирается вместе со своими связями" time="0.0010479">
         </testcase>
-        <testcase classname="src/lib/edit/text-edit.test.ts" name="minimalChange &gt; удаление и замена" time="0.0004223">
+        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="перенос методов между классами плана &gt; «новый класс» получает уникальное имя, файл и роль util" time="0.0020044">
         </testcase>
-        <testcase classname="src/lib/edit/text-edit.test.ts" name="minimalChange &gt; повторяющийся текст не уводит правку за границы" time="0.0002299">
+        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="перенос методов между классами плана &gt; закреплённые члены, вынесенные типы и тот же класс — отказ" time="0.0008185">
         </testcase>
-        <testcase classname="src/lib/edit/text-edit.test.ts" name="minimalChange &gt; не разрывает суррогатную пару эмодзи" time="0.0002314">
+        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="перенос методов между классами плана &gt; единственный метод класса в «новый класс» не переносится: получилось бы переименование" time="0.0005045">
         </testcase>
-        <testcase classname="src/lib/edit/text-edit.test.ts" name="minimalChange &gt; кириллица и пустые тексты" time="0.0001856">
+        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="имена классов &gt; переименование меняет класс, файл и концы связей" time="0.0006862">
         </testcase>
-    </testsuite>
-    <testsuite name="src/lib/graph/flow-layout.test.ts" timestamp="2026-10-25T02:27:32.435Z" hostname="DESKTOP-RPKBBBR" tests="8" failures="0" errors="0" skipped="0" time="4.557767">
-        <testcase classname="src/lib/graph/flow-layout.test.ts" name="buildVisibleFlow &gt; свёрнутый контейнер скрывает содержимое и забирает его рёбра" time="0.0109803">
+        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="имена классов &gt; проверка идентификатора и занятости" time="0.000844">
         </testcase>
-        <testcase classname="src/lib/graph/flow-layout.test.ts" name="buildVisibleFlow &gt; без вызовов внешние блоки и их рёбра пропадают" time="0.0011148">
+        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="вспомогательные расчёты &gt; подпись члена без файла и класса" time="0.0004751">
         </testcase>
-        <testcase classname="src/lib/graph/flow-layout.test.ts" name="раскладка ELK &gt; размещает каждый видимый блок" time="0.3352594">
+        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="вспомогательные расчёты &gt; изменение размера ядра в процентах" time="0.0004411">
         </testcase>
-        <testcase classname="src/lib/graph/flow-layout.test.ts" name="раскладка ELK &gt; вложенные блоки лежат внутри контейнера и не пересекаются" time="0.0863669">
-        </testcase>
-        <testcase classname="src/lib/graph/flow-layout.test.ts" name="раскладка ELK &gt; ветка «Да» стоит левее ветки «Нет»" time="0.0649186">
-        </testcase>
-        <testcase classname="src/lib/graph/flow-layout.test.ts" name="раскладка ELK &gt; петли не вытягивают контейнер вверх: порядок идёт сверху вниз" time="0.0582086">
-        </testcase>
-        <testcase classname="src/lib/graph/flow-layout.test.ts" name="раскладка ELK &gt; раскладывает все блок-схемы демо-монолита" time="3.8349457">
-        </testcase>
-        <testcase classname="src/lib/graph/flow-layout.test.ts" name="раскладка ELK &gt; switch с 22 ветками не вытягивается в одну линию" time="0.1578211">
+        <testcase classname="src/lib/decompose/plan-edit.test.ts" name="вспомогательные расчёты &gt; сравнение состава и сводка" time="0.0013671">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/graph/flow-model.test.ts" timestamp="2026-10-25T02:27:32.436Z" hostname="DESKTOP-RPKBBBR" tests="9" failures="0" errors="0" skipped="0" time="0.0418202">
-        <testcase classname="src/lib/graph/flow-model.test.ts" name="buildFlowModel &gt; строит дерево блоков по parent_id: предок раньше потомков" time="0.004231">
+    <testsuite name="src/lib/edit/block-fields.test.ts" timestamp="2026-10-25T07:05:40.389Z" hostname="DESKTOP-RPKBBBR" tests="9" failures="0" errors="0" skipped="0" time="0.0144932">
+        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; при вставке поля берутся из палитры backend" time="0.0036012">
         </testcase>
-        <testcase classname="src/lib/graph/flow-model.test.ts" name="buildFlowModel &gt; цикл и try — контейнеры, условие и операция — нет" time="0.0010439">
+        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; при правке флаги вставки (else у условия) не предлагаются" time="0.0006182">
         </testcase>
-        <testcase classname="src/lib/graph/flow-model.test.ts" name="buildFlowModel &gt; вызовы методов вне схемы становятся блоками «внешний вызов»" time="0.0009964">
+        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; switch и catch правятся по полям, хотя их нет в палитре; try, метод и лямбда — только текстом" time="0.0007399">
         </testcase>
-        <testcase classname="src/lib/graph/flow-model.test.ts" name="buildFlowModel &gt; убирает рёбра «контейнер → содержимое», но запоминает тип исключения у catch" time="0.0023657">
+        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; форма нужна всем вставляемым блокам, кроме break и continue" time="0.0006965">
         </testcase>
-        <testcase classname="src/lib/graph/flow-model.test.ts" name="buildFlowModel &gt; сохраняет петли и ветки Да/Нет" time="0.0006554">
+        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; значения формы по данным существующих блоков" time="0.001822">
         </testcase>
-        <testcase classname="src/lib/graph/flow-model.test.ts" name="buildFlowModel &gt; не теряет ни одного узла контракта" time="0.0003846">
+        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; значения по умолчанию: строки из палитры и выключенные флаги" time="0.0005086">
         </testcase>
-        <testcase classname="src/lib/graph/flow-model.test.ts" name="все блок-схемы демо-монолита &gt; строятся без потерь: у каждого блока есть место в порядке обхода" time="0.0245118">
+        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; пустые необязательные поля не уходят на backend, строки обрезаются" time="0.000577">
         </testcase>
-        <testcase classname="src/lib/graph/flow-model.test.ts" name="defaultCollapsed &gt; в небольшой схеме ничего не сворачивает" time="0.0006718">
+        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; живая проверка только у выражений, типов и имён" time="0.000438">
         </testcase>
-        <testcase classname="src/lib/graph/flow-model.test.ts" name="defaultCollapsed &gt; в большой сворачивает контейнеры глубже третьего уровня" time="0.0014125">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/lib/graph/locate.test.ts" timestamp="2026-10-25T02:27:32.438Z" hostname="DESKTOP-RPKBBBR" tests="6" failures="0" errors="0" skipped="0" time="0.0067655">
-        <testcase classname="src/lib/graph/locate.test.ts" name="rangeContains &gt; учитывает границы по строкам и колонкам" time="0.0016794">
-        </testcase>
-        <testcase classname="src/lib/graph/locate.test.ts" name="locateBlock &gt; находит самый глубокий блок: операция внутри try внутри цикла" time="0.0004725">
-        </testcase>
-        <testcase classname="src/lib/graph/locate.test.ts" name="locateBlock &gt; строка цикла даёт сам цикл, а не вложенные блоки" time="0.0004148">
-        </testcase>
-        <testcase classname="src/lib/graph/locate.test.ts" name="locateBlock &gt; сигнатура метода даёт блок «Метод»" time="0.0002243">
-        </testcase>
-        <testcase classname="src/lib/graph/locate.test.ts" name="locateBlock &gt; позиция вне метода — ничего" time="0.0002007">
-        </testcase>
-        <testcase classname="src/lib/graph/locate.test.ts" name="locateBlock &gt; каждый блок находится по началу своего диапазона не глубже себя" time="0.0006771">
+        <testcase classname="src/lib/edit/block-fields.test.ts" name="поля форм &gt; поля действий «обернуть» и «ветка»" time="0.0006189">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/graph/outline.test.ts" timestamp="2026-10-25T02:27:32.439Z" hostname="DESKTOP-RPKBBBR" tests="6" failures="0" errors="0" skipped="0" time="0.0143315">
-        <testcase classname="src/lib/graph/outline.test.ts" name="nodeDepth &gt; считает вложенность по структурному пути" time="0.0027649">
+    <testsuite name="src/lib/edit/session.test.ts" timestamp="2026-10-25T07:05:40.391Z" hostname="DESKTOP-RPKBBBR" tests="10" failures="0" errors="0" skipped="0" time="0.0548395">
+        <testcase classname="src/lib/edit/session.test.ts" name="runExclusive &gt; задачи проекта выполняются по очереди, даже если первая медленная или упала" time="0.0291966">
         </testcase>
-        <testcase classname="src/lib/graph/outline.test.ts" name="flowOutline &gt; начинается с метода и идёт в порядке кода" time="0.0026541">
+        <testcase classname="src/lib/edit/session.test.ts" name="applyOps &gt; отправляет пакет на актуальный HEAD и сразу переводит кеш на новую версию" time="0.0062593">
         </testcase>
-        <testcase classname="src/lib/graph/outline.test.ts" name="flowOutline &gt; вложенность растёт внутри циклов и ветвей" time="0.0005993">
+        <testcase classname="src/lib/edit/session.test.ts" name="applyOps &gt; сначала сохраняет набранный код: операция идёт на версию, созданную сохранением" time="0.0028445">
         </testcase>
-        <testcase classname="src/lib/graph/outline.test.ts" name="flowOutline &gt; условие знает свои исходы Да/Нет" time="0.0011001">
+        <testcase classname="src/lib/edit/session.test.ts" name="applyOps &gt; при 409 проект перечитывается, ошибка уходит вызывающему" time="0.0023972">
         </testcase>
-        <testcase classname="src/lib/graph/outline.test.ts" name="methodGroups &gt; группирует методы по типам и фильтрует по подстроке" time="0.0014656">
+        <testcase classname="src/lib/edit/session.test.ts" name="flushDrafts &gt; сохраняет файл, кладёт его текст и схему в кеш новой версии и снимает черновик" time="0.0019865">
         </testcase>
-        <testcase classname="src/lib/graph/outline.test.ts" name="methodGroups &gt; не включает поля" time="0.0009166">
+        <testcase classname="src/lib/edit/session.test.ts" name="flushDrafts &gt; код с синтаксической ошибкой: холст остаётся на последней корректной схеме" time="0.0016765">
         </testcase>
-    </testsuite>
-    <testsuite name="src/lib/graph/structure-layout.test.ts" timestamp="2026-10-25T02:27:32.440Z" hostname="DESKTOP-RPKBBBR" tests="4" failures="0" errors="0" skipped="0" time="0.2901622">
-        <testcase classname="src/lib/graph/structure-layout.test.ts" name="buildStructureLayout &gt; «Типы»: только карточки типов и рёбра наследования" time="0.0057039">
+        <testcase classname="src/lib/edit/session.test.ts" name="flushDrafts &gt; ошибка сохранения отражается в состоянии редактора, черновик не теряется" time="0.0017009">
         </testcase>
-        <testcase classname="src/lib/graph/structure-layout.test.ts" name="buildStructureLayout &gt; «Методы»: члены лежат внутри своих типов, вызовы вынесены в links" time="0.0016903">
+        <testcase classname="src/lib/edit/session.test.ts" name="moveHead и adoptHead &gt; отмена переводит HEAD на версию из ответа и сбрасывает черновики" time="0.0013622">
         </testcase>
-        <testcase classname="src/lib/graph/structure-layout.test.ts" name="buildStructureLayout &gt; считает члены каждого типа" time="0.0008067">
+        <testcase classname="src/lib/edit/session.test.ts" name="moveHead и adoptHead &gt; восстановление версии вызывает restore с её id" time="0.0007918">
         </testcase>
-        <testcase classname="src/lib/graph/structure-layout.test.ts" name="buildStructureLayout &gt; раскладывается ELK: у каждого видимого узла есть размеры" time="0.2758788">
+        <testcase classname="src/lib/edit/session.test.ts" name="moveHead и adoptHead &gt; adoptHead помечает данные версий устаревшими, кроме положенных в кеш самим клиентом" time="0.001064">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/graph/tree-model.test.ts" timestamp="2026-10-25T02:27:32.440Z" hostname="DESKTOP-RPKBBBR" tests="4" failures="0" errors="0" skipped="0" time="0.0075264">
-        <testcase classname="src/lib/graph/tree-model.test.ts" name="tree-model &gt; по умолчанию раскрывает файлы, но не типы" time="0.0019609">
+    <testsuite name="src/lib/edit/slots.test.ts" timestamp="2026-10-25T07:05:40.393Z" hostname="DESKTOP-RPKBBBR" tests="22" failures="0" errors="0" skipped="0" time="0.0320869">
+        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; корень метода: слот body, return остаётся последним" time="0.0068733">
         </testcase>
-        <testcase classname="src/lib/graph/tree-model.test.ts" name="tree-model &gt; поиск раскрывает путь к совпадению и помечает совпавшую строку" time="0.0012881">
+        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; после return вставляется перед ним: код после return недостижим" time="0.0009936">
         </testcase>
-        <testcase classname="src/lib/graph/tree-model.test.ts" name="tree-model &gt; поиск без совпадений даёт пустой список" time="0.0003102">
+        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; тело цикла: слот body цикла; вложенное и ветки if не считаются его операторами" time="0.0016395">
         </testcase>
-        <testcase classname="src/lib/graph/tree-model.test.ts" name="tree-model &gt; находит путь до метода и сам узел" time="0.0011348">
+        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; ветка else принадлежит if, а не циклу, хотя в схеме её блоки лежат в цикле" time="0.000909">
         </testcase>
-    </testsuite>
-    <testsuite name="src/lib/run/run-state.test.ts" timestamp="2026-10-25T02:27:32.441Z" hostname="DESKTOP-RPKBBBR" tests="4" failures="0" errors="0" skipped="0" time="0.0152348">
-        <testcase classname="src/lib/run/run-state.test.ts" name="reduceRunEvent &gt; сворачивает полный поток gate-запуска из фикстуры" time="0.0079165">
+        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; then: try — единственный оператор ветки" time="0.0006348">
         </testcase>
-        <testcase classname="src/lib/run/run-state.test.ts" name="reduceRunEvent &gt; не мутирует прошлое состояние" time="0.0014455">
+        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; тело try и ветки catch" time="0.0011218">
         </testcase>
-        <testcase classname="src/lib/run/run-state.test.ts" name="reduceRunEvent &gt; склеивает подряд идущие куски stdout, но не служебные строки" time="0.0011204">
+        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; клик в палитре: после выбранного блока, без выбора — в конец метода" time="0.0007938">
         </testcase>
-        <testcase classname="src/lib/run/run-state.test.ts" name="reduceRunEvent &gt; достаёт диагностики сборки из результата и запоминает ошибку" time="0.0007699">
+        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; бросок на блок: верх — перед, низ — после; на контейнер — в конец его тела" time="0.000956">
         </testcase>
-    </testsuite>
-    <testsuite name="src/lib/run/tests-view.test.ts" timestamp="2026-10-25T02:27:32.442Z" hostname="DESKTOP-RPKBBBR" tests="3" failures="0" errors="0" skipped="0" time="0.0108717">
-        <testcase classname="src/lib/run/tests-view.test.ts" name="tests-view &gt; сопоставляет результаты со сценариями по id, а без id — по имени" time="0.0043496">
+        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; условие — обычный блок: бросок на него вставляет рядом, а не в ветку" time="0.0010352">
         </testcase>
-        <testcase classname="src/lib/run/tests-view.test.ts" name="tests-view &gt; считает пройденные и расходящиеся" time="0.0009183">
+        <testcase classname="src/lib/edit/slots.test.ts" name="слоты вставки по структурным id &gt; catch и finally не операторы: рядом с ними не вставляют" time="0.0011212">
         </testcase>
-        <testcase classname="src/lib/run/tests-view.test.ts" name="tests-view &gt; коротко описывает расхождение" time="0.0008931">
+        <testcase classname="src/lib/edit/slots.test.ts" name="ветки switch &gt; операторы ветки лежат в слоте body самого case; break остаётся последним" time="0.0012057">
         </testcase>
-    </testsuite>
-    <testsuite name="src/lib/run/use-run-events.test.tsx" timestamp="2026-10-25T02:27:32.442Z" hostname="DESKTOP-RPKBBBR" tests="3" failures="0" errors="0" skipped="0" time="0.0481926">
-        <testcase classname="src/lib/run/use-run-events.test.tsx" name="useRunEvents &gt; без запуска возвращает пустое состояние и ничего не открывает" time="0.027197">
+        <testcase classname="src/lib/edit/slots.test.ts" name="ветки switch &gt; бросок и клик на ветку кладут блок в конец её тела, перед завершающим break" time="0.0007516">
         </testcase>
-        <testcase classname="src/lib/run/use-run-events.test.tsx" name="useRunEvents &gt; подписывается на запуск и обновляет состояние по событиям" time="0.0076709">
+        <testcase classname="src/lib/edit/slots.test.ts" name="ветки switch &gt; ветка без операторов принимает блок; сама ветка не оператор: рядом с ней не вставляют" time="0.0006339">
         </testcase>
-        <testcase classname="src/lib/run/use-run-events.test.tsx" name="useRunEvents &gt; два потребителя одного запуска делят один поток" time="0.0053493">
+        <testcase classname="src/lib/edit/slots.test.ts" name="ветки switch &gt; операторы ветки перемещаются, а диапазон не выходит за ветку" time="0.0011341">
         </testcase>
-    </testsuite>
-    <testsuite name="src/mocks/mock-fetch.test.ts" timestamp="2026-10-25T02:27:32.443Z" hostname="DESKTOP-RPKBBBR" tests="9" failures="0" errors="0" skipped="0" time="0.1977371">
-        <testcase classname="src/mocks/mock-fetch.test.ts" name="resolveMock &gt; отдаёт фикстуры по путям контракта" time="0.0078568">
+        <testcase classname="src/lib/edit/slots.test.ts" name="перемещение &gt; внутрь самого себя нельзя; id устроены как пути" time="0.0005731">
         </testcase>
-        <testcase classname="src/mocks/mock-fetch.test.ts" name="resolveMock &gt; выбирает блок-схему по method_id" time="0.0016095">
+        <testcase classname="src/lib/edit/slots.test.ts" name="перемещение &gt; в то же место — не перемещение" time="0.0005126">
         </testcase>
-        <testcase classname="src/mocks/mock-fetch.test.ts" name="resolveMock &gt; для метода без мока возвращает 404 в формате ошибки" time="0.0011568">
+        <testcase classname="src/lib/edit/slots.test.ts" name="подряд идущие операторы одного слота &gt; диапазон между двумя блоками тела метода — в порядке кода, в любую сторону" time="0.0005753">
         </testcase>
-        <testcase classname="src/mocks/mock-fetch.test.ts" name="resolveMock &gt; запуск создаётся как 202 с run_id" time="0.0022473">
+        <testcase classname="src/lib/edit/slots.test.ts" name="подряд идущие операторы одного слота &gt; блоки из разных слотов (тело метода и тело цикла, then и else) диапазона не дают" time="0.0004628">
         </testcase>
-        <testcase classname="src/mocks/mock-fetch.test.ts" name="resolveMock &gt; файл по пути и неизвестный запуск" time="0.0012606">
+        <testcase classname="src/lib/edit/slots.test.ts" name="подряд идущие операторы одного слота &gt; метод, ветки catch и неизвестные блоки не входят в диапазон" time="0.000286">
         </testcase>
-        <testcase classname="src/mocks/mock-fetch.test.ts" name="resolveMock &gt; для остального отвечает 501 NOT_IMPLEMENTED" time="0.0013458">
+        <testcase classname="src/lib/edit/slots.test.ts" name="выделение рамкой &gt; из блоков в рамке берётся отрезок одного слота от первого оператора до последнего" time="0.0009644">
         </testcase>
-        <testcase classname="src/mocks/mock-fetch.test.ts" name="mockFetch и клиент &gt; возвращает Response с JSON" time="0.0096646">
+        <testcase classname="src/lib/edit/slots.test.ts" name="выделение рамкой &gt; в рамке без операторов тела — пустое выделение" time="0.0003573">
         </testcase>
-        <testcase classname="src/mocks/mock-fetch.test.ts" name="mockFetch и клиент &gt; клиент openapi-fetch в режиме моков не обращается к сети" time="0.085035">
-        </testcase>
-        <testcase classname="src/mocks/mock-fetch.test.ts" name="mockFetch и клиент &gt; ошибка контракта приходит в поле error" time="0.080808">
+        <testcase classname="src/lib/edit/slots.test.ts" name="выделение рамкой &gt; внутри ветки switch выделяются только её операторы" time="0.0004798">
         </testcase>
     </testsuite>
-    <testsuite name="src/stores/editor-store.test.ts" timestamp="2026-10-25T02:27:32.444Z" hostname="DESKTOP-RPKBBBR" tests="8" failures="0" errors="0" skipped="0" time="0.0142543">
-        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; ввод создаёт черновик и помечает файл несохранённым" time="0.0038797">
+    <testsuite name="src/lib/edit/text-edit.test.ts" timestamp="2026-10-25T07:05:40.396Z" hostname="DESKTOP-RPKBBBR" tests="6" failures="0" errors="0" skipped="0" time="0.0145364">
+        <testcase classname="src/lib/edit/text-edit.test.ts" name="minimalChange &gt; одинаковые тексты — правки нет" time="0.0038396">
         </testcase>
-        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; живой разбор без ошибок запоминает схему, с ошибками — оставляет последнюю корректную" time="0.001168">
+        <testcase classname="src/lib/edit/text-edit.test.ts" name="minimalChange &gt; вставка строки в середину меняет только её" time="0.0025042">
         </testcase>
-        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; запоздавший ответ разбора отбрасывается: пользователь уже набрал дальше" time="0.0006828">
+        <testcase classname="src/lib/edit/text-edit.test.ts" name="minimalChange &gt; удаление и замена" time="0.000982">
         </testcase>
-        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; сохранённый корректный текст снимает черновик и запасные схемы" time="0.0009272">
+        <testcase classname="src/lib/edit/text-edit.test.ts" name="minimalChange &gt; повторяющийся текст не уводит правку за границы" time="0.0005807">
         </testcase>
-        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; если пока шёл запрос, текст ушёл вперёд, черновик остаётся" time="0.0004098">
+        <testcase classname="src/lib/edit/text-edit.test.ts" name="minimalChange &gt; не разрывает суррогатную пару эмодзи" time="0.0007483">
         </testcase>
-        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; сохранённый текст с ошибкой оставляет последнюю корректную схему" time="0.0010631">
-        </testcase>
-        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; операция над проектом блокирует редактор, пока выполняется" time="0.0005721">
-        </testcase>
-        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; dropDrafts сбрасывает всё, что относилось к прежнему HEAD" time="0.0005606">
+        <testcase classname="src/lib/edit/text-edit.test.ts" name="minimalChange &gt; кириллица и пустые тексты" time="0.0006318">
         </testcase>
     </testsuite>
-    <testsuite name="src/stores/run-store.test.ts" timestamp="2026-10-25T02:27:32.444Z" hostname="DESKTOP-RPKBBBR" tests="2" failures="0" errors="0" skipped="0" time="0.0057936">
-        <testcase classname="src/stores/run-store.test.ts" name="run-store &gt; открывает один поток на запуск и складывает события в состояние" time="0.0027742">
+    <testsuite name="src/lib/graph/flow-layout.test.ts" timestamp="2026-10-25T07:05:40.398Z" hostname="DESKTOP-RPKBBBR" tests="8" failures="0" errors="0" skipped="0" time="5.7695273">
+        <testcase classname="src/lib/graph/flow-layout.test.ts" name="buildVisibleFlow &gt; свёрнутый контейнер скрывает содержимое и забирает его рёбра" time="0.0048336">
         </testcase>
-        <testcase classname="src/stores/run-store.test.ts" name="run-store &gt; clear закрывает потоки и очищает журнал" time="0.0004851">
+        <testcase classname="src/lib/graph/flow-layout.test.ts" name="buildVisibleFlow &gt; без вызовов внешние блоки и их рёбра пропадают" time="0.0006011">
+        </testcase>
+        <testcase classname="src/lib/graph/flow-layout.test.ts" name="раскладка ELK &gt; размещает каждый видимый блок" time="0.2708427">
+        </testcase>
+        <testcase classname="src/lib/graph/flow-layout.test.ts" name="раскладка ELK &gt; вложенные блоки лежат внутри контейнера и не пересекаются" time="0.0875296">
+        </testcase>
+        <testcase classname="src/lib/graph/flow-layout.test.ts" name="раскладка ELK &gt; ветка «Да» стоит левее ветки «Нет»" time="0.0515499">
+        </testcase>
+        <testcase classname="src/lib/graph/flow-layout.test.ts" name="раскладка ELK &gt; петли не вытягивают контейнер вверх: порядок идёт сверху вниз" time="0.0648213">
+        </testcase>
+        <testcase classname="src/lib/graph/flow-layout.test.ts" name="раскладка ELK &gt; раскладывает все блок-схемы демо-монолита" time="5.0883137">
+        </testcase>
+        <testcase classname="src/lib/graph/flow-layout.test.ts" name="раскладка ELK &gt; switch с 22 ветками не вытягивается в одну линию" time="0.1842494">
         </testcase>
     </testsuite>
-    <testsuite name="src/stores/workspace-store.test.ts" timestamp="2026-10-25T02:27:32.445Z" hostname="DESKTOP-RPKBBBR" tests="11" failures="0" errors="0" skipped="0" time="0.0193083">
-        <testcase classname="src/stores/workspace-store.test.ts" name="workspaceStore &gt; открывает методы во вкладках без дублей и переключает файл кода" time="0.0043666">
+    <testsuite name="src/lib/graph/flow-model.test.ts" timestamp="2026-10-25T07:05:40.400Z" hostname="DESKTOP-RPKBBBR" tests="9" failures="0" errors="0" skipped="0" time="0.0357112">
+        <testcase classname="src/lib/graph/flow-model.test.ts" name="buildFlowModel &gt; строит дерево блоков по parent_id: предок раньше потомков" time="0.0044525">
         </testcase>
-        <testcase classname="src/stores/workspace-store.test.ts" name="workspaceStore &gt; закрытие активной вкладки активирует соседнюю, последней — ничего" time="0.0012357">
+        <testcase classname="src/lib/graph/flow-model.test.ts" name="buildFlowModel &gt; цикл и try — контейнеры, условие и операция — нет" time="0.0009396">
         </testcase>
-        <testcase classname="src/stores/workspace-store.test.ts" name="workspaceStore &gt; повторный выбор того же узла получает новый seq" time="0.0008606">
+        <testcase classname="src/lib/graph/flow-model.test.ts" name="buildFlowModel &gt; вызовы методов вне схемы становятся блоками «внешний вызов»" time="0.0010788">
         </testcase>
-        <testcase classname="src/stores/workspace-store.test.ts" name="workspaceStore &gt; запоминает ручную свёрнутость контейнеров отдельно для каждого метода" time="0.0007355">
+        <testcase classname="src/lib/graph/flow-model.test.ts" name="buildFlowModel &gt; убирает рёбра «контейнер → содержимое», но запоминает тип исключения у catch" time="0.0021725">
         </testcase>
-        <testcase classname="src/stores/workspace-store.test.ts" name="URL рабочей области &gt; разбирает и собирает параметры file, method, node" time="0.000847">
+        <testcase classname="src/lib/graph/flow-model.test.ts" name="buildFlowModel &gt; сохраняет петли и ветки Да/Нет" time="0.0006939">
         </testcase>
-        <testcase classname="src/stores/workspace-store.test.ts" name="URL рабочей области &gt; называет метод и файл по id члена" time="0.0005762">
+        <testcase classname="src/lib/graph/flow-model.test.ts" name="buildFlowModel &gt; не теряет ни одного узла контракта" time="0.0004393">
         </testcase>
-        <testcase classname="src/stores/workspace-store.test.ts" name="выбор нескольких блоков &gt; обычный выбор — один блок; selectMany задаёт набор и основной блок" time="0.0017409">
+        <testcase classname="src/lib/graph/flow-model.test.ts" name="все блок-схемы демо-монолита &gt; строятся без потерь: у каждого блока есть место в порядке обхода" time="0.0189477">
         </testcase>
-        <testcase classname="src/stores/workspace-store.test.ts" name="выбор нескольких блоков &gt; toggleSelected добавляет блок к выбору и убирает; выбор из кода входит в набор" time="0.0011472">
+        <testcase classname="src/lib/graph/flow-model.test.ts" name="defaultCollapsed &gt; в небольшой схеме ничего не сворачивает" time="0.0006078">
         </testcase>
-        <testcase classname="src/stores/workspace-store.test.ts" name="выбор нескольких блоков &gt; снятие не основного блока не трогает основной выбор" time="0.0006263">
+        <testcase classname="src/lib/graph/flow-model.test.ts" name="defaultCollapsed &gt; в большой сворачивает контейнеры глубже третьего уровня" time="0.001114">
         </testcase>
-        <testcase classname="src/stores/workspace-store.test.ts" name="выбор нескольких блоков &gt; reset снимает выбор и закрывает диалог выделения метода" time="0.0008514">
+    </testsuite>
+    <testsuite name="src/lib/graph/locate.test.ts" timestamp="2026-10-25T07:05:40.402Z" hostname="DESKTOP-RPKBBBR" tests="6" failures="0" errors="0" skipped="0" time="0.0103525">
+        <testcase classname="src/lib/graph/locate.test.ts" name="rangeContains &gt; учитывает границы по строкам и колонкам" time="0.0031353">
         </testcase>
-        <testcase classname="src/stores/workspace-store.test.ts" name="вкладка «Декомпозиция» &gt; открывается один раз, становится активной и закрывается как остальные" time="0.0007181">
+        <testcase classname="src/lib/graph/locate.test.ts" name="locateBlock &gt; находит самый глубокий блок: операция внутри try внутри цикла" time="0.00086">
+        </testcase>
+        <testcase classname="src/lib/graph/locate.test.ts" name="locateBlock &gt; строка цикла даёт сам цикл, а не вложенные блоки" time="0.0005568">
+        </testcase>
+        <testcase classname="src/lib/graph/locate.test.ts" name="locateBlock &gt; сигнатура метода даёт блок «Метод»" time="0.0002666">
+        </testcase>
+        <testcase classname="src/lib/graph/locate.test.ts" name="locateBlock &gt; позиция вне метода — ничего" time="0.0002853">
+        </testcase>
+        <testcase classname="src/lib/graph/locate.test.ts" name="locateBlock &gt; каждый блок находится по началу своего диапазона не глубже себя" time="0.0008886">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/graph/outline.test.ts" timestamp="2026-10-25T07:05:40.404Z" hostname="DESKTOP-RPKBBBR" tests="6" failures="0" errors="0" skipped="0" time="0.0295757">
+        <testcase classname="src/lib/graph/outline.test.ts" name="nodeDepth &gt; считает вложенность по структурному пути" time="0.0156582">
+        </testcase>
+        <testcase classname="src/lib/graph/outline.test.ts" name="flowOutline &gt; начинается с метода и идёт в порядке кода" time="0.0037589">
+        </testcase>
+        <testcase classname="src/lib/graph/outline.test.ts" name="flowOutline &gt; вложенность растёт внутри циклов и ветвей" time="0.0009384">
+        </testcase>
+        <testcase classname="src/lib/graph/outline.test.ts" name="flowOutline &gt; условие знает свои исходы Да/Нет" time="0.0013924">
+        </testcase>
+        <testcase classname="src/lib/graph/outline.test.ts" name="methodGroups &gt; группирует методы по типам и фильтрует по подстроке" time="0.0019051">
+        </testcase>
+        <testcase classname="src/lib/graph/outline.test.ts" name="methodGroups &gt; не включает поля" time="0.0006977">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/graph/structure-layout.test.ts" timestamp="2026-10-25T07:05:40.405Z" hostname="DESKTOP-RPKBBBR" tests="4" failures="0" errors="0" skipped="0" time="0.5630139">
+        <testcase classname="src/lib/graph/structure-layout.test.ts" name="buildStructureLayout &gt; «Типы»: только карточки типов и рёбра наследования" time="0.0072171">
+        </testcase>
+        <testcase classname="src/lib/graph/structure-layout.test.ts" name="buildStructureLayout &gt; «Методы»: члены лежат внутри своих типов, вызовы вынесены в links" time="0.0025117">
+        </testcase>
+        <testcase classname="src/lib/graph/structure-layout.test.ts" name="buildStructureLayout &gt; считает члены каждого типа" time="0.0013947">
+        </testcase>
+        <testcase classname="src/lib/graph/structure-layout.test.ts" name="buildStructureLayout &gt; раскладывается ELK: у каждого видимого узла есть размеры" time="0.5419504">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/graph/tree-model.test.ts" timestamp="2026-10-25T07:05:40.406Z" hostname="DESKTOP-RPKBBBR" tests="4" failures="0" errors="0" skipped="0" time="0.0162551">
+        <testcase classname="src/lib/graph/tree-model.test.ts" name="tree-model &gt; по умолчанию раскрывает файлы, но не типы" time="0.0029493">
+        </testcase>
+        <testcase classname="src/lib/graph/tree-model.test.ts" name="tree-model &gt; поиск раскрывает путь к совпадению и помечает совпавшую строку" time="0.0021826">
+        </testcase>
+        <testcase classname="src/lib/graph/tree-model.test.ts" name="tree-model &gt; поиск без совпадений даёт пустой список" time="0.0007168">
+        </testcase>
+        <testcase classname="src/lib/graph/tree-model.test.ts" name="tree-model &gt; находит путь до метода и сам узел" time="0.0021375">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/graph/viewport.test.ts" timestamp="2026-10-25T07:05:40.407Z" hostname="DESKTOP-RPKBBBR" tests="6" failures="0" errors="0" skipped="0" time="0.0077004">
+        <testcase classname="src/lib/graph/viewport.test.ts" name="startViewport &gt; ставит верхний блок вверху по центру окна в читаемом масштабе" time="0.0019161">
+        </testcase>
+        <testcase classname="src/lib/graph/viewport.test.ts" name="startViewport &gt; учитывает смещение схемы по вертикали и свой масштаб" time="0.0008909">
+        </testcase>
+        <testcase classname="src/lib/graph/viewport.test.ts" name="startViewport &gt; в низком окне отступ сверху не больше четверти высоты" time="0.0002776">
+        </testcase>
+        <testcase classname="src/lib/graph/viewport.test.ts" name="topBlock &gt; берёт самый верхний блок, при равенстве — левый" time="0.0002585">
+        </testcase>
+        <testcase classname="src/lib/graph/viewport.test.ts" name="topBlock &gt; для пустого списка ничего не возвращает" time="0.0001831">
+        </testcase>
+        <testcase classname="src/lib/graph/viewport.test.ts" name="sameViewport &gt; сравнивает с точностью до пикселя и тысячной масштаба" time="0.0002693">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/run/run-state.test.ts" timestamp="2026-10-25T07:05:40.408Z" hostname="DESKTOP-RPKBBBR" tests="4" failures="0" errors="0" skipped="0" time="0.0150609">
+        <testcase classname="src/lib/run/run-state.test.ts" name="reduceRunEvent &gt; сворачивает полный поток gate-запуска из фикстуры" time="0.0067917">
+        </testcase>
+        <testcase classname="src/lib/run/run-state.test.ts" name="reduceRunEvent &gt; не мутирует прошлое состояние" time="0.0011263">
+        </testcase>
+        <testcase classname="src/lib/run/run-state.test.ts" name="reduceRunEvent &gt; склеивает подряд идущие куски stdout, но не служебные строки" time="0.0008126">
+        </testcase>
+        <testcase classname="src/lib/run/run-state.test.ts" name="reduceRunEvent &gt; достаёт диагностики сборки из результата и запоминает ошибку" time="0.000606">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/run/tests-view.test.ts" timestamp="2026-10-25T07:05:40.409Z" hostname="DESKTOP-RPKBBBR" tests="3" failures="0" errors="0" skipped="0" time="0.0059254">
+        <testcase classname="src/lib/run/tests-view.test.ts" name="tests-view &gt; сопоставляет результаты со сценариями по id, а без id — по имени" time="0.0020339">
+        </testcase>
+        <testcase classname="src/lib/run/tests-view.test.ts" name="tests-view &gt; считает пройденные и расходящиеся" time="0.0004148">
+        </testcase>
+        <testcase classname="src/lib/run/tests-view.test.ts" name="tests-view &gt; коротко описывает расхождение" time="0.0005327">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/run/use-run-events.test.tsx" timestamp="2026-10-25T07:05:40.410Z" hostname="DESKTOP-RPKBBBR" tests="3" failures="0" errors="0" skipped="0" time="0.0678243">
+        <testcase classname="src/lib/run/use-run-events.test.tsx" name="useRunEvents &gt; без запуска возвращает пустое состояние и ничего не открывает" time="0.0377686">
+        </testcase>
+        <testcase classname="src/lib/run/use-run-events.test.tsx" name="useRunEvents &gt; подписывается на запуск и обновляет состояние по событиям" time="0.0150866">
+        </testcase>
+        <testcase classname="src/lib/run/use-run-events.test.tsx" name="useRunEvents &gt; два потребителя одного запуска делят один поток" time="0.0072008">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/mocks/mock-fetch.test.ts" timestamp="2026-10-25T07:05:40.411Z" hostname="DESKTOP-RPKBBBR" tests="9" failures="0" errors="0" skipped="0" time="0.2897703">
+        <testcase classname="src/mocks/mock-fetch.test.ts" name="resolveMock &gt; отдаёт фикстуры по путям контракта" time="0.0055869">
+        </testcase>
+        <testcase classname="src/mocks/mock-fetch.test.ts" name="resolveMock &gt; выбирает блок-схему по method_id" time="0.0012523">
+        </testcase>
+        <testcase classname="src/mocks/mock-fetch.test.ts" name="resolveMock &gt; для метода без мока возвращает 404 в формате ошибки" time="0.0008781">
+        </testcase>
+        <testcase classname="src/mocks/mock-fetch.test.ts" name="resolveMock &gt; запуск создаётся как 202 с run_id" time="0.0017166">
+        </testcase>
+        <testcase classname="src/mocks/mock-fetch.test.ts" name="resolveMock &gt; файл по пути и неизвестный запуск" time="0.0007363">
+        </testcase>
+        <testcase classname="src/mocks/mock-fetch.test.ts" name="resolveMock &gt; для остального отвечает 501 NOT_IMPLEMENTED" time="0.0008923">
+        </testcase>
+        <testcase classname="src/mocks/mock-fetch.test.ts" name="mockFetch и клиент &gt; возвращает Response с JSON" time="0.0072599">
+        </testcase>
+        <testcase classname="src/mocks/mock-fetch.test.ts" name="mockFetch и клиент &gt; клиент openapi-fetch в режиме моков не обращается к сети" time="0.1094019">
+        </testcase>
+        <testcase classname="src/mocks/mock-fetch.test.ts" name="mockFetch и клиент &gt; ошибка контракта приходит в поле error" time="0.1566435">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/stores/editor-store.test.ts" timestamp="2026-10-25T07:05:40.413Z" hostname="DESKTOP-RPKBBBR" tests="8" failures="0" errors="0" skipped="0" time="0.0131156">
+        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; ввод создаёт черновик и помечает файл несохранённым" time="0.0040404">
+        </testcase>
+        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; живой разбор без ошибок запоминает схему, с ошибками — оставляет последнюю корректную" time="0.0010287">
+        </testcase>
+        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; запоздавший ответ разбора отбрасывается: пользователь уже набрал дальше" time="0.0005137">
+        </testcase>
+        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; сохранённый корректный текст снимает черновик и запасные схемы" time="0.0008381">
+        </testcase>
+        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; если пока шёл запрос, текст ушёл вперёд, черновик остаётся" time="0.000367">
+        </testcase>
+        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; сохранённый текст с ошибкой оставляет последнюю корректную схему" time="0.0003981">
+        </testcase>
+        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; операция над проектом блокирует редактор, пока выполняется" time="0.0004257">
+        </testcase>
+        <testcase classname="src/stores/editor-store.test.ts" name="editorStore &gt; dropDrafts сбрасывает всё, что относилось к прежнему HEAD" time="0.0004305">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/stores/run-store.test.ts" timestamp="2026-10-25T07:05:40.415Z" hostname="DESKTOP-RPKBBBR" tests="2" failures="0" errors="0" skipped="0" time="0.0133597">
+        <testcase classname="src/stores/run-store.test.ts" name="run-store &gt; открывает один поток на запуск и складывает события в состояние" time="0.0067327">
+        </testcase>
+        <testcase classname="src/stores/run-store.test.ts" name="run-store &gt; clear закрывает потоки и очищает журнал" time="0.0014187">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/stores/workspace-store.test.ts" timestamp="2026-10-25T07:05:40.416Z" hostname="DESKTOP-RPKBBBR" tests="11" failures="0" errors="0" skipped="0" time="0.0196396">
+        <testcase classname="src/stores/workspace-store.test.ts" name="workspaceStore &gt; открывает методы во вкладках без дублей и переключает файл кода" time="0.004895">
+        </testcase>
+        <testcase classname="src/stores/workspace-store.test.ts" name="workspaceStore &gt; закрытие активной вкладки активирует соседнюю, последней — ничего" time="0.0012603">
+        </testcase>
+        <testcase classname="src/stores/workspace-store.test.ts" name="workspaceStore &gt; повторный выбор того же узла получает новый seq" time="0.0008226">
+        </testcase>
+        <testcase classname="src/stores/workspace-store.test.ts" name="workspaceStore &gt; запоминает ручную свёрнутость контейнеров отдельно для каждого метода" time="0.0007268">
+        </testcase>
+        <testcase classname="src/stores/workspace-store.test.ts" name="URL рабочей области &gt; разбирает и собирает параметры file, method, node" time="0.0009035">
+        </testcase>
+        <testcase classname="src/stores/workspace-store.test.ts" name="URL рабочей области &gt; называет метод и файл по id члена" time="0.0005099">
+        </testcase>
+        <testcase classname="src/stores/workspace-store.test.ts" name="выбор нескольких блоков &gt; обычный выбор — один блок; selectMany задаёт набор и основной блок" time="0.0017682">
+        </testcase>
+        <testcase classname="src/stores/workspace-store.test.ts" name="выбор нескольких блоков &gt; toggleSelected добавляет блок к выбору и убирает; выбор из кода входит в набор" time="0.0010518">
+        </testcase>
+        <testcase classname="src/stores/workspace-store.test.ts" name="выбор нескольких блоков &gt; снятие не основного блока не трогает основной выбор" time="0.0006553">
+        </testcase>
+        <testcase classname="src/stores/workspace-store.test.ts" name="выбор нескольких блоков &gt; reset снимает выбор и закрывает диалог выделения метода" time="0.0008222">
+        </testcase>
+        <testcase classname="src/stores/workspace-store.test.ts" name="вкладка «Декомпозиция» &gt; открывается один раз, становится активной и закрывается как остальные" time="0.0007759">
         </testcase>
     </testsuite>
 </testsuites>

@@ -23,8 +23,8 @@
 | jdk_sweep | ✓ |
 
 - pytest: 1447 из 1449 (`reports/pytest-report.xml`)
-- vitest: 277 из 277 (`reports/vitest-report.xml`)
-- playwright: 15 из 15 (`reports/playwright-report.xml`; запуск: `cd frontend && pnpm e2e` при поднятом приложении)
+- vitest: 288 из 288 (`reports/vitest-report.xml`)
+- playwright: 20 из 20 (`reports/playwright-report.xml`; запуск: `cd frontend && pnpm e2e` при поднятом приложении)
 - корпус через API: `reports/verify_samples.md`, `reports/verify_samples.json`
 - баг-баш: `reports/bug_bash.md`
 - бюджеты производительности: `reports/perf_budget.md`

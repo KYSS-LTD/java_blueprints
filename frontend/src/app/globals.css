@@ -64,7 +64,7 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: oklch(0.5 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -77,19 +77,21 @@
   --chart-4: oklch(0.75 0.17 150);
   --chart-5: oklch(0.65 0.22 25);
 
-  --node-method: oklch(0.55 0.22 290);
-  --node-variable: oklch(0.6 0.16 245);
-  --node-condition: oklch(0.72 0.17 65);
-  --node-loop: oklch(0.58 0.2 305);
-  --node-operation: oklch(0.6 0.13 225);
-  --node-return: oklch(0.65 0.17 150);
-  --node-call: oklch(0.78 0.15 90);
-  --severity-high: oklch(0.577 0.245 27.325);
-  --severity-medium: oklch(0.72 0.17 70);
-  --severity-low: oklch(0.6 0.15 245);
+  /* Цвета блоков и важности служат и заливкой, и цветом текста на собственной подложке (бейджи): в светлой теме
+     они темнее, чтобы текст на подложке держал контраст 4,5:1 */
+  --node-method: oklch(0.5 0.22 290);
+  --node-variable: oklch(0.5 0.15 245);
+  --node-condition: oklch(0.52 0.14 60);
+  --node-loop: oklch(0.5 0.2 305);
+  --node-operation: oklch(0.5 0.12 225);
+  --node-return: oklch(0.46 0.13 150);
+  --node-call: oklch(0.5 0.11 90);
+  --severity-high: oklch(0.47 0.21 27);
+  --severity-medium: oklch(0.5 0.12 65);
+  --severity-low: oklch(0.47 0.15 250);
 }
 
-/* Тёмная тема по умолчанию (макет): глубокий сине-фиолетовый фон */
+/* Тёмная тема — по умолчанию, как в макете: глубокий сине-фиолетовый фон. Светлая — в :root выше; переключатель в шапке */
 .dark {
   --background: oklch(0.145 0.03 268);
   --foreground: oklch(0.96 0.01 268);
@@ -97,7 +99,7 @@
   --card-foreground: oklch(0.96 0.01 268);
   --popover: oklch(0.2 0.04 268);
   --popover-foreground: oklch(0.96 0.01 268);
-  --primary: oklch(0.62 0.21 285);
+  --primary: oklch(0.67 0.19 285);
   --primary-foreground: oklch(0.14 0.03 268);
   --secondary: oklch(0.25 0.04 268);
   --secondary-foreground: oklch(0.96 0.01 268);

@@ -35,7 +35,9 @@ import {
 } from "@/lib/graph/flow-layout";
 import { modelOf } from "@/lib/graph/flow-cache";
 import { ancestorsOf, defaultCollapsed, type FlowGraph, type FlowModel } from "@/lib/graph/flow-model";
+import { MIN_FIT_ZOOM, sameViewport, startViewport, topBlock } from "@/lib/graph/viewport";
 import { isEditableTarget } from "@/lib/edit/use-hotkeys";
+import { useColorMode } from "@/lib/hooks/use-color-mode";
 import { ru } from "@/lib/i18n/ru";
 import { useEditorStore } from "@/stores/editor-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
@@ -132,6 +134,10 @@ function FlowCanvasInner({ projectId, flow, editable = false, onOpenMethod }: Pr
   const [layout, setLayout] = useState<Layout | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showMiniMap, setShowMiniMap] = useState(false);
+  // камера стоит на начале крупной схемы, а не на всей схеме
+  const [partial, setPartial] = useState(false);
+  const startView = useRef<Viewport | null>(null);
+  const colorMode = useColorMode();
   const fitted = useRef<string | null>(null);
 
   useEffect(() => {
@@ -295,14 +301,31 @@ function FlowCanvasInner({ projectId, flow, editable = false, onOpenMethod }: Pr
     );
   }, [layout, selectedId]);
 
-  // Камера: после первой раскладки метода — вписать схему (если камера не сохранена).
+  // Камера: после первой раскладки метода — вписать схему (если камера не сохранена). Крупная схема при этом
+  // становится нечитаемой, поэтому для неё берётся читаемый масштаб и показывается начало метода.
   useEffect(() => {
     if (!layout || fitted.current === viewportKey) return;
     fitted.current = viewportKey;
     const saved = viewportCache.get(viewportKey);
-    if (saved) void reactFlow.setViewport(saved);
-    else requestAnimationFrame(() => void reactFlow.fitView({ padding: 0.12, maxZoom: 1, duration: 0 }));
-  }, [layout, reactFlow, viewportKey]);
+    if (saved) {
+      void reactFlow.setViewport(saved);
+      return;
+    }
+    requestAnimationFrame(() => {
+      void reactFlow.fitView({ padding: 0.12, maxZoom: 1, duration: 0 }).then(() => {
+        const size = wrapper.current?.getBoundingClientRect();
+        const top = topBlock(
+          nodes
+            .filter((node) => !node.parentId)
+            .map((node) => ({ x: node.position.x, y: node.position.y, width: node.width ?? 0, height: node.height ?? 0 })),
+        );
+        if (reactFlow.getZoom() >= MIN_FIT_ZOOM || !size || !top) return;
+        startView.current = startViewport(top, size);
+        void reactFlow.setViewport(startView.current);
+        setPartial(true);
+      });
+    });
+  }, [layout, nodes, reactFlow, viewportKey]);
 
   // Выбор из кода, дерева или находок: раскрыть свёрнутых предков и показать блок.
   const handled = useRef(0);
@@ -331,7 +354,10 @@ function FlowCanvasInner({ projectId, flow, editable = false, onOpenMethod }: Pr
     void reactFlow.setCenter(center.x, center.y, { zoom: Math.max(reactFlow.getZoom(), 0.9), duration: 300 });
   }, [selection, model, collapsed, layout, reactFlow, setCollapsed, flow.method_id]);
 
-  const fitAll = useCallback(() => void reactFlow.fitView({ padding: 0.12, maxZoom: 1, duration: 250 }), [reactFlow]);
+  const fitAll = useCallback(() => {
+    setPartial(false);
+    void reactFlow.fitView({ padding: 0.12, maxZoom: 1, duration: 250 });
+  }, [reactFlow]);
 
   if (error) {
     return (
@@ -359,7 +385,7 @@ function FlowCanvasInner({ projectId, flow, editable = false, onOpenMethod }: Pr
           nodes={nodes}
           edges={edges}
           nodeTypes={flowNodeTypes}
-          colorMode="dark"
+          colorMode={colorMode}
           minZoom={0.1}
           maxZoom={2}
           nodesDraggable={false}
@@ -422,7 +448,11 @@ function FlowCanvasInner({ projectId, flow, editable = false, onOpenMethod }: Pr
             anchor.current = ids[0];
             selectMany(ids, ids[ids.length - 1], lastBlock?.range);
           }}
-          onMoveEnd={(_, viewport) => viewportCache.set(viewportKey, viewport)}
+          onMoveEnd={(_, viewport) => {
+            viewportCache.set(viewportKey, viewport);
+            // подсказка «показано начало» верна, только пока камера стоит там, куда её поставили
+            setPartial(startView.current !== null && sameViewport(viewport, startView.current));
+          }}
         >
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="var(--border)" />
           {showMiniMap && (
@@ -440,6 +470,7 @@ function FlowCanvasInner({ projectId, flow, editable = false, onOpenMethod }: Pr
         </ReactFlow>
         <CanvasToolbar
           blocks={model.blocks.size}
+          partial={partial}
           showMiniMap={showMiniMap}
           onToggleMiniMap={() => setShowMiniMap((value) => !value)}
           onFit={fitAll}

@@ -151,15 +151,19 @@ export function CodePanel({ projectId, versionId }: Props) {
 
   return (
     <section className="flex h-full min-h-0 flex-col" aria-label={t.title}>
-      <div className="flex items-center gap-2 border-b px-3 py-1.5">
-        <h2 className="text-sm font-semibold">{t.title}</h2>
-        {activeFile && <code className="truncate text-xs text-muted-foreground">{activeFile}</code>}
+      <div className="@container flex items-center gap-2 border-b px-3 py-1.5">
+        <h2 className="text-sm font-semibold whitespace-nowrap">{t.title}</h2>
+        {activeFile && (
+          <code className="min-w-0 truncate text-xs text-muted-foreground" title={t.autosave}>
+            {activeFile}
+          </code>
+        )}
         {locked ? (
           <Badge variant="outline" className="ml-auto text-[10px]" title={t.readOnlyHint}>
             {t.readOnly}
           </Badge>
         ) : (
-          <span className="ml-auto hidden text-[10px] text-muted-foreground lg:inline">{t.autosave}</span>
+          <span className="ml-auto hidden text-[10px] text-muted-foreground @xl:inline">{t.autosave}</span>
         )}
       </div>
       <div className="relative min-h-0 flex-1" data-testid="code-panel">

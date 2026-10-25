@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useDefaultLayout } from "react-resizable-panels";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -24,7 +24,7 @@ import { projectQuery } from "@/lib/api/queries";
 import { useHistoryHotkeys } from "@/lib/edit/use-hotkeys";
 import { useEditing } from "@/lib/edit/use-editing";
 import { useIsClient } from "@/lib/hooks/use-is-client";
-import { useMediaQuery } from "@/lib/hooks/use-media-query";
+import { useElementWidth } from "@/lib/hooks/use-element-width";
 import { ru } from "@/lib/i18n/ru";
 import { useEditorStore } from "@/stores/editor-store";
 import { useRunStore } from "@/stores/run-store";
@@ -69,61 +69,66 @@ function useLocationSync(ready: boolean) {
   }, [ready]);
 }
 
+/** Ширина области, с которой «Код Java», «Консоль» и «Результат тестов» стоят рядом, как в макете; уже — вкладки. */
+export const SIDE_BY_SIDE_MIN_WIDTH = 640;
+
 function BottomPanels({ projectId, versionId }: { projectId: number; versionId?: number }) {
-  const wide = useMediaQuery("(min-width: 1500px)");
+  const area = useRef<HTMLDivElement>(null);
+  const width = useElementWidth(area);
   const bottomTab = useWorkspaceStore((s) => s.bottomTab);
   const setBottomTab = useWorkspaceStore((s) => s.setBottomTab);
   const layout = usePanelLayout("bottom");
 
-  if (!wide) {
-    return (
-      <Tabs
-        value={bottomTab}
-        onValueChange={(value) => setBottomTab(value as BottomTab)}
-        className="h-full min-h-0 gap-0"
-      >
-        <TabsList className="mx-2 mt-1.5 h-8 w-auto self-start">
-          <TabsTrigger value="code" className="text-xs">
-            {ru.code.title}
-          </TabsTrigger>
-          <TabsTrigger value="console" className="text-xs">
-            {ru.console.title}
-          </TabsTrigger>
-          <TabsTrigger value="tests" className="text-xs">
-            {ru.tests.title}
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="code" className="min-h-0">
-          <CodePanel projectId={projectId} versionId={versionId} />
-        </TabsContent>
-        <TabsContent value="console" className="min-h-0">
-          <ConsolePanel />
-        </TabsContent>
-        <TabsContent value="tests" className="min-h-0">
-          <TestsPanel projectId={projectId} />
-        </TabsContent>
-      </Tabs>
-    );
-  }
-
   return (
-    <ResizablePanelGroup
-      orientation="horizontal"
-      defaultLayout={layout.defaultLayout}
-      onLayoutChanged={layout.onLayoutChanged}
-    >
-      <ResizablePanel id="code" defaultSize="40%" minSize="20%">
-        <CodePanel projectId={projectId} versionId={versionId} />
-      </ResizablePanel>
-      <ResizableHandle />
-      <ResizablePanel id="console" defaultSize="30%" minSize="15%">
-        <ConsolePanel />
-      </ResizablePanel>
-      <ResizableHandle />
-      <ResizablePanel id="tests" defaultSize="30%" minSize="15%">
-        <TestsPanel projectId={projectId} />
-      </ResizablePanel>
-    </ResizablePanelGroup>
+    <div ref={area} className="h-full min-h-0">
+      {width !== null && width >= SIDE_BY_SIDE_MIN_WIDTH && (
+        <ResizablePanelGroup
+          orientation="horizontal"
+          defaultLayout={layout.defaultLayout}
+          onLayoutChanged={layout.onLayoutChanged}
+        >
+          <ResizablePanel id="code" defaultSize="38%" minSize="20%">
+            <CodePanel projectId={projectId} versionId={versionId} />
+          </ResizablePanel>
+          <ResizableHandle />
+          <ResizablePanel id="console" defaultSize="24%" minSize="15%">
+            <ConsolePanel />
+          </ResizablePanel>
+          <ResizableHandle />
+          <ResizablePanel id="tests" defaultSize="38%" minSize="15%">
+            <TestsPanel projectId={projectId} />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      )}
+      {width !== null && width < SIDE_BY_SIDE_MIN_WIDTH && (
+        <Tabs
+          value={bottomTab}
+          onValueChange={(value) => setBottomTab(value as BottomTab)}
+          className="h-full min-h-0 gap-0"
+        >
+          <TabsList className="mx-2 mt-1.5 h-8 w-auto self-start">
+            <TabsTrigger value="code" className="text-xs">
+              {ru.code.title}
+            </TabsTrigger>
+            <TabsTrigger value="console" className="text-xs">
+              {ru.console.title}
+            </TabsTrigger>
+            <TabsTrigger value="tests" className="text-xs">
+              {ru.tests.title}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="code" className="min-h-0">
+            <CodePanel projectId={projectId} versionId={versionId} />
+          </TabsContent>
+          <TabsContent value="console" className="min-h-0">
+            <ConsolePanel />
+          </TabsContent>
+          <TabsContent value="tests" className="min-h-0">
+            <TestsPanel projectId={projectId} />
+          </TabsContent>
+        </Tabs>
+      )}
+    </div>
   );
 }
 

@@ -25,7 +25,7 @@ if (!("DOMMatrixReadOnly" in globalThis)) {
   Object.defineProperty(globalThis, "DOMMatrixReadOnly", { value: DOMMatrixReadOnlyStub });
 }
 
-// matchMedia нужен useMediaQuery (раскладка нижних панелей); в тестах экран «узкий».
+// matchMedia нужен библиотекам интерфейса (например, sonner); в тестах экран «узкий».
 if (typeof window !== "undefined" && !window.matchMedia) {
   Object.defineProperty(window, "matchMedia", {
     value: (query: string) => ({
@@ -33,6 +33,8 @@ if (typeof window !== "undefined" && !window.matchMedia) {
       media: query,
       addEventListener: () => {},
       removeEventListener: () => {},
+      addListener: () => {}, // next-themes слушает по старому интерфейсу
+      removeListener: () => {},
     }),
   });
 }

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { HealthCard } from "@/components/health-card";
 import { ImportDialog } from "@/components/projects/import-dialog";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ export function ProjectsScreen() {
           <Button onClick={() => setImporting(true)}>
             <Plus /> {t.newProject}
           </Button>
+          <ThemeToggle />
         </div>
       </header>
 
