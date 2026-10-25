@@ -335,3 +335,30 @@ def test_environment_failure_is_not_cached(tmp_path: Path) -> None:
     assert _cacheable(True, [])
     assert _cacheable(False, [located])
     assert not _cacheable(False, [environment])
+
+
+def test_a_half_written_compile_cache_is_ignored(tmp_path: Path) -> None:
+    from engine.runtime.compiler import _RESULT, _load_cached
+
+    workspace = materialize({"Main.java": "public class Main {}"}, tmp_path / "builds", "cache")
+    (workspace.root / _RESULT).write_text('{"ok": tr', encoding="utf-8")  # писатель не дописал файл
+    assert _load_cached(workspace) is None
+    (workspace.root / _RESULT).write_text("", encoding="utf-8")
+    assert _load_cached(workspace) is None
+
+
+@pytest.mark.jdk
+def test_parallel_builds_of_one_workspace_wait_for_each_other(tmp_path, java_home, jdk_major):
+    workspace = materialize({"Main.java": HELLO}, tmp_path / "builds", "same")
+    results: list = []
+
+    def build_it() -> None:
+        results.append(compile_workspace(workspace, java_home, jdk_major))
+
+    threads = [threading.Thread(target=build_it) for _ in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert len(results) == 8 and all(r.ok for r in results)
+    assert sum(1 for r in results if not r.cached) == 1  # собрал один, остальные взяли готовое

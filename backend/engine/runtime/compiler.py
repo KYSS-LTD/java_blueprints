@@ -10,8 +10,10 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
+import threading
 import time
 from dataclasses import asdict, dataclass, field
 from functools import lru_cache
@@ -120,22 +122,35 @@ def _load_cached(workspace: Workspace) -> CompileResult | None:
     path = workspace.root / _RESULT
     if not path.exists():
         return None
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if not _cacheable(data["ok"], [CompileDiagnostic(**d) for d in data["diagnostics"]]):
-        return None
-    return CompileResult(
-        ok=data["ok"],
-        diagnostics=[CompileDiagnostic(**d) for d in data["diagnostics"]],
-        duration_ms=data["duration_ms"],
-        cached=True,
-        release=data["release"],
-        log=data["log"],
-    )
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        diagnostics = [CompileDiagnostic(**d) for d in data["diagnostics"]]
+        if not _cacheable(data["ok"], diagnostics):
+            return None
+        return CompileResult(
+            ok=data["ok"],
+            diagnostics=diagnostics,
+            duration_ms=data["duration_ms"],
+            cached=True,
+            release=data["release"],
+            log=data["log"],
+        )
+    except (OSError, ValueError, KeyError, TypeError):
+        return None  # недописанный или повреждённый файл: собираем заново
 
 
 @lru_cache(maxsize=4)
 def _installed_major(java_home: Path | None) -> int | None:
     return detect_jdk(java_home).major
+
+
+_LOCKS: dict[Path, threading.Lock] = {}
+_LOCKS_GUARD = threading.Lock()
+
+
+def _lock_of(workspace: Workspace) -> threading.Lock:
+    with _LOCKS_GUARD:
+        return _LOCKS.setdefault(workspace.root, threading.Lock())
 
 
 def compile_workspace(
@@ -144,7 +159,18 @@ def compile_workspace(
     jdk_major: int | None = None,
     timeout_s: int = 30,
 ) -> CompileResult:
-    """Собирает проект; повторный вызов с тем же хешем возвращает сохранённый результат."""
+    """Собирает проект; повторный вызов с тем же хешем возвращает сохранённый результат.
+
+    Сборки одного рабочего каталога идут по очереди: параллельные запуски одного и того же кода не пишут классы и
+    результат друг поверх друга, а второй берёт готовое из кеша.
+    """
+    with _lock_of(workspace):
+        return _compile(workspace, java_home, jdk_major, timeout_s)
+
+
+def _compile(
+    workspace: Workspace, java_home: Path | None, jdk_major: int | None, timeout_s: int
+) -> CompileResult:
     cached = _load_cached(workspace)
     if cached is not None:
         return cached
@@ -191,7 +217,9 @@ def compile_workspace(
 
     result = CompileResult(ok, diagnostics, duration_ms, False, release, text)
     if _cacheable(ok, diagnostics):
-        (workspace.root / _RESULT).write_text(
+        target = workspace.root / _RESULT
+        pending = target.with_suffix(f".{os.getpid()}.tmp")
+        pending.write_text(
             json.dumps(
                 {
                     "ok": ok,
@@ -204,4 +232,5 @@ def compile_workspace(
             ),
             encoding="utf-8",
         )
+        os.replace(pending, target)  # читатель видит файл целиком или не видит вовсе
     return result
