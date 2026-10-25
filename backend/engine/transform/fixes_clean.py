@@ -19,6 +19,7 @@ from engine.java import cst
 from engine.transform.base import Check, refuse
 from engine.transform.dedupe import literal_type
 from engine.transform.fixes_more import statement_of
+from engine.transform.reach import cannot_complete
 
 if TYPE_CHECKING:
     from engine.java.symbols import TypeDecl
@@ -41,15 +42,6 @@ _REMOVE_IF = frozenset(
     }
 )
 _PRIMITIVE_TYPES = frozenset({"int", "long", "short", "byte", "char", "boolean", "double", "float"})
-_TERMINAL = frozenset(
-    {
-        "break_statement",
-        "return_statement",
-        "throw_statement",
-        "continue_statement",
-        "yield_statement",
-    }
-)
 _NUMBER = frozenset(
     {
         "decimal_integer_literal",
@@ -224,7 +216,7 @@ def fix_10(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
         if group.type != "switch_block_statement_group":
             continue
         statements = [s for s in cst.named_children(group) if s.type != "switch_label"]
-        if statements and statements[-1].type not in _TERMINAL:
+        if statements and not cannot_complete(statements[-1]):
             last = statements[-1]
             indent = line_indent(c.source, last.start_byte)
             edits.append(TextEdit(c.file, last.end_byte, last.end_byte, f"\n{indent}break;"))

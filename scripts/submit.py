@@ -102,6 +102,7 @@ def summary(steps: dict[str, bool]) -> str:
         "- баг-баш: `reports/bug_bash.md`",
         "- бюджеты производительности: `reports/perf_budget.md`",
         "- прочность на чужом коде (исходники JDK): `reports/jdk_sweep.md`",
+        "- дифференциальная проверка исправлений (I8): `reports/fix_differential.md`",
         "",
         "Два теста backend требуют JDK 21+ и на более раннем JDK падают по замыслу (`test_jdk.py`, `/health`).",
     ]
@@ -167,6 +168,12 @@ def main() -> int:
         "бюджеты", [*uv, str(ROOT / "scripts" / "perf_budget.py"), *java_args], ROOT / "backend", env
     )
 
+    steps["fix_differential"] = run(
+        "исправления не меняют поведение",
+        [*uv, str(ROOT / "scripts" / "fix_differential.py"), *java_args],
+        ROOT / "backend",
+        env,
+    )
     if jdk_sources(args.java_home):  # нужен src.zip JDK; без него шаг пропускается
         steps["jdk_sweep"] = run(
             "прочность на чужом коде", [*uv, str(ROOT / "scripts" / "jdk_sweep.py")], ROOT / "backend", env

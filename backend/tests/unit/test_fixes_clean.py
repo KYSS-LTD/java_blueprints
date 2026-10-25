@@ -130,6 +130,42 @@ def test_fix_10_adds_default_and_break_for_fall_through():
     assert "BUG-10" not in rule_ids(after)
 
 
+def test_fix_10_adds_no_break_after_a_statement_that_cannot_complete():
+    # блок с break, try, который всегда возвращает или бросает, и if/else с выходом в обеих ветвях:
+    # лишний break после них — ошибка javac «unreachable statement»
+    body = (
+        "        switch (n) {\n"
+        "            case 1: {\n"
+        "                n++;\n"
+        "                break;\n"
+        "            }\n"
+        "            case 2:\n"
+        "                try {\n"
+        "                    n = Integer.parseInt(items.get(0));\n"
+        "                    return;\n"
+        "                } catch (NumberFormatException e) {\n"
+        "                    throw new IllegalStateException(e);\n"
+        "                }\n"
+        "            case 3:\n"
+        "                if (n > 0) {\n"
+        "                    return;\n"
+        "                } else {\n"
+        "                    throw new IllegalStateException();\n"
+        "                }\n"
+        "            case 4:\n"
+        "                n--;\n"
+        "            case 5:\n"
+        "                n += 2;\n"
+        "                break;\n"
+        "        }"
+    )
+    after = fixed(project_of(body), "BUG-10")
+    assert "                n--;\n                break;\n            case 5:" in after
+    assert "                }\n                break;" not in after
+    assert after.count("break;") == 4  # два прежних, один после n-- и один в default
+    assert not JavaProject({"A.java": after}).syntax_issues()
+
+
 def test_fix_10_flags_behaviour_change():
     assert behaviour(project_of(SWITCH), "BUG-10") is False
 

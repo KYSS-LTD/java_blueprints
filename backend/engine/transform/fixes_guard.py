@@ -16,6 +16,7 @@ from engine.analysis.metrics import nesting_and_cognitive
 from engine.edit.core import TextEdit, indent_unit, line_indent, line_start
 from engine.java import cst
 from engine.transform.base import Check, refuse
+from engine.transform.reach import cannot_complete
 
 if TYPE_CHECKING:
     from engine.transform.fixes import Ctx
@@ -32,13 +33,6 @@ _NESTING = {
     "switch_statement",
     "try_statement",
     "try_with_resources_statement",
-}
-_ABRUPT = {
-    "return_statement",
-    "throw_statement",
-    "continue_statement",
-    "break_statement",
-    "yield_statement",
 }
 _FLIPPED = {"<": ">=", "<=": ">", ">": "<=", ">=": "<"}
 _INTEGRAL = {"int", "long", "short", "byte", "char"}
@@ -186,7 +180,7 @@ def _branch_text(c: Ctx, branch: Node, base: str, unit: str) -> str:
 
 def _ends_abruptly(branch: Node) -> bool:
     items = _statements(branch)
-    return bool(items) and items[-1].type in _ABRUPT
+    return bool(items) and cannot_complete(items[-1])
 
 
 def ref_03(c: Ctx) -> tuple[list[TextEdit], list[Check]]:
