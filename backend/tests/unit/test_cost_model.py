@@ -182,3 +182,114 @@ def test_cost_formatting():
     assert Cost(False, 2, 1).format() == "O(n² log n)"
     assert EXP.format() == "O(2ⁿ)"
     assert N * N == N2 and N + N2 == N2 and EXP * N == EXP and max(N, NLOGN) == NLOGN
+
+
+# --- амортизация: общий курсор, общий счётчик, обход дерева, итерируемое один раз -----------------------------------
+
+PARSER = """
+class A {
+    private final List<String> tokens = new ArrayList<>();
+    private int pos;
+
+    private String peek() { return pos < tokens.size() ? tokens.get(pos) : ""; }
+    private String next() { return tokens.get(pos++); }
+
+    int run() { return parseSum(); }
+
+    private int parseSum() {
+        int left = parseProduct();
+        while (peek().equals("+")) {
+            next();
+            left += parseProduct();
+        }
+        return left;
+    }
+
+    private int parseProduct() {
+        int left = parseUnary();
+        while (peek().equals("*")) {
+            next();
+            left *= parseUnary();
+        }
+        return left;
+    }
+
+    private int parseUnary() {
+        if (peek().equals("-")) {
+            next();
+            return -parseUnary();
+        }
+        if (peek().equals("(")) {
+            next();
+            int inner = parseSum();
+            next();
+            return inner;
+        }
+        return Integer.parseInt(next());
+    }
+}
+"""
+
+
+def program_cost(source: str) -> tuple[Cost, str]:
+    project = JavaProject({"A.java": "import java.util.*;\n" + source})
+    found = CostModel(project).method(next(m.id for m in project.members() if m.name == "run"))
+    assert found is not None
+    return found.cost, "heuristic" if found.result.notes else "exact"
+
+
+def test_a_recursive_descent_parser_costs_one_pass_over_the_tokens():
+    # циклы разных уровней забирают токены из одного курсора: вместе они делают не больше n шагов
+    cost, confidence = program_cost(PARSER)
+    assert cost == N
+    assert confidence == "heuristic"
+
+
+def test_a_tokenizer_whose_inner_loop_moves_the_outer_index_is_linear():
+    cost, _ = estimate(
+        method(
+            "int i = 0; int count = 0;\n"
+            "while (i < n) {\n"
+            "    if (list.get(i) > 0) {\n"
+            "        while (i < n && list.get(i) > 0) { i++; }\n"
+            "        count++;\n"
+            "    } else { i++; }\n"
+            "}"
+        )
+    )
+    assert cost == N
+
+
+def test_recursion_over_the_children_of_a_node_visits_every_node_once():
+    cost, _ = program_cost(
+        """
+class A {
+    static class Node { List<Node> children = new ArrayList<>(); int value; }
+    int run() { return total(new Node()); }
+    private int total(Node node) {
+        int sum = node.value;
+        for (Node child : node.children) {
+            sum += total(child);
+        }
+        return sum;
+    }
+}
+"""
+    )
+    assert cost == N
+
+
+def test_the_iterable_of_a_for_each_is_evaluated_once_not_per_iteration():
+    cost, _ = estimate(
+        method("for (int x : sorted(list)) { n += x; }"),
+        members="List<Integer> sorted(List<Integer> items) { List<Integer> copy = new ArrayList<>(items); Collections.sort(copy); return copy; }",
+    )
+    assert cost == NLOGN
+
+
+def test_loops_over_independent_counters_still_multiply():
+    # у внутреннего цикла свой счётчик: это настоящее вложение, а не общий индекс
+    cost, _ = estimate(
+        method("int i = 0; while (i < n) { int j = 0; while (j < n) { j++; } i++; }")
+    )
+    assert cost == N2

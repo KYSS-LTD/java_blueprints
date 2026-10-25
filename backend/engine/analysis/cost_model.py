@@ -29,6 +29,14 @@ _CONSTANT_NAME = re.compile(r"^[A-Z][A-Z0-9_]+$")
 _LINEAR_UPDATE = re.compile(r"^(?:\+\+\s*\w+|\w+\s*\+\+|--\s*\w+|\w+\s*--|\w+\s*[+-]=\s*\d+)$")
 _LOG_UPDATE = re.compile(r"(?:\*=|/=|<<=|>>=|>>>=)|=\s*\w+\s*[*/]\s*\d+|=\s*\w+\s*(?:<<|>>)\s*\d+")
 _SOURCE_READ = re.compile(r"\.(?:hasNext\w*|readLine|isEmpty|poll\w*|peek\w*|read|ready)\s*\(")
+# Цикл по общему курсору (разбор токенов): условие смотрит вперёд, тело забирает токен. Все такие циклы вложенных
+# вызовов вместе делают не больше n шагов, поэтому внутри одного цикла по курсору остальные стоят O(1).
+_CURSOR_LOOK = re.compile(
+    r"(?<![.\w])(?:peek|lookahead|current|check|match|atEnd|isAtEnd|hasMore|more)\w*\s*\("
+)
+_CURSOR_TAKE = re.compile(
+    r"(?<![.\w])(?:next|advance|consume|nextToken|eat|take|skip)\w*\s*\(|\b(?:pos|position|index|idx|cursor|current)\s*(?:\+\+|\+=)|(?:\+\+)\s*(?:pos|position|index|idx|cursor|current)\b"
+)
 _HALVING = re.compile(r"/\s*2\b|>>\s*1\b|>>>\s*1\b|/=\s*2\b|\*=\s*2\b|<<=\s*1\b")
 _STREAM_STEPS = frozenset(
     {
@@ -133,20 +141,24 @@ class CostModel:
         self.project = project
         self.reduce = reduce
         self._done: dict[str, MethodCost] = {}
-        self._stack: list[str] = []
+        self._absorbed: dict[
+            str, MethodCost
+        ] = {}  # стоимость метода, вызванного внутри цикла по общему курсору
+        self._stack: list[tuple[str, bool]] = []
 
-    def method(self, member_id: str) -> MethodCost | None:
-        done = self._done.get(member_id)
+    def method(self, member_id: str, absorbed: bool = False) -> MethodCost | None:
+        memo = self._absorbed if absorbed else self._done
+        done = memo.get(member_id)
         if done is not None:
             return done
         member = self.project.member(member_id)
         if member is None or member.kind not in FLOWABLE:
             return None
-        if member_id in self._stack:
+        if (member_id, absorbed) in self._stack:
             return MethodCost(ZERO)  # взаимная рекурсия: вклад учтён у начавшего вычисление
-        self._stack.append(member_id)
+        self._stack.append((member_id, absorbed))
         try:
-            computed = _Walker(self, member).run()
+            computed = _Walker(self, member, absorbed).run()
         finally:
             self._stack.pop()
         if (
@@ -156,7 +168,7 @@ class CostModel:
         ):
             lowered = Cost(False, computed.result.cost.n - 1, computed.result.cost.log)
             computed.result = CostResult(lowered, computed.result.chain, computed.result.notes)
-        self._done[member_id] = computed
+        memo[member_id] = computed
         return computed
 
     def program_cost(self) -> Cost:
@@ -172,9 +184,12 @@ class CostModel:
 class _Walker:
     """Обход одного метода."""
 
-    def __init__(self, model: CostModel, member: Member) -> None:
+    def __init__(self, model: CostModel, member: Member, absorbed: bool = False) -> None:
         self.model = model
         self.member = member
+        # метод вызван внутри цикла по общему курсору: его собственные такие циклы и рекурсия по токенам — O(1)
+        self.absorbed = absorbed
+        self.inside_cursor = absorbed
         project = model.project
         self.ctx, self.declaration = project.context(member)
         self.parsed = self.ctx.parsed
@@ -189,6 +204,12 @@ class _Walker:
         self.node_costs: dict[str, CostResult] = {}
         self.loops: dict[str, Cost] = {}
         self.self_calls: list[str] = []
+        self.descents = (
+            0  # из self_calls: сколько вызовов идут по элементу текущего for-each (обход дерева)
+        )
+        self.counters: list[str] = []  # счётчики охватывающих циклов while
+        self.foreach_vars: list[str] = []  # переменные охватывающих for-each
+        self.pending_counter: str | None = None
         self.constants: set[str] = set()
 
     # --- вход -------------------------------------------------------------------------------
@@ -233,6 +254,16 @@ class _Walker:
                 "рекурсия с уменьшением аргумента на константу",
                 frozenset(),
             )
+        elif self.descents == len(calls):
+            cost = (
+                work.cost
+            )  # обход дерева: у каждого узла рекурсия по его потомкам, узлов в сумме n
+            why = "рекурсия по элементам цикла: каждый узел посещается один раз"
+            notes = frozenset({"обход дерева: узлы считаются в сумме"})
+        elif _CURSOR_TAKE.search(self.text(self.declaration)):
+            cost = work.cost  # каждый шаг рекурсии забирает токен: суммарно не больше n шагов, они учтены у цикла-хозяина
+            why = "рекурсия по общему курсору: шаги учтены у внешнего цикла"
+            notes = frozenset({"рекурсия по курсору: стоимость шагов отнесена к внешнему циклу"})
         else:
             cost = work.cost * N
             why = "рекурсия без распознанного шага"
@@ -401,29 +432,47 @@ class _Walker:
         iterations: tuple[Cost, str, bool],
         body: Node | None,
         extras: list[Node | None],
+        cursor: bool = False,
+        once: list[Node | None] | None = None,
     ) -> CostResult:
+        """``extras`` вычисляются на каждой итерации (условие, шаг), ``once`` — один раз (инициализация, итерируемое)."""
         factor, why, exact = iterations
+        outside = self.inside_cursor
+        if cursor:
+            if outside:
+                factor, why, exact = (
+                    ONE,
+                    "цикл по общему курсору внутри другого: шаги учтены у внешнего",
+                    True,
+                )
+            self.inside_cursor = True
         inner = self.stmt(body) if body is not None else ZERO
         for extra in extras:
             if extra is not None:
                 inner = inner.then(self.expr(extra))
+        self.inside_cursor = outside
         self.loops[self.fid(node)] = factor
         contribution = (
             None if factor.is_constant else Contribution(self.fid(node), factor.factor(), why)
         )
         notes = frozenset() if exact else frozenset({f"число итераций оценено эвристически: {why}"})
-        return inner.scaled(factor, contribution, notes)
+        result = inner.scaled(factor, contribution, notes)
+        for extra in once or []:
+            if extra is not None:
+                result = result.then(self.expr(extra))
+        return result
 
     def _s_for_statement(self, node: Node) -> CostResult:
         cond = node.child_by_field_name("condition")
         updates = node.children_by_field_name("update")
         init = node.children_by_field_name("init")
-        extras: list[Node | None] = [cond, *updates, *init]
+        extras: list[Node | None] = [cond, *updates]
         return self._loop(
             node,
             self._for_iterations(cond, updates, init),
             node.child_by_field_name("body"),
             extras,
+            once=[*init],
         )
 
     def _for_iterations(
@@ -465,7 +514,13 @@ class _Walker:
     def _s_enhanced_for_statement(self, node: Node) -> CostResult:
         value = node.child_by_field_name("value")
         cost, why, exact = self._iterable(value)
-        return self._loop(node, (cost, why, exact), node.child_by_field_name("body"), [value])
+        self.foreach_vars.append(self.text(node.child_by_field_name("name")))
+        try:
+            return self._loop(
+                node, (cost, why, exact), node.child_by_field_name("body"), [], once=[value]
+            )
+        finally:
+            self.foreach_vars.pop()
 
     def _iterable(self, value: Node | None) -> tuple[Cost, str, bool]:
         shown = self.text(value) or "коллекции"
@@ -486,8 +541,25 @@ class _Walker:
             return N, f"цикл по результату {shown} (принято n)", False
         return N, f"цикл по {shown} (n элементов)", True
 
+    def _is_cursor_loop(self, cond: Node | None, body: Node | None, exact: bool) -> bool:
+        """``while (peek() …) { … next() … }``: цикл по общему курсору, а не по коллекции или счётчику."""
+        if exact or cond is None or body is None:
+            return False
+        return bool(_CURSOR_LOOK.search(self.text(cond)) and _CURSOR_TAKE.search(self.text(body)))
+
     def _while(self, node: Node, cond: Node | None, body: Node | None) -> CostResult:
-        return self._loop(node, self._while_iterations(cond, body), body, [cond])
+        self.pending_counter = None
+        iterations = self._while_iterations(cond, body)
+        cursor = self._is_cursor_loop(cond, body, iterations[2])
+        counter = self.pending_counter
+        self.pending_counter = None
+        if counter is not None:
+            self.counters.append(counter)
+        try:
+            return self._loop(node, iterations, body, [cond], cursor)
+        finally:
+            if counter is not None:
+                self.counters.pop()
 
     def _s_while_statement(self, node: Node) -> CostResult:
         return self._while(
@@ -498,6 +570,20 @@ class _Walker:
         return self._while(
             node, node.child_by_field_name("condition"), node.child_by_field_name("body")
         )
+
+    def _and_terms(self, node: Node | None) -> list[Node]:
+        """Слагаемые условия ``a && b && c`` (скобки раскрываются)."""
+        if node is None:
+            return []
+        if node.type == "parenthesized_expression" and cst.named_children(node):
+            return self._and_terms(cst.named_children(node)[0])
+        if (
+            node.type == "binary_expression"
+            and self.text(node.child_by_field_name("operator")) == "&&"
+        ):
+            left, right = node.child_by_field_name("left"), node.child_by_field_name("right")
+            return [*self._and_terms(left), *self._and_terms(right)]
+        return [node]
 
     def _while_iterations(self, cond: Node | None, body: Node | None) -> tuple[Cost, str, bool]:
         cond_text = self.text(cond)
@@ -511,26 +597,36 @@ class _Walker:
             and cst.named_children(cond)
             else cond
         )
-        if inner is not None and inner.type == "binary_expression":
-            op = self.text(inner.child_by_field_name("operator"))
-            if op in {"<", "<=", ">", ">=", "!="}:
-                if _HALVING.search(body_text) or re.search(r"\bmid\b", body_text):
-                    return LOGN, f"цикл с делением диапазона ({cond_text})", True
-                names = {self.text(n) for n in cst.walk(inner) if n.type == "identifier"}
-                for name in names:
-                    if re.search(
-                        rf"\b{re.escape(name)}\s*(?:\+\+|--|[+-]=\s*\d+)|(?:\+\+|--)\s*{re.escape(name)}\b",
-                        body_text,
-                    ):
-                        bound = inner.child_by_field_name("right")
-                        left = inner.child_by_field_name("left")
-                        if bound is not None and left is not None and self._mentions(bound, name):
-                            bound = left
+        for term in self._and_terms(inner):
+            if term.type != "binary_expression":
+                continue
+            op = self.text(term.child_by_field_name("operator"))
+            if op not in {"<", "<=", ">", ">=", "!="}:
+                continue
+            if _HALVING.search(body_text) or re.search(r"\bmid\b", body_text):
+                return LOGN, f"цикл с делением диапазона ({cond_text})", True
+            names = {self.text(n) for n in cst.walk(term) if n.type == "identifier"}
+            for name in names:
+                if re.search(
+                    rf"\b{re.escape(name)}\s*(?:\+\+|--|[+-]=\s*\d+)|(?:\+\+|--)\s*{re.escape(name)}\b",
+                    body_text,
+                ):
+                    bound = term.child_by_field_name("right")
+                    left = term.child_by_field_name("left")
+                    if bound is not None and left is not None and self._mentions(bound, name):
+                        bound = left
+                    if name in self.counters:
                         return (
-                            self.bound_cost(bound),
-                            f"цикл со счётчиком {name} ({cond_text})",
+                            ONE,
+                            f"цикл двигает счётчик {name} внешнего цикла: шаги учтены у него",
                             True,
                         )
+                    self.pending_counter = name
+                    return (
+                        self.bound_cost(bound),
+                        f"цикл со счётчиком {name} ({cond_text})",
+                        True,
+                    )
         return N, f"цикл while ({cond_text}) без распознанного шаблона (принято n)", False
 
     # --- выражения ------------------------------------------------------------------------------------------
@@ -583,7 +679,14 @@ class _Walker:
         if receiver.type == "method_invocation":
             step = self.text(receiver.child_by_field_name("name"))
             inner_owner = self.text(receiver.child_by_field_name("object"))
-            if step in _STREAM_STEPS and (inner_owner in _STREAM_STATIC or step != "of"):
+            own = bool(
+                self.ctx.resolve_call(receiver)
+            )  # свой метод с именем шага (peek, filter, map…), а не Stream
+            if (
+                not own
+                and step in _STREAM_STEPS
+                and (inner_owner in _STREAM_STATIC or step != "of")
+            ):
                 return "Stream", False
             if step in {"entrySet", "keySet", "values"}:
                 return "Set", False
@@ -599,10 +702,13 @@ class _Walker:
         if targets:
             if any(t.id == self.member.id for t in targets):
                 self.self_calls.append(" ".join(self.text(a) for a in args))
+                names = {self.text(n) for a in args for n in cst.walk(a) if n.type == "identifier"}
+                if names & set(self.foreach_vars):
+                    self.descents += 1
                 return ZERO
             best = ZERO
             for target in targets:
-                found = self.model.method(target.id)
+                found = self.model.method(target.id, self.inside_cursor)
                 if found is None:
                     continue
                 part = found.result
