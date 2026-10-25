@@ -11,7 +11,14 @@ from tests.unit.test_decompose import INHERITED, NESTED
 
 pytestmark = pytest.mark.jdk
 
-MONOLITHS = ["demo-orders", "inventory", "text-analyzer", "graph-paths", "expression-calculator"]
+MONOLITHS = [
+    "demo-orders",
+    "inventory",
+    "text-analyzer",
+    "graph-paths",
+    "expression-calculator",
+    "library",
+]
 
 
 def url(project, suffix: str) -> str:

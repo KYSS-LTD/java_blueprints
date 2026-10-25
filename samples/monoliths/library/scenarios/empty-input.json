@@ -1,0 +1,7 @@
+{
+  "name": "empty-input",
+  "description": "Пустой ввод: заголовок и итог",
+  "stdin": "",
+  "args": [],
+  "expected_stdout": "=== Библиотека ===\nКоманды: book, magazine, reader, batch, lend, return, renew, day, pay, list, report, help, quit\n----------------------------------------\n----------------------------------------\nКоманд: 0, ошибок: 0, изданий: 0, читателей: 0, день: 1"
+}

@@ -11,7 +11,13 @@ from engine.edit.pipeline import apply_ops
 from engine.java.project import JavaProject
 
 SAMPLES = Path(__file__).resolve().parents[3] / "samples"
-CORPUS = ["demo-orders", "monoliths/inventory", "monoliths/graph-paths", "monoliths/text-analyzer"]
+CORPUS = [
+    "demo-orders",
+    "monoliths/inventory",
+    "monoliths/graph-paths",
+    "monoliths/text-analyzer",
+    "monoliths/library",
+]
 STATEMENTS = {
     "operation",
     "assign",

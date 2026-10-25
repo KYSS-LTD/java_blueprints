@@ -18,6 +18,7 @@ SAMPLES = [
     "text-analyzer",
     "graph-paths",
     "expression-calculator",
+    "library",
 ]
 
 

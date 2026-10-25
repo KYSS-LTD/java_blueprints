@@ -1,0 +1,8 @@
+{
+  "name": "uncaught-exception",
+  "description": "Необработанное исключение: команда boom, код выхода 1",
+  "stdin": "book Тайна Автор роман 2\nreader Анна\nlend 1 1\nlist\nboom\nreader Борис\n",
+  "args": [],
+  "expected_exit_code": 1,
+  "expected_stdout": "=== Библиотека ===\nКоманды: book, magazine, reader, batch, lend, return, renew, day, pay, list, report, help, quit\n----------------------------------------\nДобавлена книга №1: Тайна, Автор (Роман), 2 экз.\nЧитатель №1: Анна\nВыдано: Тайна -> Анна, вернуть до дня 15\n№    Вид       Название                 Жанр           Всего Есть\n1    книга     Тайна                    Роман              2    1\nВсего изданий: 1"
+}

@@ -317,6 +317,13 @@ PLANTED = {
         "== для строк": "name == HUB_NAME",
         "клоны": ("countIsolated", "countLeaves", "countHubs"),
     },
+    "library": {
+        "вложенный поиск": "for (Item existing : merged)",
+        "contains в цикле": "!authors.contains(author)",
+        "конкатенация в цикле": "csv += item.getId()",
+        "== для строк": "a.getTitle() == b.getTitle()",
+        "клоны": ("checkTitle", "checkAuthor", "checkReaderName"),
+    },
 }
 
 
